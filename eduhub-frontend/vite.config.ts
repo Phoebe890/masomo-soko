@@ -12,5 +12,11 @@ export default defineConfig({
     alias: {
       '@emotion/styled': '@emotion/styled/base'
     }
+  },
+  server: {
+    proxy: {
+      '/api/auth/signup': 'http://localhost:8089',
+      '/api/auth/login': 'http://localhost:8089',
+    }
   }
 })

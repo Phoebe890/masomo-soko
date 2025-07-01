@@ -12,10 +12,42 @@ const Register: React.FC = () => {
     confirmPassword: '',
     role: 'student',
   });
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
+    setMessage(null);
+    if (formData.password !== formData.confirmPassword) {
+      setMessage('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role
+        })
+      });
+      if (response.ok) {
+        setMessage('Registration successful! Redirecting to login...');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+      } else {
+        const data = await response.text();
+        setMessage(data || 'Registration failed.');
+      }
+    } catch (error) {
+      setMessage('An error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -70,6 +102,11 @@ const Register: React.FC = () => {
               onSubmit={handleSubmit} 
               sx={{ mt: 2 }}
             >
+              {message && (
+                <Typography color={message.includes('success') ? 'primary' : 'error'} align="center" sx={{ mb: 2 }}>
+                  {message}
+                </Typography>
+              )}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -199,6 +236,7 @@ const Register: React.FC = () => {
                   fullWidth
                   variant="contained"
                   color="primary"
+                  disabled={loading}
                   sx={{
                     mt: 3,
                     mb: 2,
@@ -212,7 +250,7 @@ const Register: React.FC = () => {
                     },
                   }}
                 >
-                  Create Account
+                  {loading ? 'Signing up...' : 'Sign Up'}
                 </Button>
               </motion.div>
 

@@ -19,12 +19,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .httpBasic(org.springframework.security.config.Customizer.withDefaults()); // basic authentication
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/signup", "/api/auth/login").permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(org.springframework.security.config.Customizer.withDefaults()); // basic authentication
         return http.build();
     }
 }

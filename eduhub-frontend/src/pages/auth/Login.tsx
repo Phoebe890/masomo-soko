@@ -8,10 +8,36 @@ const Login: React.FC = () => {
     email: '',
     password: '',
   });
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
+    setMessage(null);
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
+      if (response.ok) {
+        setMessage('Login successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        const data = await response.text();
+        setMessage(data || 'Login failed.');
+      }
+    } catch (error) {
+      setMessage('An error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,6 +87,11 @@ const Login: React.FC = () => {
             onSubmit={handleSubmit} 
             sx={{ mt: 2 }}
           >
+            {message && (
+              <Typography color={message.includes('success') ? 'primary' : 'error'} align="center" sx={{ mb: 2 }}>
+                {message}
+              </Typography>
+            )}
             <TextField
               fullWidth
               label="Email"
@@ -100,6 +131,7 @@ const Login: React.FC = () => {
               fullWidth
               variant="contained"
               color="primary"
+              disabled={loading}
               sx={{
                 mt: 3,
                 mb: 2,
@@ -113,7 +145,7 @@ const Login: React.FC = () => {
                 },
               }}
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
