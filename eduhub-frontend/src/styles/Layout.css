@@ -1,0 +1,13 @@
+/* layout.css */
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  
+  /* Add responsive styles */
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 0;
+    }
+  }
