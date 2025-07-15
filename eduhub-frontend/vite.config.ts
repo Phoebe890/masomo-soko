@@ -15,8 +15,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/auth/signup': 'http://localhost:8089',
-      '/api/auth/login': 'http://localhost:8089',
+      '/api': 'http://localhost:8089'
     }
   }
 })

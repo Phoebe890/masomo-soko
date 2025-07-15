@@ -19,13 +19,14 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public String signup(SignUpRequest request) {
-        if (userRepository.existsByEmail(request.email)) {
+        String normalizedEmail = request.email.trim().toLowerCase();
+        if (userRepository.existsByEmail(normalizedEmail)) {
             return "Email already in use.";
         }
 
         User user = new User();
         user.setName(request.name);
-        user.setEmail(request.email);
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.password)); // hash password
         user.setRole(request.role.toUpperCase());
 
@@ -34,8 +35,10 @@ public class AuthService {
     }
 
     public boolean login(LoginRequest request) {
-        Optional<User> userOpt = userRepository.findByEmail(request.email);
-        if (userOpt.isEmpty()) return false;
+        String normalizedEmail = request.email.trim().toLowerCase();
+        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
+        if (userOpt.isEmpty())
+            return false;
 
         User user = userOpt.get();
         return passwordEncoder.matches(request.password, user.getPassword());

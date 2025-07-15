@@ -5,10 +5,16 @@ import HomeIcon from '@mui/icons-material/Home';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
+import PropTypes from 'prop-types';
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
 
 const drawerWidth = 240;
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -45,9 +51,13 @@ const Sidebar: React.FC = () => {
   return (
     <Drawer
       variant={isMobile ? 'temporary' : 'permanent'}
+      open={isMobile ? mobileOpen : true}
+      onClose={isMobile ? onClose : undefined}
+      ModalProps={isMobile ? { keepMounted: true } : undefined}
       sx={{
-        width: drawerWidth,
+        width: isMobile ? undefined : drawerWidth,
         flexShrink: 0,
+        display: { xs: isMobile && !mobileOpen ? 'none' : 'block', md: 'block' },
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
@@ -59,6 +69,11 @@ const Sidebar: React.FC = () => {
       {drawer}
     </Drawer>
   );
+};
+
+Sidebar.propTypes = {
+  mobileOpen: PropTypes.bool,
+  onClose: PropTypes.func,
 };
 
 export default Sidebar; 

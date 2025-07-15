@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Typography, TextField, Button, Paper, Link, useTheme, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Register: React.FC = () => {
@@ -14,6 +14,7 @@ const Register: React.FC = () => {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +36,19 @@ const Register: React.FC = () => {
         })
       });
       if (response.ok) {
-        setMessage('Registration successful! Redirecting to login...');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
+        localStorage.setItem('email', formData.email.trim().toLowerCase());
+        localStorage.setItem('role', formData.role.toLowerCase());
+        if (formData.role.toLowerCase() === 'teacher') {
+          setMessage('Registration successful! Redirecting to onboarding...');
+          setTimeout(() => {
+            navigate('/dashboard/teacher/onboarding');
+          }, 1200);
+        } else {
+          setMessage('Registration successful! Redirecting to payment...');
+          setTimeout(() => {
+            navigate('/purchase-confirmation'); // or navigate('/') for homepage
+          }, 1200);
+        }
       } else {
         const data = await response.text();
         setMessage(data || 'Registration failed.');

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Typography, TextField, Button, Paper, Link, useTheme } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const theme = useTheme();
@@ -10,6 +10,7 @@ const Login: React.FC = () => {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +26,10 @@ const Login: React.FC = () => {
         })
       });
       if (response.ok) {
-        setMessage('Login successful! Redirecting...');
+        setMessage('Login successful! Redirecting to your dashboard...');
+        localStorage.setItem('email', formData.email);
         setTimeout(() => {
-          window.location.href = '/';
+          navigate('/dashboard/teacher');
         }, 1000);
       } else {
         const data = await response.text();
@@ -50,29 +52,10 @@ const Login: React.FC = () => {
         py: 4
       }}
     >
-      <Container maxWidth="sm">
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4,
-            borderRadius: 2,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-            backdropFilter: 'blur(10px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)'
-          }}
-        >
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            align="center" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-              mb: 3
-            }}
-          >
-            Welcome Back
+      <Container maxWidth="xs" sx={{ minHeight: { xs: '100vh', md: '80vh' }, display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 2, md: 6 } }}>
+        <Box sx={{ width: '100%', mt: { xs: 2, md: 8 } }}>
+          <Typography variant="h4" fontWeight={700} gutterBottom align="center" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
+            Login
           </Typography>
           <Typography 
             variant="body1" 
@@ -82,16 +65,23 @@ const Login: React.FC = () => {
           >
             Sign in to continue your learning journey
           </Typography>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 4,
+              borderRadius: 2,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+              backdropFilter: 'blur(10px)',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)'
+            }}
+          >
           <Box 
             component="form" 
             onSubmit={handleSubmit} 
             sx={{ mt: 2 }}
           >
-            {message && (
-              <Typography color={message.includes('success') ? 'primary' : 'error'} align="center" sx={{ mb: 2 }}>
-                {message}
-              </Typography>
-            )}
+              {message && <Typography color="success.main" align="center">{message}</Typography>}
+              {/* {error && <Typography color="error.main" align="center">{error}</Typography>} */}
             <TextField
               fullWidth
               label="Email"
@@ -107,6 +97,7 @@ const Login: React.FC = () => {
                     borderColor: theme.palette.primary.main,
                   },
                 },
+                  mb: { xs: 2, md: 3 }
               }}
             />
             <TextField
@@ -124,6 +115,7 @@ const Login: React.FC = () => {
                     borderColor: theme.palette.primary.main,
                   },
                 },
+                  mb: { xs: 2, md: 3 }
               }}
             />
             <Button
@@ -131,21 +123,22 @@ const Login: React.FC = () => {
               fullWidth
               variant="contained"
               color="primary"
-              disabled={loading}
+                disabled={loading}
               sx={{
                 mt: 3,
                 mb: 2,
                 py: 1.5,
                 borderRadius: 2,
-                fontSize: '1.1rem',
                 textTransform: 'none',
                 boxShadow: 3,
                 '&:hover': {
                   boxShadow: 6,
                 },
+                  minHeight: 48,
+                  fontSize: { xs: '1rem', md: '1.1rem' }
               }}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" color="text.secondary">
@@ -167,6 +160,7 @@ const Login: React.FC = () => {
             </Box>
           </Box>
         </Paper>
+        </Box>
       </Container>
     </Box>
   );
