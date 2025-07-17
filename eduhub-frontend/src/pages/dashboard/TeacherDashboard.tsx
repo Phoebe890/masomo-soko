@@ -193,9 +193,7 @@ const TeacherOnboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
 export { TeacherOnboarding };
 
 const handleZoomConnect = () => {
-  // const email = localStorage.getItem('email') || '';
   const clientID = '8YDG3EW2S0aVSE9PrveiNQ';
-  // Add email as a query param to the redirect_uri
   const redirectUri = `http://localhost:8089/api/auth/zoom/callback`;
   const zoomAuthUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}`;
   window.location.href = zoomAuthUrl;
