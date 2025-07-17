@@ -2,6 +2,7 @@ package com.eduhub.eduhub_backend.entity;
 
 import jakarta.persistence.*;
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 public class TeacherProfile {
@@ -20,6 +21,14 @@ public class TeacherProfile {
     private String paymentNumber;
 
     private String profilePicPath;
+
+    @Column(length = 1024)
+    private String zoomAccessToken;
+
+    @Column(length = 1024)
+    private String zoomRefreshToken;
+
+    private Instant zoomTokenExpiresAt;
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
@@ -72,6 +81,30 @@ public class TeacherProfile {
 
     public void setProfilePicPath(String profilePicPath) {
         this.profilePicPath = profilePicPath;
+    }
+
+    public String getZoomAccessToken() {
+        return zoomAccessToken;
+    }
+
+    public void setZoomAccessToken(String zoomAccessToken) {
+        this.zoomAccessToken = zoomAccessToken;
+    }
+
+    public String getZoomRefreshToken() {
+        return zoomRefreshToken;
+    }
+
+    public void setZoomRefreshToken(String zoomRefreshToken) {
+        this.zoomRefreshToken = zoomRefreshToken;
+    }
+
+    public Instant getZoomTokenExpiresAt() {
+        return zoomTokenExpiresAt;
+    }
+
+    public void setZoomTokenExpiresAt(Instant zoomTokenExpiresAt) {
+        this.zoomTokenExpiresAt = zoomTokenExpiresAt;
     }
 
     public User getUser() {

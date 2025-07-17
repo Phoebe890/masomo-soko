@@ -26,10 +26,18 @@ const Login: React.FC = () => {
         })
       });
       if (response.ok) {
+        const data = await response.json();
         setMessage('Login successful! Redirecting to your dashboard...');
-        localStorage.setItem('email', formData.email);
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('role', data.role);
         setTimeout(() => {
-          navigate('/dashboard/teacher');
+          if (data.role === 'teacher') {
+            navigate('/dashboard/teacher');
+          } else if (data.role === 'student') {
+            navigate('/dashboard/student');
+          } else {
+            navigate('/');
+          }
         }, 1000);
       } else {
         const data = await response.text();

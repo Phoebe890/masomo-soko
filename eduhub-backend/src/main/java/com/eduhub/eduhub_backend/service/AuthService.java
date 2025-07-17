@@ -34,13 +34,17 @@ public class AuthService {
         return "User registered successfully.";
     }
 
-    public boolean login(LoginRequest request) {
+    public User login(LoginRequest request) {
         String normalizedEmail = request.email.trim().toLowerCase();
         Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (userOpt.isEmpty())
-            return false;
+            return null;
 
         User user = userOpt.get();
-        return passwordEncoder.matches(request.password, user.getPassword());
+        if (passwordEncoder.matches(request.password, user.getPassword())) {
+            return user;
+        } else {
+            return null;
+        }
     }
 }

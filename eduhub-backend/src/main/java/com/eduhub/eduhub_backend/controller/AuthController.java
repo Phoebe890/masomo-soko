@@ -7,6 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,10 +28,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
-        boolean success = authService.login(request);
-        if (success) {
-            return ResponseEntity.ok("Login successful.");
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        var user = authService.login(request);
+        if (user != null) {
+            return ResponseEntity.ok(java.util.Map.of(
+                    "email", user.getEmail(),
+                    "role", user.getRole()));
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
         }

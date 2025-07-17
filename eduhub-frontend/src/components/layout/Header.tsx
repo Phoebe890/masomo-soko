@@ -30,6 +30,65 @@ const navLinks = [
   { label: 'About', to: '/about' },
 ];
 
+const EduHubLogo = () => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    {/* Logo (replace with your own SVG or image) */}
+    <Box
+      component={RouterLink}
+      to="/"
+      sx={{
+        width: 44,
+        height: 44,
+        bgcolor: 'primary.main',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textDecoration: 'none',
+        outline: 'none',
+        '&:focus': {
+          outline: theme => `2px solid ${theme.palette.primary.main}`,
+          outlineOffset: 2,
+        },
+      }}
+      aria-label="EduHub homepage"
+      tabIndex={0}
+    >
+      {/* Example: Book + Hub icon SVG */}
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="15" fill="#fff" stroke="#1976d2" strokeWidth="2" />
+        <rect x="9" y="10" width="14" height="10" rx="2" fill="#1976d2" />
+        <path d="M12 13h8M12 16h8M12 19h8" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+      <Box
+        component={RouterLink}
+        to="/"
+        sx={{
+          textDecoration: 'none',
+          outline: 'none',
+          display: 'inline-block',
+          position: 'relative',
+          '&:focus': {
+            outline: theme => `2px solid ${theme.palette.primary.main}`,
+            outlineOffset: 2,
+          },
+        }}
+        aria-label="EduHub homepage"
+        tabIndex={0}
+      >
+        <Typography variant="h6" fontWeight={400} color="primary" sx={{ lineHeight: 1, letterSpacing: '-0.5px' }}>
+          EduHub
+        </Typography>
+      </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.2, fontWeight: 500, letterSpacing: 0.2 }}>
+        Empowering Education
+      </Typography>
+    </Box>
+  </Box>
+);
+
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -66,27 +125,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <Toolbar component="nav" aria-label="Main navigation" sx={{ minHeight: 64, px: { xs: 1, md: 3 } }}>
           {/* Left: Logo */}
           <Box sx={{ flex: { xs: '0 0 auto', md: '0 0 180px' }, display: 'flex', alignItems: 'center', mr: 2 }}>
-        <Typography
-          variant="h6"
-          component={RouterLink}
-          to="/"
-              aria-label="EduHub homepage"
-          sx={{
-            textDecoration: 'none',
-                color: theme.palette.primary.main,
-                fontWeight: 800,
-                fontSize: '1.7rem',
-                letterSpacing: '-0.02em',
-                outline: 'none',
-                '&:focus': {
-                  outline: `2px solid ${theme.palette.primary.main}`,
-                  outlineOffset: 2,
-                },
-          }}
-              tabIndex={0}
-        >
-          EduHub
-        </Typography>
+            <Box component={RouterLink} to="/" sx={{ textDecoration: 'none', outline: 'none' }} aria-label="EduHub homepage" tabIndex={0}>
+              <EduHubLogo />
+            </Box>
           </Box>
           {/* Center: Nav links + Search */}
           {!isMobile && (

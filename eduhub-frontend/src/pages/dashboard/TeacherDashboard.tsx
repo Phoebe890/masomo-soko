@@ -192,6 +192,15 @@ const TeacherOnboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
 
 export { TeacherOnboarding };
 
+const handleZoomConnect = () => {
+  // const email = localStorage.getItem('email') || '';
+  const clientID = '8YDG3EW2S0aVSE9PrveiNQ';
+  // Add email as a query param to the redirect_uri
+  const redirectUri = `http://localhost:8089/api/auth/zoom/callback`;
+  const zoomAuthUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  window.location.href = zoomAuthUrl;
+};
+
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -211,6 +220,11 @@ const TeacherDashboard: React.FC = () => {
   const [topResources, setTopResources] = useState<any[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewResource, setReviewResource] = useState<any>(null);
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [meetingTopic, setMeetingTopic] = useState('');
+  const [meetingDuration, setMeetingDuration] = useState(30);
+  const [meetingLoading, setMeetingLoading] = useState(false);
+  const [meetingResult, setMeetingResult] = useState<any>(null);
 
   useEffect(() => {
     // Simulate isFirstLogin flag from localStorage or API
@@ -253,33 +267,6 @@ const TeacherDashboard: React.FC = () => {
     navigate('/dashboard/teacher/upload-first-resource');
   };
 
-  if (showOnboarding) {
-    return <TeacherOnboarding onComplete={handleOnboardingComplete} />;
-  }
-
-  // Dashboard summary
-  const teacherName = localStorage.getItem('teacherName') || 'Teacher';
-  const payoutSet = localStorage.getItem('payoutSet') === 'true';
-  const isProfileComplete = localStorage.getItem('isFirstLogin') !== 'true';
-  const hasResource = resources.length > 0;
-
-  // Delete resource handler
-  const handleDeleteResource = async () => {
-    if (!selectedResource) return;
-    setDeleteLoading(true);
-    try {
-      await fetch(`/api/teacher/resources/${selectedResource.id}`, { method: 'DELETE' });
-      setResources(resources.filter((r: any) => r.id !== selectedResource.id));
-      setDeleteDialogOpen(false);
-      setSelectedResource(null);
-      // Dispatch global event so other pages can refresh
-      window.dispatchEvent(new Event('resourceListChanged'));
-    } catch {
-      // Optionally show error
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
   // Edit resource handler
   const handleEditResource = async () => {
     if (!selectedResource) return;
@@ -297,7 +284,6 @@ const TeacherDashboard: React.FC = () => {
       setResources(resources.map((r: any) => r.id === selectedResource.id ? { ...r, ...editForm } : r));
       setEditDialogOpen(false);
       setSelectedResource(null);
-      // Dispatch global event so other pages can refresh
       window.dispatchEvent(new Event('resourceListChanged'));
     } catch {
       // Optionally show error
@@ -306,9 +292,63 @@ const TeacherDashboard: React.FC = () => {
     }
   };
 
+  // Delete resource handler
+  const handleDeleteResource = async () => {
+    if (!selectedResource) return;
+    setDeleteLoading(true);
+    try {
+      await fetch(`/api/teacher/resources/${selectedResource.id}`, { method: 'DELETE' });
+      setResources(resources.filter((r: any) => r.id !== selectedResource.id));
+      setDeleteDialogOpen(false);
+      setSelectedResource(null);
+      window.dispatchEvent(new Event('resourceListChanged'));
+    } catch {
+      // Optionally show error
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleCreateMeeting = async () => {
+    setMeetingLoading(true);
+    setMeetingResult(null);
+    try {
+      const res = await fetch('/api/coaching/create-meeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          topic: meetingTopic,
+          type: 1, // Instant meeting
+          duration: meetingDuration
+        })
+      });
+      const data = await res.json();
+      setMeetingResult(data);
+      if (data && data.join_url) {
+        alert(`Join URL: ${data.join_url}`);
+      }
+    } catch (e) {
+      setMeetingResult({ error: 'Failed to create meeting.' });
+    } finally {
+      setMeetingLoading(false);
+    }
+  };
+
+  // Always show Zoom button at the top
   return (
     <Container maxWidth="lg" sx={{ minHeight: { xs: '100vh', md: '80vh' }, py: { xs: 2, md: 6 }, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', mt: { xs: 2, md: 6 } }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          <Button variant="outlined" color="primary" onClick={handleZoomConnect}>
+            Connect to Zoom
+          </Button>
+          <Button variant="contained" color="secondary" onClick={() => setMeetingDialogOpen(true)}>
+            Create Zoom Meeting
+          </Button>
+        </Box>
         {/* Personalized Welcome Section */}
         {profile && (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, bgcolor: 'white', borderRadius: 3, boxShadow: 2, p: 3 }}>
@@ -332,7 +372,7 @@ const TeacherDashboard: React.FC = () => {
         {resources.length === 0 ? (
           <Box textAlign="center" py={6}>
             <Typography variant="h4" fontWeight={700} color="primary" gutterBottom>
-              Welcome to your Seller Dashboard, {teacherName}! Let's get you started.
+              Welcome to your Seller Dashboard, {localStorage.getItem('teacherName') || 'Teacher'}! Let's get you started.
             </Typography>
             <Button
               variant="contained"
@@ -362,16 +402,16 @@ const TeacherDashboard: React.FC = () => {
               </Typography>
               <List>
                 <ListItem>
-                  <ListItemIcon>{isProfileComplete ? <PersonIcon color="success" /> : <PersonIcon color="disabled" />}</ListItemIcon>
-                  <ListItemText primary="Create Your Profile" secondary={isProfileComplete ? '✔' : '✗'} secondaryTypographyProps={{ color: isProfileComplete ? 'success.main' : 'error.main' }} />
+                  <ListItemIcon>{localStorage.getItem('isFirstLogin') !== 'true' ? <PersonIcon color="disabled" /> : <PersonIcon color="success" />}</ListItemIcon>
+                  <ListItemText primary="Create Your Profile" secondary={localStorage.getItem('isFirstLogin') !== 'true' ? '✗' : '✔'} secondaryTypographyProps={{ color: localStorage.getItem('isFirstLogin') !== 'true' ? 'error.main' : 'success.main' }} />
                 </ListItem>
                 <ListItem>
-                  <ListItemIcon>{hasResource ? <CloudUploadIcon color="success" /> : <CloudUploadIcon color="disabled" />}</ListItemIcon>
-                  <ListItemText primary="Upload Your First Resource" secondary={hasResource ? '✔' : '✗'} secondaryTypographyProps={{ color: hasResource ? 'success.main' : 'error.main' }} />
+                  <ListItemIcon>{resources.length > 0 ? <CloudUploadIcon color="success" /> : <CloudUploadIcon color="disabled" />}</ListItemIcon>
+                  <ListItemText primary="Upload Your First Resource" secondary={resources.length > 0 ? '✔' : '✗'} secondaryTypographyProps={{ color: resources.length > 0 ? 'success.main' : 'error.main' }} />
                 </ListItem>
                 <ListItem>
-                  <ListItemIcon>{payoutSet ? <MonetizationOnIcon color="success" /> : <MonetizationOnIcon color="disabled" />}</ListItemIcon>
-                  <ListItemText primary="Set up Payout Details" secondary={payoutSet ? '✔' : '✗'} secondaryTypographyProps={{ color: payoutSet ? 'success.main' : 'error.main' }} />
+                  <ListItemIcon>{localStorage.getItem('payoutSet') === 'true' ? <MonetizationOnIcon color="success" /> : <MonetizationOnIcon color="disabled" />}</ListItemIcon>
+                  <ListItemText primary="Set up Payout Details" secondary={localStorage.getItem('payoutSet') === 'true' ? '✔' : '✗'} secondaryTypographyProps={{ color: localStorage.getItem('payoutSet') === 'true' ? 'success.main' : 'error.main' }} />
                 </ListItem>
               </List>
             </Box>
@@ -577,6 +617,41 @@ const TeacherDashboard: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReviewDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={meetingDialogOpen} onClose={() => setMeetingDialogOpen(false)}>
+        <DialogTitle>Create Zoom Meeting</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Meeting Topic"
+            fullWidth
+            margin="normal"
+            value={meetingTopic}
+            onChange={e => setMeetingTopic(e.target.value)}
+          />
+          <TextField
+            label="Duration (minutes)"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={meetingDuration}
+            onChange={e => setMeetingDuration(Number(e.target.value))}
+          />
+          {meetingResult && meetingResult.join_url && (
+            <Box mt={2}>
+              <strong>Meeting Created!</strong><br />
+              <a href={meetingResult.join_url} target="_blank" rel="noopener noreferrer">Join URL</a>
+            </Box>
+          )}
+          {meetingResult && meetingResult.error && (
+            <Box mt={2} color="error.main">{meetingResult.error}</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMeetingDialogOpen(false)} disabled={meetingLoading}>Cancel</Button>
+          <Button onClick={handleCreateMeeting} variant="contained" color="primary" disabled={meetingLoading || !meetingTopic}>
+            {meetingLoading ? 'Creating...' : 'Create Meeting'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
