@@ -77,9 +77,10 @@ const TeacherOnboarding: React.FC<{ onComplete: () => void }> = ({ onComplete })
       formData.append('grades', JSON.stringify(grades));
       formData.append('paymentNumber', paymentNumber);
       formData.append('email', email);
-      const response = await fetch('/api/teacher/onboarding', {
+      const response = await fetch('http://localhost:8089/api/teacher/onboarding', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error(await response.text());
@@ -241,7 +242,9 @@ const TeacherDashboard: React.FC = () => {
     setShowResourceReminder(resourceSkipped);
 
     // Fetch dashboard data from backend
-    fetch(`/api/teacher/dashboard?email=${encodeURIComponent(email)}`)
+    fetch('http://localhost:8089/api/teacher/dashboard?email=' + encodeURIComponent(email), {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => {
         setResources(data.resources || []);
@@ -252,7 +255,9 @@ const TeacherDashboard: React.FC = () => {
       })
       .catch(() => {});
 
-    fetch(`/api/teacher/analytics?email=${encodeURIComponent(email)}`)
+    fetch('/api/teacher/analytics?email=' + encodeURIComponent(email), {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => {
         setTopResources(data.topResources || []);
@@ -270,14 +275,15 @@ const TeacherDashboard: React.FC = () => {
     if (!selectedResource) return;
     setEditLoading(true);
     try {
-      await fetch(`/api/teacher/resources/${selectedResource.id}`, {
+      await fetch('http://localhost:8089/api/teacher/resources/' + selectedResource.id, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: editForm.title,
           description: editForm.description,
           price: editForm.price,
-        })
+        }),
+        credentials: 'include'
       });
       setResources(resources.map((r: any) => r.id === selectedResource.id ? { ...r, ...editForm } : r));
       setEditDialogOpen(false);
@@ -295,7 +301,7 @@ const TeacherDashboard: React.FC = () => {
     if (!selectedResource) return;
     setDeleteLoading(true);
     try {
-      await fetch(`/api/teacher/resources/${selectedResource.id}`, { method: 'DELETE' });
+      await fetch('http://localhost:8089/api/teacher/resources/' + selectedResource.id, { method: 'DELETE', credentials: 'include' });
       setResources(resources.filter((r: any) => r.id !== selectedResource.id));
       setDeleteDialogOpen(false);
       setSelectedResource(null);
@@ -311,17 +317,17 @@ const TeacherDashboard: React.FC = () => {
     setMeetingLoading(true);
     setMeetingResult(null);
     try {
-      const res = await fetch('/api/coaching/create-meeting', {
+      const res = await fetch('http://localhost:8089/api/coaching/create-meeting', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           topic: meetingTopic,
           type: 1, // Instant meeting
           duration: meetingDuration
-        })
+        }),
+        credentials: 'include'
       });
       const data = await res.json();
       setMeetingResult(data);

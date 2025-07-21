@@ -19,11 +19,11 @@ function AuthGate() {
   useEffect(() => {
     const email = localStorage.getItem('email');
     const role = localStorage.getItem('role');
-    // Only auto-redirect if on login or register pages, not on homepage
-    if (email && (location.pathname === '/login' || location.pathname === '/register')) {
-      if (role === 'teacher') {
+    if (email && role && (location.pathname === '/login' || location.pathname === '/register')) {
+      const userRole = role.toLowerCase();
+      if (userRole === 'teacher') {
         navigate('/dashboard/teacher', { replace: true });
-      } else if (role === 'student') {
+      } else if (userRole === 'student') {
         navigate('/dashboard/student', { replace: true });
       }
     }

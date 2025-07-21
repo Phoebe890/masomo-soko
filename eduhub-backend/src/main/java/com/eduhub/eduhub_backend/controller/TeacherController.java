@@ -1,49 +1,52 @@
 package com.eduhub.eduhub_backend.controller;
 
-import com.eduhub.eduhub_backend.entity.TeacherProfile;
-import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
-import com.eduhub.eduhub_backend.repository.UserRepository;
-import com.eduhub.eduhub_backend.entity.User;
-import com.eduhub.eduhub_backend.entity.TeacherResource;
-import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.dto.TeacherResourceDTO;
+import com.eduhub.eduhub_backend.entity.Purchase;
+import com.eduhub.eduhub_backend.entity.Review;
+import com.eduhub.eduhub_backend.entity.TeacherProfile;
+import com.eduhub.eduhub_backend.entity.TeacherResource;
+import com.eduhub.eduhub_backend.entity.User;
+import com.eduhub.eduhub_backend.repository.PurchaseRepository;
+import com.eduhub.eduhub_backend.repository.ReviewRepository;
+import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
+import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
+import com.eduhub.eduhub_backend.repository.UserRepository;
+import com.eduhub.eduhub_backend.service.FileUploadService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import com.eduhub.eduhub_backend.entity.Purchase;
-import com.eduhub.eduhub_backend.repository.ReviewRepository;
-import com.eduhub.eduhub_backend.entity.Review;
 
 @RestController
 @RequestMapping("/api/teacher")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class TeacherController {
+
+    @Autowired
+    private FileUploadService fileUploadService;
+
     @Autowired
     private TeacherProfileRepository teacherProfileRepository;
+
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private TeacherResourceRepository teacherResourceRepository;
+
     @Autowired
     private PurchaseRepository purchaseRepository;
+
     @Autowired
     private ReviewRepository reviewRepository;
 
@@ -54,48 +57,37 @@ public class TeacherController {
             @RequestParam("subjects") String subjectsJson,
             @RequestParam("grades") String gradesJson,
             @RequestParam("paymentNumber") String paymentNumber,
-            @RequestParam("email") String email) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            String normalizedEmail = email.trim().toLowerCase();
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
             ObjectMapper mapper = new ObjectMapper();
-            List<String> subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>() {
-            });
-            List<String> grades = mapper.readValue(gradesJson, new TypeReference<List<String>>() {
-            });
+            List<String> subjects = mapper.readValue(subjectsJson, new TypeReference<>() {});
+            List<String> grades = mapper.readValue(gradesJson, new TypeReference<>() {});
 
-            String profilePicPath = null;
+            String profilePicUrl = null;
             if (profilePic != null && !profilePic.isEmpty()) {
-                Path uploadPath = Path.of("uploads", profilePic.getOriginalFilename());
-                Files.createDirectories(uploadPath.getParent());
-                profilePic.transferTo(uploadPath);
-                profilePicPath = uploadPath.toString();
+                Map uploadResult = fileUploadService.uploadFile(profilePic);
+                profilePicUrl = (String) uploadResult.get("secure_url");
             }
 
-            User user = userRepository.findByEmail(normalizedEmail).orElse(null);
-            if (user == null) {
-                return ResponseEntity.status(404).body("User not found");
-            }
-
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
-            if (profile == null) {
-                profile = new TeacherProfile();
-                profile.setUser(user);
-            }
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
+            profile.setUser(user);
             profile.setBio(bio);
             profile.setSubjects(subjects);
             profile.setGrades(grades);
             profile.setPaymentNumber(paymentNumber);
-            profile.setProfilePicPath(profilePicPath);
+            if(profilePicUrl != null) {
+                profile.setProfilePicPath(profilePicUrl);
+            }
             teacherProfileRepository.save(profile);
 
             return ResponseEntity.ok("Onboarding data saved");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Failed to save onboarding data");
+            return ResponseEntity.status(500).body("Failed to save onboarding data: " + e.getMessage());
         }
     }
 
-    // Upload a resource
     @PostMapping("/resources")
     public ResponseEntity<?> uploadResource(
             @RequestParam("file") MultipartFile file,
@@ -106,19 +98,16 @@ public class TeacherController {
             @RequestParam("curriculum") String curriculum,
             @RequestParam("pricing") String pricing,
             @RequestParam(value = "price", required = false) Double price,
-            @RequestParam("email") String email) {
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
         try {
-            String normalizedEmail = email.trim().toLowerCase();
-            User user = userRepository.findByEmail(normalizedEmail).orElse(null);
-            if (user == null)
-                return ResponseEntity.status(404).body("User not found");
-            String filePath = null;
-            if (file != null && !file.isEmpty()) {
-                Path uploadPath = Path.of("uploads/resources", file.getOriginalFilename());
-                Files.createDirectories(uploadPath.getParent());
-                file.transferTo(uploadPath);
-                filePath = uploadPath.toString();
-            }
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(
+                () -> new RuntimeException("User not found")
+            );
+            
+            Map uploadResult = fileUploadService.uploadFile(file);
+            String fileUrl = (String) uploadResult.get("secure_url");
+            
             TeacherResource resource = new TeacherResource();
             resource.setTitle(title);
             resource.setDescription(description);
@@ -127,34 +116,30 @@ public class TeacherController {
             resource.setCurriculum(curriculum);
             resource.setPricing(pricing);
             resource.setPrice(price);
-            resource.setFilePath(filePath);
             resource.setUser(user);
+            resource.setFilePath(fileUrl);
+            
             teacherResourceRepository.save(resource);
-            return ResponseEntity.ok("Resource uploaded");
+            
+            return ResponseEntity.ok("Resource uploaded successfully.");
+
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Failed to upload resource");
+            return ResponseEntity.status(500).body("Failed to upload resource: " + e.getMessage());
         }
     }
 
-    // Payout setup
     @PostMapping("/payout")
     public ResponseEntity<?> setupPayout(
-            @RequestParam("email") String email,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("method") String method,
             @RequestParam(value = "mpesa", required = false) String mpesa,
             @RequestParam(value = "bank", required = false) String bank,
             @RequestParam(value = "account", required = false) String account) {
         try {
-            String normalizedEmail = email.trim().toLowerCase();
-            User user = userRepository.findByEmail(normalizedEmail).orElse(null);
-            if (user == null)
-                return ResponseEntity.status(404).body("User not found");
-            TeacherProfile profile = teacherProfileRepository.findAll().stream()
-                    .filter(p -> p.getUser().getId().equals(user.getId())).findFirst().orElse(null);
-            if (profile == null)
-                return ResponseEntity.status(404).body("Profile not found");
-            // Store payout info in profile (expand as needed)
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Profile not found"));
+            
             if ("mpesa".equals(method)) {
                 profile.setPaymentNumber(mpesa);
             } else if ("bank".equals(method)) {
@@ -168,28 +153,28 @@ public class TeacherController {
         }
     }
 
-    // Dashboard data
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@RequestParam("email") String email) {
-        String normalizedEmail = email.trim().toLowerCase();
-        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
         if (user == null)
             return ResponseEntity.status(404).body("User not found");
+        
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
-        int totalSales = 0; // Placeholder
-        double currentBalance = 0.0; // Placeholder
         TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
-        return ResponseEntity.ok(new java.util.HashMap<>() {
-            {
-                put("resources", resources);
-                put("totalSales", totalSales);
-                put("currentBalance", currentBalance);
-                put("profile", profile);
-            }
-        });
+        
+        List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
+        long totalSales = resourceIds.isEmpty() ? 0 : purchaseRepository.countByResourceIdIn(resourceIds);
+        
+        Double currentBalance = resourceIds.isEmpty() ? 0.0 : purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+
+        return ResponseEntity.ok(Map.of(
+            "resources", resources,
+            "totalSales", totalSales,
+            "currentBalance", currentBalance != null ? currentBalance : 0.0,
+            "profile", profile
+        ));
     }
 
-    // Get all resources for public browsing
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,
@@ -199,7 +184,7 @@ public class TeacherController {
         if (subject != null && grade != null && curriculum != null) {
             resources = teacherResourceRepository.findBySubjectAndGradeAndCurriculum(subject, grade, curriculum);
         } else if (subject != null && grade != null) {
-            resources = teacherResourceRepository.findBySubjectAndGradeAndCurriculum(subject, grade, null);
+            resources = teacherResourceRepository.findBySubjectAndGrade(subject, grade);
         } else if (subject != null) {
             resources = teacherResourceRepository.findBySubject(subject);
         } else if (grade != null) {
@@ -212,11 +197,7 @@ public class TeacherController {
         List<TeacherResourceDTO> dtos = resources.stream()
                 .map(TeacherResourceDTO::new)
                 .toList();
-        return ResponseEntity.ok(new java.util.HashMap<>() {
-            {
-                put("resources", dtos);
-            }
-        });
+        return ResponseEntity.ok(Map.of("resources", dtos));
     }
 
     @GetMapping("/resources/{id}/reviews")
@@ -226,9 +207,9 @@ public class TeacherController {
             return ResponseEntity.status(404).body("Resource not found");
         }
         var reviews = reviewRepository.findByResource(resource);
-        var dtos = reviews.stream().map(com.eduhub.eduhub_backend.dto.TeacherResourceDTO.ReviewDTO::new).toList();
+        var dtos = reviews.stream().map(TeacherResourceDTO.ReviewDTO::new).toList();
         double avg = reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
-        return ResponseEntity.ok(java.util.Map.of("averageRating", avg, "reviews", dtos));
+        return ResponseEntity.ok(Map.of("averageRating", avg, "reviews", dtos));
     }
 
     @GetMapping("/resources/{id}")
@@ -238,34 +219,26 @@ public class TeacherController {
             return ResponseEntity.status(404).body("Resource not found");
         }
         var reviews = reviewRepository.findByResource(resource);
-        return ResponseEntity.ok(new com.eduhub.eduhub_backend.dto.TeacherResourceDTO(resource, reviews));
+        return ResponseEntity.ok(new TeacherResourceDTO(resource, reviews));
     }
 
     @GetMapping("/analytics")
-    public ResponseEntity<?> getTeacherAnalytics(@RequestParam("email") String email) {
-        String normalizedEmail = email.trim().toLowerCase();
-        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(404).body("User not found");
+    public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).collect(Collectors.toList());
-        List<Purchase> purchases = resourceIds.isEmpty() ? List.of()
-                : purchaseRepository.findByResourceIdIn(resourceIds);
+        List<Purchase> purchases = resourceIds.isEmpty() ? List.of() : purchaseRepository.findByResourceIdIn(resourceIds);
 
-        // Sales over last 30 days
         Map<LocalDate, Long> salesLast30Days = new HashMap<>();
         LocalDate today = LocalDate.now();
         for (int i = 29; i >= 0; i--) {
-            LocalDate day = today.minusDays(i);
-            salesLast30Days.put(day, 0L);
+            salesLast30Days.put(today.minusDays(i), 0L);
         }
         for (Purchase p : purchases) {
             LocalDate date = p.getPurchasedAt().toLocalDate();
-            if (salesLast30Days.containsKey(date)) {
-                salesLast30Days.put(date, salesLast30Days.get(date) + 1);
-            }
+            salesLast30Days.computeIfPresent(date, (k, v) -> v + 1);
         }
-        // Top-selling resources
+
         Map<Long, Long> resourceSales = new HashMap<>();
         for (Purchase p : purchases) {
             Long rid = p.getResource().getId();
@@ -282,7 +255,9 @@ public class TeacherController {
                 .sorted((a, b) -> Long.compare((Long) b.get("sales"), (Long) a.get("sales")))
                 .limit(5)
                 .collect(Collectors.toList());
+        
         long totalSales = purchases.size();
+        
         return ResponseEntity.ok(Map.of(
                 "salesLast30Days", salesLast30Days,
                 "topResources", topResources,

@@ -23,7 +23,8 @@ const Login: React.FC = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password
-        })
+        }),
+        credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
@@ -31,9 +32,10 @@ const Login: React.FC = () => {
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
         setTimeout(() => {
-          if (data.role === 'teacher') {
+          const userRole = data.role.toLowerCase();
+          if (userRole === 'teacher') {
             navigate('/dashboard/teacher');
-          } else if (data.role === 'student') {
+          } else if (userRole === 'student') {
             navigate('/dashboard/student');
           } else {
             navigate('/');
@@ -83,95 +85,94 @@ const Login: React.FC = () => {
               backgroundColor: 'rgba(255, 255, 255, 0.9)'
             }}
           >
-          <Box 
-            component="form" 
-            onSubmit={handleSubmit} 
-            sx={{ mt: 2 }}
-          >
+            <Box 
+              component="form" 
+              onSubmit={handleSubmit} 
+              sx={{ mt: 2 }}
+            >
               {message && <Typography color="success.main" align="center">{message}</Typography>}
-              {/* {error && <Typography color="error.main" align="center">{error}</Typography>} */}
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              margin="normal"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  '&:hover fieldset': {
-                    borderColor: theme.palette.primary.main,
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                margin="normal"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
                   },
-                },
                   mb: { xs: 2, md: 3 }
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              margin="normal"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  '&:hover fieldset': {
-                    borderColor: theme.palette.primary.main,
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                margin="normal"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
                   },
-                },
                   mb: { xs: 2, md: 3 }
-              }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
+                }}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
                 disabled={loading}
-              sx={{
-                mt: 3,
-                mb: 2,
-                py: 1.5,
-                borderRadius: 2,
-                textTransform: 'none',
-                boxShadow: 3,
-                '&:hover': {
-                  boxShadow: 6,
-                },
+                sx={{
+                  mt: 3,
+                  mb: 2,
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  boxShadow: 3,
+                  '&:hover': {
+                    boxShadow: 6,
+                  },
                   minHeight: 48,
                   fontSize: { xs: '1rem', md: '1.1rem' }
-              }}
-            >
+                }}
+              >
                 {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Don't have an account?{' '}
-                <Link 
-                  component={RouterLink} 
-                  to="/register"
-                  sx={{ 
-                    color: theme.palette.primary.main,
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                    },
-                  }}
-                >
-                  Sign up
-                </Link>
-              </Typography>
+              </Button>
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Don't have an account?{' '}
+                  <Link 
+                    component={RouterLink} 
+                    to="/register"
+                    sx={{ 
+                      color: theme.palette.primary.main,
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Sign up
+                  </Link>
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        </Paper>
+          </Paper>
         </Box>
       </Container>
     </Box>
   );
 };
 
-export default Login; 
+export default Login;
