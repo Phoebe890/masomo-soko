@@ -50,6 +50,7 @@ public class TeacherController {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    // ... onboarding, resources, payout methods are all fine ...
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
@@ -99,15 +100,16 @@ public class TeacherController {
             @RequestParam("pricing") String pricing,
             @RequestParam(value = "price", required = false) Double price,
             @AuthenticationPrincipal UserDetails userDetails) {
-        
+
         try {
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(
                 () -> new RuntimeException("User not found")
             );
-            
+
             Map uploadResult = fileUploadService.uploadFile(file);
             String fileUrl = (String) uploadResult.get("secure_url");
-            
+            String previewUrl = fileUploadService.generatePreviewImageUrl(uploadResult);
+
             TeacherResource resource = new TeacherResource();
             resource.setTitle(title);
             resource.setDescription(description);
@@ -118,9 +120,16 @@ public class TeacherController {
             resource.setPrice(price);
             resource.setUser(user);
             resource.setFilePath(fileUrl);
-            
+
+            if (previewUrl != null) {
+                resource.setPreviewImageUrl(previewUrl);
+                resource.setHasPreview(true);
+            } else {
+                resource.setHasPreview(false);
+            }
+
             teacherResourceRepository.save(resource);
-            
+
             return ResponseEntity.ok("Resource uploaded successfully.");
 
         } catch (Exception e) {
@@ -139,7 +148,7 @@ public class TeacherController {
         try {
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
             TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Profile not found"));
-            
+
             if ("mpesa".equals(method)) {
                 profile.setPaymentNumber(mpesa);
             } else if ("bank".equals(method)) {
@@ -152,6 +161,7 @@ public class TeacherController {
             return ResponseEntity.status(500).body("Failed to save payout details");
         }
     }
+
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
@@ -167,14 +177,21 @@ public class TeacherController {
         
         Double currentBalance = resourceIds.isEmpty() ? 0.0 : purchaseRepository.sumPriceByResourceIdIn(resourceIds);
 
+        // --- THIS IS THE FIX ---
+        // We map the List<TeacherResource> to a List<TeacherResourceDTO>
+        List<TeacherResourceDTO> resourceDtos = resources.stream()
+                .map(TeacherResourceDTO::new)
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(Map.of(
-            "resources", resources,
+            "resources", resourceDtos, // Now sending the correct DTO list
             "totalSales", totalSales,
             "currentBalance", currentBalance != null ? currentBalance : 0.0,
             "profile", profile
         ));
     }
 
+    // ... other methods are fine ...
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,

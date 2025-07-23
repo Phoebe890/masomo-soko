@@ -112,7 +112,6 @@ const UploadFirstResource: React.FC = () => {
             <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 3 }}>
               Share your expertise and help students succeed. Uploading your first resource is the best way to start earning and making an impact!
             </Typography>
-            {/* File Uploader */}
             <FormControl fullWidth sx={{ mb: { xs: 2, md: 3 } }}>
               <Button
                 variant="outlined"
@@ -132,7 +131,6 @@ const UploadFirstResource: React.FC = () => {
                 Accepted formats: .pdf, .doc, .docx
               </Typography>
             </FormControl>
-            {/* Resource Title */}
             <TextField
               fullWidth
               label="Resource Title"
@@ -141,7 +139,6 @@ const UploadFirstResource: React.FC = () => {
               sx={{ mb: { xs: 2, md: 3 } }}
               required
             />
-            {/* Description */}
             <TextField
               fullWidth
               label="Description"
@@ -154,7 +151,6 @@ const UploadFirstResource: React.FC = () => {
               required
               placeholder="Describe the content, purpose, and audience of your resource."
             />
-            {/* Tagging Options */}
             <FormControl fullWidth sx={{ mb: { xs: 2, md: 3 } }}>
               <InputLabel>Subject</InputLabel>
               <Select
@@ -198,7 +194,6 @@ const UploadFirstResource: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            {/* Pricing Section */}
             <FormControl component="fieldset" sx={{ mb: { xs: 2, md: 3 } }}>
               <RadioGroup
                 row
@@ -258,4 +253,4 @@ const UploadFirstResource: React.FC = () => {
   );
 };
 
-export default UploadFirstResource; 
+export default UploadFirstResource;

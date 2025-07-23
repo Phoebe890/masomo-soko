@@ -191,33 +191,24 @@ const ResourceDetail = () => {
         <Grid container spacing={4}>
           <Grid item xs={12} md={5}>
             <Box sx={{ mb: 2 }}>
-              {resource.previewUrl ? (
-                resource.previewUrl.endsWith('.pdf') ? (
-                  <iframe
-                    src={resource.previewUrl}
-                    title="Resource PDF Preview"
-                    style={{ width: '100%', height: 400, borderRadius: 8, border: '1px solid #ccc' }}
+              {resource.previewImageUrl ? (
+                <>
+                  <img
+                    src={resource.previewImageUrl}
+                    alt={`Preview of ${resource.title}`}
+                    style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', maxHeight: 400, objectFit: 'contain' }}
                   />
-                ) : resource.previewUrl.match(/\.(docx?|pptx?)$/i) ? (
                   <Button
                     variant="outlined"
                     color="primary"
-                    href={`https://docs.google.com/gview?url=${encodeURIComponent(resource.previewUrl)}&embedded=true`}
+                    href={resource.previewImageUrl}
                     target="_blank"
-                    rel="noopener"
-                    sx={{ width: '100%', mb: 2 }}
+                    rel="noopener noreferrer"
+                    sx={{ mt: 2, width: '100%' }}
                   >
-                    Preview in Google Docs
+                    View Full Preview
                   </Button>
-                ) : resource.previewUrl.match(/\.(jpe?g|png|gif|bmp|webp)$/i) ? (
-                  <img
-                    src={resource.previewUrl}
-                    alt="Resource preview"
-                    style={{ width: '100%', borderRadius: 8, maxHeight: 400, objectFit: 'contain' }}
-                  />
-                ) : (
-                  <a href={resource.previewUrl} target="_blank" rel="noopener noreferrer">Open Preview</a>
-                )
+                </>
               ) : (
                 <Avatar variant="rounded" sx={{ width: 180, height: 180, bgcolor: 'grey.200', color: 'grey.700', fontSize: 64, mx: 'auto' }}>
                   📄

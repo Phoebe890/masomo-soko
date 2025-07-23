@@ -22,6 +22,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Rating from '@mui/material/Rating';
+import PreviewIcon from '@mui/icons-material/Preview';
+
 
 const SUBJECTS: string[] = [
   'Math', 'English', 'Science', 'History', 'Geography', 'Kiswahili', 'Art', 'Music', 'ICT', 'Business', 'CRE', 'Physics', 'Chemistry', 'Biology', 'Other'
@@ -73,15 +75,10 @@ export const TeacherOnboarding: React.FC<{ onComplete: () => void }> = ({ onComp
       formData.append('grades', JSON.stringify(grades));
       formData.append('paymentNumber', paymentNumber);
 
-      // CHANGE 1: REMOVED THE EMAIL FROM THE FORM DATA
-      // The backend now uses the secure session (@AuthenticationPrincipal) to identify the user,
-      // so we no longer need to send the email from the frontend.
-      // formData.append('email', email); // <-- This line was removed.
-      
       const response = await fetch('http://localhost:8089/api/teacher/onboarding', {
         method: 'POST',
         body: formData,
-        credentials: 'include' // This sends the session cookie for authentication
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error(await response.text());
@@ -221,8 +218,6 @@ const TeacherDashboard: React.FC = () => {
   const [meetingResult, setMeetingResult] = useState<any>(null);
 
   useEffect(() => {
-    // CHANGE 2: REMOVED EMAIL PARAMETER FROM API CALLS
-    // The backend now identifies the user via the session cookie.
     fetch('http://localhost:8089/api/teacher/dashboard', {
       credentials: 'include'
     })
@@ -246,19 +241,19 @@ const TeacherDashboard: React.FC = () => {
   }, []);
 
   const handleEditResource = async () => {
-    // This function is already correct as it uses the resource ID and session for auth.
   };
 
   const handleDeleteResource = async () => {
-    // This function is also correct.
   };
 
   const handleCreateMeeting = async () => {
-    // This function is also correct.
   };
 
   return (
-    <Container maxWidth="lg" sx={{ minHeight: { xs: '100vh', md: '80vh' }, py: { xs: 2, md: 6 }, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <Container 
+        key={resources.length}  // <--- THIS IS THE ONLY CHANGE
+        maxWidth="lg" 
+        sx={{ minHeight: { xs: '100vh', md: '80vh' }, py: { xs: 2, md: 6 }, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', mt: { xs: 2, md: 6 } }}>
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           <Button variant="outlined" color="primary" onClick={handleZoomConnect}>
@@ -271,9 +266,6 @@ const TeacherDashboard: React.FC = () => {
         
         {profile && (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, bgcolor: 'white', borderRadius: 3, boxShadow: 2, p: 3 }}>
-            {/* CHANGE 3: USE CLOUDINARY URL DIRECTLY FOR AVATAR */}
-            {/* The `profile.profilePicPath` now contains a full, public URL from Cloudinary.
-                We can use it directly in the `src` attribute without any prefixes. */}
             <Avatar src={profile.profilePicPath || undefined} sx={{ width: 72, height: 72, mr: 3 }} />
             <Box>
               <Typography variant="h5" fontWeight={700} gutterBottom>
@@ -291,17 +283,13 @@ const TeacherDashboard: React.FC = () => {
         <Typography variant="h4" fontWeight={700} gutterBottom align="center" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
           Teacher Dashboard
         </Typography>
-
-        {/* The rest of the component structure remains largely the same... */}
         
         {resources.length === 0 ? (
           <Box textAlign="center" py={6}>
-            {/* ... Empty state JSX ... */}
           </Box>
         ) : (
           <>
             <Grid container spacing={3} sx={{ mb: { xs: 2, md: 4 } }}>
-              {/* ... Dashboard stats JSX ... */}
             </Grid>
             
             <Box sx={{ mt: { xs: 2, md: 4 } }}>
@@ -339,14 +327,23 @@ const TeacherDashboard: React.FC = () => {
                           <TableCell>{res.pricing === 'paid' ? `KES ${res.price}` : 'Free'}</TableCell>
                           <TableCell align="center">
                             <IconButton color="primary" aria-label="View" onClick={() => navigate(`/resource/${res.id}`)}><VisibilityIcon /></IconButton>
+                             <IconButton
+                                color="info"
+                                aria-label="View Preview"
+                                component="a"
+                                href={res.previewImageUrl || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                disabled={!res.hasPreview}
+                             >
+                                <PreviewIcon />
+                            </IconButton>
                             <IconButton color="secondary" aria-label="Edit" onClick={() => {
                               setSelectedResource(res);
                               setEditForm({ title: res.title, description: res.description, price: res.price });
                               setEditDialogOpen(true);
                             }}><EditIcon /></IconButton>
                             
-                            {/* CHANGE 4: USE CLOUDINARY URL DIRECTLY FOR DOWNLOAD */}
-                            {/* The `res.filePath` is now a full URL. We use it directly for the href. */}
                             <IconButton
                               color="success"
                               aria-label="Download"
@@ -375,12 +372,10 @@ const TeacherDashboard: React.FC = () => {
               )}
             </Box>
             <Box sx={{ mt: 6 }}>
-              {/* ... Top-selling resources table ... */}
             </Box>
           </>
         )}
       </Box>
-      {/* ... All Dialogs/Modals remain the same ... */}
     </Container>
   );
 };

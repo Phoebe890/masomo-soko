@@ -9,6 +9,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const drawerWidth = 240;
 
@@ -70,7 +71,6 @@ function OverviewSection({ student, stats, recentPurchase }: OverviewSectionProp
           </Paper>
         </Grid>
       </Grid>
-      {/* Most Recent Purchase */}
       {recentPurchase ? (
         <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2, mb: 4 }}>
           <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -106,7 +106,7 @@ function PurchasedResourcesSection() {
     fetch(`/api/student/purchases?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
-        console.log('PURCHASES DATA:', data); // Debug log
+        console.log('PURCHASES DATA:', data);
         setResources(data.resources || []);
         setLoading(false);
       })
@@ -128,15 +128,30 @@ function PurchasedResourcesSection() {
                 <Typography variant="body2" color="text.secondary">By {res.teacherName}</Typography>
                 <Typography variant="body2" color="text.secondary">Subject: {res.subject} | Grade: {res.grade}</Typography>
               </Box>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<DownloadIcon />}
-                href={`/api/student/download/${res.id}?email=${encodeURIComponent(email)}`}
-                aria-label={`Download ${res.title}`}
-              >
-                Download
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                {res.hasPreview && res.previewImageUrl && (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<VisibilityIcon />}
+                    href={res.previewImageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`View preview for ${res.title}`}
+                  >
+                    Preview
+                  </Button>
+                )}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<DownloadIcon />}
+                  href={`/api/student/download/${res.id}?email=${encodeURIComponent(email)}`}
+                  aria-label={`Download ${res.title}`}
+                >
+                  Download
+                </Button>
+              </Box>
             </Paper>
           </Grid>
         ))}
@@ -146,13 +161,11 @@ function PurchasedResourcesSection() {
 }
 
 function CoachingSessionsSection() {
-  // Placeholder for future integration
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>My Online Coaching Sessions</Typography>
       <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2 }}>
         <Typography color="text.secondary">You have no upcoming coaching sessions.</Typography>
-        {/* In the future, list sessions here */}
       </Paper>
     </Box>
   );
@@ -277,11 +290,10 @@ const StudentDashboard = () => {
   const email = localStorage.getItem('email') || '';
 
   useEffect(() => {
-    // Fetch student dashboard data from backend
     fetch(`/api/student/dashboard?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
-        console.log('DASHBOARD DATA:', data); // Debug log
+        console.log('DASHBOARD DATA:', data);
         if (data.student) setStudent(data.student);
         if (data.stats) setStats(data.stats);
         if (data.recentPurchase) setRecentPurchase(data.recentPurchase);
@@ -343,9 +355,7 @@ const StudentDashboard = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
-      {/* Sidebar */}
       <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="Dashboard navigation">
-        {/* Mobile drawer */}
         {isMobile ? (
           <Drawer
             variant="temporary"
@@ -372,9 +382,7 @@ const StudentDashboard = () => {
           </Drawer>
         )}
       </Box>
-      {/* Main content */}
       <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 }, width: '100%', maxWidth: 1200, mx: 'auto' }}>
-        {/* AppBar for mobile */}
         {isMobile && (
           <AppBar position="static" color="default" elevation={0} sx={{ mb: 2 }}>
             <Toolbar>
@@ -399,4 +407,4 @@ const StudentDashboard = () => {
   );
 };
 
-export default StudentDashboard; 
+export default StudentDashboard;
