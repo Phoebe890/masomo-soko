@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Box, Container, Typography, TextField, Button, Paper, Link, useTheme, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Register: React.FC = () => {
   const theme = useTheme();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const initialRole = params.get('role') === 'teacher' ? 'teacher' : 'student';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
+    role: initialRole,
   });
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,7 +100,7 @@ const Register: React.FC = () => {
                 mb: 3
               }}
             >
-              Create Account
+              Sign Up as a {formData.role === 'teacher' ? 'Teacher' : 'Student'}
             </Typography>
             <Typography 
               variant="body1" 
@@ -105,7 +108,7 @@ const Register: React.FC = () => {
               color="text.secondary"
               sx={{ mb: 4 }}
             >
-              Join EduHub and start your learning journey
+              {formData.role === 'teacher' ? 'Join EduHub and start selling your resources or coaching.' : 'Join EduHub and start your learning journey.'}
             </Typography>
             <Box 
               component="form" 
@@ -212,29 +215,21 @@ const Register: React.FC = () => {
                 />
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={formData.role}
-                    label="Role"
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    sx={{
-                      borderRadius: 2,
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: theme.palette.primary.main,
-                      },
-                    }}
-                  >
-                    <MenuItem value="student">Student</MenuItem>
-                    <MenuItem value="teacher">Teacher</MenuItem>
-                  </Select>
-                </FormControl>
-              </motion.div>
+              {/* REMOVE the role dropdown */}
+              {/* Add a toggle link below the form */}
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    const newRole = formData.role === 'teacher' ? 'student' : 'teacher';
+                    setFormData({ ...formData, role: newRole });
+                    navigate(`/register?role=${newRole}`);
+                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  {formData.role === 'teacher' ? 'Sign up as a Student' : 'Sign up as a Teacher'}
+                </Button>
+              </Box>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

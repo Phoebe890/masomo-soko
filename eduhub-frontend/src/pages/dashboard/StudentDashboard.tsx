@@ -10,6 +10,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import Header from '../../components/layout/Header';
 
 const drawerWidth = 240;
 
@@ -354,54 +355,57 @@ const StudentDashboard = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
-      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="Dashboard navigation">
-        {isMobile ? (
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={() => setMobileOpen(false)}
-            ModalProps={{ keepMounted: true }}
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-            }}
-          >
-            {drawer}
-          </Drawer>
-        ) : (
-          <Drawer
-            variant="permanent"
-            open
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-            }}
-          >
-            {drawer}
-          </Drawer>
-        )}
-      </Box>
-      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 }, width: '100%', maxWidth: 1200, mx: 'auto' }}>
-        {isMobile && (
-          <AppBar position="static" color="default" elevation={0} sx={{ mb: 2 }}>
-            <Toolbar>
-              <IconButton
-                color="inherit"
-                aria-label="Open dashboard navigation"
-                edge="start"
-                onClick={() => setMobileOpen(true)}
-                sx={{ mr: 2 }}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
-                Student Dashboard
-              </Typography>
-            </Toolbar>
-          </AppBar>
-        )}
-        {renderSection()}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.50' }}>
+      <Header />
+      <Box sx={{ display: 'flex', flex: 1 }}>
+        <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="Dashboard navigation">
+          {isMobile ? (
+            <Drawer
+              variant="temporary"
+              open={mobileOpen}
+              onClose={() => setMobileOpen(false)}
+              ModalProps={{ keepMounted: true }}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+              }}
+            >
+              {drawer}
+            </Drawer>
+          ) : (
+            <Drawer
+              variant="permanent"
+              open
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+              }}
+            >
+              {drawer}
+            </Drawer>
+          )}
+        </Box>
+        <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 }, width: '100%', maxWidth: 1200, mx: 'auto' }}>
+          {isMobile && (
+            <AppBar position="static" color="default" elevation={0} sx={{ mb: 2 }}>
+              <Toolbar>
+                <IconButton
+                  color="inherit"
+                  aria-label="Open dashboard navigation"
+                  edge="start"
+                  onClick={() => setMobileOpen(true)}
+                  sx={{ mr: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
+                  Student Dashboard
+                </Typography>
+              </Toolbar>
+            </AppBar>
+          )}
+          {renderSection()}
+        </Box>
       </Box>
     </Box>
   );

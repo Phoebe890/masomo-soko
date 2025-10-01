@@ -5,7 +5,7 @@ import {
 import FilterListIcon from '@mui/icons-material/FilterList';
 import StarIcon from '@mui/icons-material/Star';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 
 const CATEGORIES = ['Exams', 'Notes', 'Schemes of Work'];
 const LEVELS = ['Junior Secondary', 'Senior Secondary', 'KCPE', 'KCSE'];
@@ -35,6 +35,14 @@ const BrowseResources = () => {
   const [term, setTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // On mount, set search from query param if present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search') || '';
+    setSearch(searchParam);
+  }, [location.search]);
 
   useEffect(() => {
     setLoading(true);
