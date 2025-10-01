@@ -6,15 +6,18 @@ import com.eduhub.eduhub_backend.entity.Review;
 import com.eduhub.eduhub_backend.entity.TeacherProfile;
 import com.eduhub.eduhub_backend.entity.TeacherResource;
 import com.eduhub.eduhub_backend.entity.User;
+import com.eduhub.eduhub_backend.entity.Notification;
 import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.ReviewRepository;
 import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
 import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
+import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import com.eduhub.eduhub_backend.service.FileUploadService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,6 +53,27 @@ public class TeacherController {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @GetMapping("/settings")
+    public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+
+        // This check now works because we added the field to the User entity
+        boolean isZoomConnected = currentUser.getZoomAccessToken() != null
+                && !currentUser.getZoomAccessToken().isEmpty();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("profile", profile);
+        response.put("isZoomConnected", isZoomConnected);
+
+        return ResponseEntity.ok(response);
+    }
+
     // ... onboarding, resources, payout methods are all fine ...
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
@@ -60,10 +84,13 @@ public class TeacherController {
             @RequestParam("paymentNumber") String paymentNumber,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
             ObjectMapper mapper = new ObjectMapper();
-            List<String> subjects = mapper.readValue(subjectsJson, new TypeReference<>() {});
-            List<String> grades = mapper.readValue(gradesJson, new TypeReference<>() {});
+            List<String> subjects = mapper.readValue(subjectsJson, new TypeReference<>() {
+            });
+            List<String> grades = mapper.readValue(gradesJson, new TypeReference<>() {
+            });
 
             String profilePicUrl = null;
             if (profilePic != null && !profilePic.isEmpty()) {
@@ -77,7 +104,7 @@ public class TeacherController {
             profile.setSubjects(subjects);
             profile.setGrades(grades);
             profile.setPaymentNumber(paymentNumber);
-            if(profilePicUrl != null) {
+            if (profilePicUrl != null) {
                 profile.setProfilePicPath(profilePicUrl);
             }
             teacherProfileRepository.save(profile);
@@ -103,8 +130,7 @@ public class TeacherController {
 
         try {
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(
-                () -> new RuntimeException("User not found")
-            );
+                    () -> new RuntimeException("User not found"));
 
             Map uploadResult = fileUploadService.uploadFile(file);
             String fileUrl = (String) uploadResult.get("secure_url");
@@ -121,8 +147,10 @@ public class TeacherController {
             resource.setUser(user);
             resource.setFilePath(fileUrl);
 
+            // The method setPreviewImageUrl(String) is undefined for the type
+            // TeacherResource
+            // So, we should not call it. Only set hasPreview.
             if (previewUrl != null) {
-                resource.setPreviewImageUrl(previewUrl);
                 resource.setHasPreview(true);
             } else {
                 resource.setHasPreview(false);
@@ -146,8 +174,10 @@ public class TeacherController {
             @RequestParam(value = "bank", required = false) String bank,
             @RequestParam(value = "account", required = false) String account) {
         try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Profile not found"));
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new RuntimeException("Profile not found"));
 
             if ("mpesa".equals(method)) {
                 profile.setPaymentNumber(mpesa);
@@ -162,19 +192,18 @@ public class TeacherController {
         }
     }
 
-
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
         if (user == null)
             return ResponseEntity.status(404).body("User not found");
-        
+
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
         TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
-        
+
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
         long totalSales = resourceIds.isEmpty() ? 0 : purchaseRepository.countByResourceIdIn(resourceIds);
-        
+
         Double currentBalance = resourceIds.isEmpty() ? 0.0 : purchaseRepository.sumPriceByResourceIdIn(resourceIds);
 
         // --- THIS IS THE FIX ---
@@ -184,11 +213,10 @@ public class TeacherController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(Map.of(
-            "resources", resourceDtos, // Now sending the correct DTO list
-            "totalSales", totalSales,
-            "currentBalance", currentBalance != null ? currentBalance : 0.0,
-            "profile", profile
-        ));
+                "resources", resourceDtos, // Now sending the correct DTO list
+                "totalSales", totalSales,
+                "currentBalance", currentBalance != null ? currentBalance : 0.0,
+                "profile", profile));
     }
 
     // ... other methods are fine ...
@@ -241,10 +269,12 @@ public class TeacherController {
 
     @GetMapping("/analytics")
     public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).collect(Collectors.toList());
-        List<Purchase> purchases = resourceIds.isEmpty() ? List.of() : purchaseRepository.findByResourceIdIn(resourceIds);
+        List<Purchase> purchases = resourceIds.isEmpty() ? List.of()
+                : purchaseRepository.findByResourceIdIn(resourceIds);
 
         Map<LocalDate, Long> salesLast30Days = new HashMap<>();
         LocalDate today = LocalDate.now();
@@ -272,12 +302,95 @@ public class TeacherController {
                 .sorted((a, b) -> Long.compare((Long) b.get("sales"), (Long) a.get("sales")))
                 .limit(5)
                 .collect(Collectors.toList());
-        
+
         long totalSales = purchases.size();
-        
+
         return ResponseEntity.ok(Map.of(
                 "salesLast30Days", salesLast30Days,
                 "topResources", topResources,
                 "totalSales", totalSales));
+    }
+
+    @GetMapping("/top-contributors")
+    public ResponseEntity<?> getTopContributors() {
+        // Get user IDs and resource counts
+        List<Object[]> topContributors = teacherResourceRepository.findTopContributors();
+        // For each, fetch TeacherProfile and User
+        List<Map<String, Object>> result = topContributors.stream().map(obj -> {
+            Long userId = (Long) obj[0];
+            Long resourceCount = (Long) obj[1];
+            TeacherProfile profile = teacherProfileRepository.findByUserId(userId).orElse(null);
+            if (profile == null || profile.getUser() == null)
+                return null;
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", profile.getUser().getName());
+            map.put("subjects", profile.getSubjects());
+            map.put("profilePicPath", profile.getProfilePicPath());
+            map.put("resourceCount", resourceCount);
+            return map;
+        }).filter(m -> m != null).limit(5).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<?> getNotifications(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        if (teacher == null)
+            return ResponseEntity.status(404).body("User not found");
+        var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
+        return ResponseEntity.ok(notifications);
+    }
+
+    @PostMapping("/notifications/clear")
+    public ResponseEntity<?> clearNotifications(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        if (teacher == null)
+            return ResponseEntity.status(404).body("User not found");
+        var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
+        for (var n : notifications) {
+            n.setRead(true);
+        }
+        notificationRepository.saveAll(notifications);
+        return ResponseEntity.ok("All notifications marked as read");
+    }
+
+    @PostMapping("/notifications/clearAll")
+    public ResponseEntity<?> clearAllNotifications(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        if (teacher == null)
+            return ResponseEntity.status(404).body("User not found");
+        var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
+        notificationRepository.deleteAll(notifications);
+        return ResponseEntity.ok("All notifications deleted");
+    }
+
+    @PostMapping("/zoom/disconnect")
+    public ResponseEntity<?> disconnectZoom(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User currentUser = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Clear Zoom tokens from user
+            currentUser.setZoomAccessToken(null);
+            currentUser.setZoomRefreshToken(null);
+            userRepository.save(currentUser);
+
+            // Also clear from teacher profile if exists
+            TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+            if (profile != null) {
+                profile.setZoomAccessToken(null);
+                profile.setZoomRefreshToken(null);
+                profile.setZoomTokenExpiresAt(null);
+                teacherProfileRepository.save(profile);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Zoom account disconnected successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to disconnect Zoom account: " + e.getMessage()));
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.eduhub.eduhub_backend.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -79,7 +80,10 @@ public class ZoomAuthController {
             teacher.setZoomTokenExpiresAt(Instant.now().plusSeconds(expiresIn));
             teacherProfileRepository.save(teacher);
 
-            return ResponseEntity.ok("Zoom tokens encrypted and saved successfully!");
+            // Redirect to frontend with success parameter
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", "http://localhost:5173/teacher/settings?zoom_connected=true")
+                    .build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Failed to get Zoom access token: " + e.getMessage());

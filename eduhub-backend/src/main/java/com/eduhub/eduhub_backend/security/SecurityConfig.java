@@ -57,33 +57,36 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {})
+                .cors(cors -> {
+                })
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .authenticationProvider(authenticationProvider())
+                .httpBasic(httpBasic -> httpBasic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/signup",
                                 "/api/auth/login",
                                 "/api/auth/zoom/callback",
-                                "/api/teacher/onboarding"
-                        ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources", "/api/teacher/resources/**").permitAll()
+                                "/api/teacher/onboarding")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources", "/api/teacher/resources/**",
+                                "/api/teacher/top-contributors")
+                        .permitAll()
                         .requestMatchers(
                                 "/api/teacher/dashboard",
                                 "/api/teacher/payout",
-                                "/api/coaching/create-meeting"
-                        ).hasRole("TEACHER")
+                                "/api/coaching/create-meeting")
+                        .hasRole("TEACHER")
                         .requestMatchers(HttpMethod.POST, "/api/teacher/resources").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.PUT, "/api/teacher/resources/**").hasRole("TEACHER")
                         .requestMatchers(HttpMethod.DELETE, "/api/teacher/resources/**").hasRole("TEACHER")
                         .requestMatchers(
                                 "/api/student/dashboard",
                                 "/api/student/purchases",
-                                "/api/student/purchase"
-                        ).hasRole("STUDENT")
-                        .anyRequest().authenticated()
-                );
+                                "/api/student/purchase")
+                        .hasRole("STUDENT")
+                        .anyRequest().authenticated());
         return http.build();
     }
 }

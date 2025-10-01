@@ -2,6 +2,8 @@ package com.eduhub.eduhub_backend.repository;
 
 import com.eduhub.eduhub_backend.entity.TeacherResource;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,8 +19,11 @@ public interface TeacherResourceRepository extends JpaRepository<TeacherResource
 
     List<TeacherResource> findByCurriculum(String curriculum);
 
-    // This is the missing method that caused the error
     List<TeacherResource> findBySubjectAndGrade(String subject, String grade);
-    
+
     List<TeacherResource> findBySubjectAndGradeAndCurriculum(String subject, String grade, String curriculum);
+
+    // Custom query to get user IDs and resource counts, ordered by count descending
+    @Query("SELECT tr.user.id, COUNT(tr) as resourceCount FROM TeacherResource tr GROUP BY tr.user.id ORDER BY resourceCount DESC")
+    List<Object[]> findTopContributors();
 }

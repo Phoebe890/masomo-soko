@@ -42,7 +42,7 @@ public class TeacherResourceDTO {
 
     public TeacherResourceDTO(TeacherResource resource, List<Review> reviewList) {
         this(resource);
-        
+
         if (reviewList != null && !reviewList.isEmpty()) {
             this.averageRating = reviewList.stream()
                     .mapToInt(Review::getRating)
@@ -69,7 +69,7 @@ public class TeacherResourceDTO {
             this.studentName = review.getStudent() != null ? review.getStudent().getName() : "Anonymous";
             this.rating = review.getRating();
             this.comment = review.getComment();
-            
+
             if (review.getCreatedAt() != null) {
                 this.createdAt = review.getCreatedAt().format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
             } else {

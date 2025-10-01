@@ -8,6 +8,8 @@ import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.repository.ReviewRepository;
 import com.eduhub.eduhub_backend.entity.Review;
+import com.eduhub.eduhub_backend.entity.Notification;
+import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +28,8 @@ public class StudentController {
     private PurchaseRepository purchaseRepository;
     @Autowired
     private ReviewRepository reviewRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @PostMapping("/purchase")
     public ResponseEntity<?> purchaseResource(@RequestParam("email") String email,
@@ -46,6 +50,13 @@ public class StudentController {
         }
         Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
         purchaseRepository.save(purchase);
+        // Create notification for teacher
+        Notification notification = new Notification(
+                resource.getUser(),
+                "Student " + student.getName() + " purchased your resource '" + resource.getTitle() + "'",
+                LocalDateTime.now(),
+                false);
+        notificationRepository.save(notification);
         return ResponseEntity.ok("Purchase successful");
     }
 
