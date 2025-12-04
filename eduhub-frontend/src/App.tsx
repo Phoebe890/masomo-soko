@@ -21,6 +21,7 @@ import StudentDashboard from './pages/dashboard/StudentDashboard';
 // Teacher Onboarding and Specific Task Pages
 import UploadFirstResource from './pages/dashboard/UploadFirstResource';
 import PayoutSetup from './pages/dashboard/PayoutSetup';
+import ResourceManagement from './pages/dashboard/ResourceManagement';
 
 // --- ADD IMPORTS FOR THE NEW COACHING COMPONENTS ---
 import TeacherSettings from './pages/teacher/TeacherSettings';
@@ -77,6 +78,7 @@ function App() {
           <Route path="/dashboard/teacher/onboarding" element={<TeacherOnboardingRoute />} />
           <Route path="/dashboard/teacher/upload-first-resource" element={<UploadFirstResource />} />
           <Route path="/dashboard/teacher/payout-setup" element={<PayoutSetup />} />
+          <Route path="/dashboard/teacher/resources" element={<ResourceManagement />} />
 
           {/* --- ADD THE NEW ROUTES FOR TEACHER COACHING MANAGEMENT --- */}
           <Route path="/teacher/settings" element={<TeacherSettings />} />

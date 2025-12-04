@@ -30,11 +30,27 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const drawerBg = '#2563eb'; // or use theme.palette.primary.main if you want theme-based
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-      <Typography variant="caption" color="text.secondary" sx={{ pl: 3, mb: 1, fontWeight: 700, letterSpacing: 1 }}>
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      overflowY: 'auto',
+      px: { xs: 1.5, sm: 2, md: 2 }
+    }}>
+      <Typography 
+        variant="caption" 
+        color="text.secondary" 
+        sx={{ 
+          pl: { xs: 2, sm: 2.5, md: 3 }, 
+          mb: 1, 
+          fontWeight: 700, 
+          letterSpacing: 1,
+          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+        }}
+      >
         MENU
       </Typography>
-      <List>
+      <List sx={{ px: { xs: 0.5, sm: 1 } }}>
         {menuItems.map(item => (
           <ListItem
             button
@@ -44,6 +60,8 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
             sx={{
               borderRadius: 2,
               mb: 0.5,
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 1, sm: 1.25 },
               bgcolor: selectedRoute === item.route ? 'rgba(33,150,243,0.07)' : 'inherit',
               color: selectedRoute === item.route ? 'primary.main' : 'inherit',
               '&.Mui-selected': {
@@ -51,18 +69,46 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
                 color: 'primary.main',
                 fontWeight: 700,
               },
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+              },
             }}
           >
-            <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} primaryTypographyProps={{ color: 'white' }} />
+            <ListItemIcon sx={{ 
+              color: 'white',
+              minWidth: { xs: 36, sm: 40 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              }
+            }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.label} 
+              primaryTypographyProps={{ 
+                color: 'white',
+                fontSize: { xs: '0.875rem', sm: '0.9375rem', md: '1rem' },
+                fontWeight: selectedRoute === item.route ? 700 : 400
+              }} 
+            />
           </ListItem>
         ))}
       </List>
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="caption" color="text.secondary" sx={{ pl: 3, mb: 1, fontWeight: 700, letterSpacing: 1 }}>
+      <Divider sx={{ my: { xs: 1.5, sm: 2 }, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+      <Typography 
+        variant="caption" 
+        color="text.secondary" 
+        sx={{ 
+          pl: { xs: 2, sm: 2.5, md: 3 }, 
+          mb: 1, 
+          fontWeight: 700, 
+          letterSpacing: 1,
+          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+        }}
+      >
         OTHERS
       </Typography>
-      <List>
+      <List sx={{ px: { xs: 0.5, sm: 1 } }}>
         {otherItems.map(item => (
           <ListItem
             button
@@ -72,6 +118,8 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
             sx={{
               borderRadius: 2,
               mb: 0.5,
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 1, sm: 1.25 },
               bgcolor: selectedRoute === item.route ? 'rgba(33,150,243,0.07)' : 'inherit',
               color: selectedRoute === item.route ? 'primary.main' : 'inherit',
               '&.Mui-selected': {
@@ -79,10 +127,28 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
                 color: 'primary.main',
                 fontWeight: 700,
               },
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+              },
             }}
           >
-            <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} primaryTypographyProps={{ color: 'white' }} />
+            <ListItemIcon sx={{ 
+              color: 'white',
+              minWidth: { xs: 36, sm: 40 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              }
+            }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.label} 
+              primaryTypographyProps={{ 
+                color: 'white',
+                fontSize: { xs: '0.875rem', sm: '0.9375rem', md: '1rem' },
+                fontWeight: selectedRoute === item.route ? 700 : 400
+              }} 
+            />
           </ListItem>
         ))}
       </List>
@@ -93,16 +159,22 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
       variant="temporary"
       open={!!mobileOpen}
       onClose={onClose}
-      ModalProps={{ keepMounted: true }}
+      ModalProps={{ 
+        keepMounted: true,
+        BackdropProps: {
+          sx: { backgroundColor: 'rgba(0, 0, 0, 0.5)' }
+        }
+      }}
       sx={{
         display: { xs: 'block', md: 'none' },
         '& .MuiDrawer-paper': {
-          width: 250,
+          width: { xs: 280, sm: 300 },
+          maxWidth: '85vw',
           boxSizing: 'border-box',
           borderRight: '1px solid #f0f0f0',
           bgcolor: drawerBg,
           color: 'white',
-          pt: 2,
+          pt: { xs: 2, sm: 3 },
         },
       }}
     >
@@ -112,16 +184,16 @@ const TeacherSidebar = ({ selectedRoute, mobileOpen, onClose }: { selectedRoute:
     <Drawer
       variant="permanent"
       sx={{
-        width: 250,
+        width: { md: 250, lg: 280 },
         flexShrink: 0,
         display: { xs: 'none', md: 'block' },
         '& .MuiDrawer-paper': {
-          width: 250,
+          width: { md: 250, lg: 280 },
           boxSizing: 'border-box',
           borderRight: '1px solid #f0f0f0',
           bgcolor: drawerBg,
           color: 'white',
-          pt: 2,
+          pt: { md: 2, lg: 3 },
         },
       }}
       open

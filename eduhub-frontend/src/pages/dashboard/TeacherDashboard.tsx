@@ -11,6 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SettingsIcon from '@mui/icons-material/Settings'; // Import settings icon
+import AddIcon from '@mui/icons-material/Add';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -200,7 +201,16 @@ const TeacherDashboard: React.FC = () => {
             </Paper>
 
             {/* The rest of your dashboard content (e.g., resources table) */}
-            <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>My Uploaded Resources</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h5" fontWeight={600}>My Uploaded Resources</Typography>
+                <Button 
+                    variant="contained" 
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate('/dashboard/teacher/resources')}
+                >
+                    Upload Resource
+                </Button>
+            </Box>
             <TableContainer component={Paper}>
                 {/* Your existing table for resources goes here */}
                 <Table>

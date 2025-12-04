@@ -64,6 +64,7 @@ const UploadFirstResource: React.FC = () => {
       formData.append('email', email);
       const response = await fetch('/api/teacher/resources', {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
       if (!response.ok) throw new Error(await response.text());

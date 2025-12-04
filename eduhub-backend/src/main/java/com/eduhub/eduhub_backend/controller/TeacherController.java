@@ -32,7 +32,12 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/teacher")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+    origins = { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000" }, 
+    allowCredentials = "true",
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS},
+    allowedHeaders = "*"
+)
 public class TeacherController {
 
     @Autowired
@@ -129,6 +134,19 @@ public class TeacherController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
+            // Check if user is authenticated
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+            }
+            
+            // Check if user has TEACHER role
+            boolean isTeacher = userDetails.getAuthorities().stream()
+                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_TEACHER"));
+            
+            if (!isTeacher) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied. Teacher role required.");
+            }
+            
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(
                     () -> new RuntimeException("User not found"));
 

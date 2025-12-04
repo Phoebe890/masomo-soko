@@ -3,13 +3,53 @@ import { Box, Container, Typography, Button, Card, CardContent, useTheme, Grid, 
 import SchoolIcon from '@mui/icons-material/School';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SearchIcon from '@mui/icons-material/Search';
+import PaymentIcon from '@mui/icons-material/Payment';
+import DownloadIcon from '@mui/icons-material/Download';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Link as RouterLink } from 'react-router-dom';
+import heroImage1 from '../assets/pexels-kampus-5940828.jpg';
+import heroImage2 from '../assets/pexels-kampus-5940829.jpg';
 
 const Home: React.FC = () => {
   const theme = useTheme();
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [contributors, setContributors] = useState<any[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Hero slides data
+  const heroSlides = [
+    {
+      image: heroImage1,
+      title: 'Share Knowledge, Empower Learning',
+      subtitle: 'Join thousands of teachers sharing quality educational resources',
+      stats: [
+        { value: '50K+', label: 'Resources' },
+        { value: '10K+', label: 'Teachers' },
+        { value: '100K+', label: 'Students' }
+      ]
+    },
+    {
+      image: heroImage2,
+      title: 'Transform Education, One Resource at a Time',
+      subtitle: 'Discover premium learning materials created by expert educators',
+      stats: [
+        { value: '500+', label: 'Verified Teachers' },
+        { value: '5K+', label: 'Resources Available' },
+        { value: '95%', label: 'Satisfaction Rate' }
+      ]
+    }
+  ];
+
+  // Auto-advance slides every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     setLoading(true);
@@ -50,7 +90,7 @@ const Home: React.FC = () => {
 
   return (
     <Box>
-      {/* Hero Section */}
+      {/* Hero Section with Carousel */}
       <Box
         component="section"
         aria-label="Hero section"
@@ -61,7 +101,6 @@ const Home: React.FC = () => {
           right: '50%',
           marginLeft: '-50vw',
           marginRight: '-50vw',
-          bgcolor: 'transparent',
           color: 'white',
           minHeight: { xs: '60vh', md: '70vh' },
           display: 'flex',
@@ -71,7 +110,28 @@ const Home: React.FC = () => {
           overflow: 'hidden',
         }}
       >
-        {/* Animated Gradient Overlay */}
+        {/* Background Images with Fade Transition */}
+        {heroSlides.map((slide, index) => (
+          <Box
+            key={index}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(${slide.image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              opacity: currentSlide === index ? 1 : 0,
+              transition: 'opacity 1s ease-in-out',
+              zIndex: 0,
+            }}
+          />
+        ))}
+        
+        {/* Dark Overlay for Text Readability */}
         <Box
           sx={{
             position: 'absolute',
@@ -79,127 +139,133 @@ const Home: React.FC = () => {
             left: 0,
             width: '100%',
             height: '100%',
-            background: 'linear-gradient(120deg, #2563eb 60%, #38b2ac 100%)',
-            opacity: 0.96,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 1,
-            animation: 'gradientMove 8s ease-in-out infinite alternate',
-            '@keyframes gradientMove': {
-              '0%': { backgroundPosition: '0% 50%' },
-              '100%': { backgroundPosition: '100% 50%' },
-            },
           }}
         />
+        
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2 }}>
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={7}>
-              <Typography
-                variant="h2"
-                component="h1"
-                gutterBottom
-                sx={{
-                  fontWeight: 900,
-                  fontSize: { xs: '2.5rem', md: '3.5rem' },
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.02em',
-                  mb: 2,
-                  color: 'white',
-                  textShadow: '0 4px 24px rgba(0,0,0,0.18)',
-                }}
-              >
-                Share Knowledge, Empower Learning
-              </Typography>
-              <Typography
-                variant="h5"
-                component="p"
-                paragraph
-                sx={{
-                  mb: 4,
-                  opacity: 0.97,
-                  fontSize: { xs: '1.2rem', md: '1.4rem' },
-                  fontWeight: 400,
-                  color: 'white',
-                  textShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                }}
-              >
-                Join thousands of teachers sharing quality educational resources
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  sx={{ fontWeight: 800, px: 5, borderRadius: 2, fontSize: '1.15rem', minHeight: 52, boxShadow: 4, transition: 'all 0.2s', '&:hover': { boxShadow: 8, transform: 'scale(1.04)' } }}
-                  component={RouterLink}
-                  to="/browse"
+              {heroSlides.map((slide, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    opacity: currentSlide === index ? 1 : 0,
+                    position: currentSlide === index ? 'relative' : 'absolute',
+                    transition: 'opacity 0.8s ease-in-out',
+                    width: '100%',
+                  }}
                 >
-                  Find Resources
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="large"
-                  sx={{ fontWeight: 800, px: 5, borderRadius: 2, fontSize: '1.15rem', minHeight: 52, boxShadow: 4, transition: 'all 0.2s', '&:hover': { boxShadow: 8, transform: 'scale(1.04)' } }}
-                  component={RouterLink}
-                  to="/seller"
-                >
-                  Start Teaching
-                </Button>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  sx={{ fontWeight: 700, px: 4, borderRadius: 2, fontSize: '1.05rem', minHeight: 44, borderWidth: 2, borderColor: 'primary.main', textTransform: 'none' }}
-                  component={RouterLink}
-                  to="/register?role=teacher"
-                >
-                  Sign Up as a Teacher
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  size="large"
-                  sx={{ fontWeight: 700, px: 4, borderRadius: 2, fontSize: '1.05rem', minHeight: 44, borderWidth: 2, borderColor: 'secondary.main', textTransform: 'none' }}
-                  component={RouterLink}
-                  to="/register?role=student"
-                >
-                  Sign Up as a Student
-                </Button>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 4, mt: 2 }}>
-                <Box>
-                  <Typography variant="h5" fontWeight={800} color="white">50K+</Typography>
-                  <Typography variant="body2" color="white">Resources</Typography>
+                  <Typography
+                    variant="h2"
+                    component="h1"
+                    gutterBottom
+                    sx={{
+                      fontWeight: 900,
+                      fontSize: { xs: '2.5rem', md: '3.5rem' },
+                      lineHeight: 1.1,
+                      letterSpacing: '-0.02em',
+                      mb: 2,
+                      color: 'white',
+                      textShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    {slide.title}
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    component="p"
+                    paragraph
+                    sx={{
+                      mb: 4,
+                      opacity: 0.97,
+                      fontSize: { xs: '1.2rem', md: '1.4rem' },
+                      fontWeight: 400,
+                      color: 'white',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                    }}
+                  >
+                    {slide.subtitle}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      sx={{ fontWeight: 800, px: 5, borderRadius: 2, fontSize: '1.15rem', minHeight: 52, boxShadow: 4, transition: 'all 0.2s', '&:hover': { boxShadow: 8, transform: 'scale(1.04)' } }}
+                      component={RouterLink}
+                      to="/browse"
+                    >
+                      Find Resources
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      size="large"
+                      sx={{ fontWeight: 800, px: 5, borderRadius: 2, fontSize: '1.15rem', minHeight: 52, boxShadow: 4, transition: 'all 0.2s', '&:hover': { boxShadow: 8, transform: 'scale(1.04)' } }}
+                      component={RouterLink}
+                      to="/seller"
+                    >
+                      Start Teaching
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="large"
+                      sx={{ fontWeight: 700, px: 4, borderRadius: 2, fontSize: '1.05rem', minHeight: 44, borderWidth: 2, borderColor: 'primary.main', textTransform: 'none' }}
+                      component={RouterLink}
+                      to="/register?role=teacher"
+                    >
+                      Sign Up as a Teacher
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      size="large"
+                      sx={{ fontWeight: 700, px: 4, borderRadius: 2, fontSize: '1.05rem', minHeight: 44, borderWidth: 2, borderColor: 'secondary.main', textTransform: 'none' }}
+                      component={RouterLink}
+                      to="/register?role=student"
+                    >
+                      Sign Up as a Student
+                    </Button>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 4, mt: 2 }}>
+                    {slide.stats.map((stat, statIndex) => (
+                      <Box key={statIndex}>
+                        <Typography variant="h5" fontWeight={800} color="white">{stat.value}</Typography>
+                        <Typography variant="body2" color="white">{stat.label}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="h5" fontWeight={800} color="white">10K+</Typography>
-                  <Typography variant="body2" color="white">Teachers</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="h5" fontWeight={800} color="white">100K+</Typography>
-                  <Typography variant="body2" color="white">Students</Typography>
-                </Box>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={5} sx={{ display: { xs: 'none', md: 'block' } }}>
-              <Box
-                component="img"
-                src="/images/hero-education.png"
-                alt="Teachers and students learning together at EduHub"
-                sx={{
-                  width: '100%',
-                  maxWidth: 440,
-                  height: 'auto',
-                  borderRadius: 6,
-                  boxShadow: 8,
-                  objectFit: 'cover',
-                  display: 'block',
-                  zIndex: 2,
-                }}
-              />
+              ))}
             </Grid>
           </Grid>
+          
+          {/* Slide Indicators */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 4, position: 'relative', zIndex: 3 }}>
+            {heroSlides.map((_, index) => (
+              <Box
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  backgroundColor: currentSlide === index ? 'white' : 'rgba(255, 255, 255, 0.5)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: currentSlide === index ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                    transform: 'scale(1.2)',
+                  },
+                }}
+              />
+            ))}
+          </Box>
         </Container>
       </Box>
       {/* Trust Bar */}
