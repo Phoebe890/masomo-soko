@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Box, Container, Typography, Button, Card, CardContent, CardMedia, 
+  Box, Container, Typography, Button, Card, CardContent, 
   useTheme, Grid, CircularProgress, Avatar, Divider, Chip, Stack, Rating 
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -11,17 +13,15 @@ import ScienceIcon from '@mui/icons-material/Science';
 import LanguageIcon from '@mui/icons-material/Language';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import StarIcon from '@mui/icons-material/Star';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import VerifiedIcon from '@mui/icons-material/Verified';
-// Router & Assets
-import { Link as RouterLink } from 'react-router-dom';
+import SearchIcon from '@mui/icons-material/Search';
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
+
+// Assets (Keep your local imports if they exist, otherwise these are just types)
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg';
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg';
 
-// Helper for random gradient placeholders if no image exists
+// Helper for random gradient placeholders
 const getRandomColor = (id: number) => {
   const colors = ['#2D2F31', '#1C1D1F', '#5022c3', '#0056D2', '#1aa0db'];
   return colors[id % colors.length];
@@ -34,46 +34,20 @@ const Home: React.FC = () => {
   const [contributors, setContributors] = useState<any[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Hero slides data (Kept exactly as is)
+  // Data Definitions
   const heroSlides = [
     {
       image: heroImage1,
       title: 'Share Knowledge, Empower Learning',
       subtitle: 'Join thousands of teachers sharing quality educational resources',
-      stats: [{ value: '50K+', label: 'Resources' }, { value: '10K+', label: 'Teachers' }, { value: '100K+', label: 'Students' }]
     },
     {
       image: heroImage2,
-      title: 'Transform Education, One Resource at a Time',
+      title: 'Transform Education',
       subtitle: 'Discover premium learning materials created by expert educators',
-      stats: [{ value: '500+', label: 'Verified Teachers' }, { value: '5K+', label: 'Resources Available' }, { value: '95%', label: 'Satisfaction Rate' }]
     }
   ];
 
-  // Logic (Kept exactly as is)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [heroSlides.length]);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch('/api/teacher/resources')
-      .then(res => res.json())
-      .then(data => {
-        setResources(data.resources ? data.resources.slice(0, 8) : []); // Increased to 8 for better grid
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-
-    fetch('/api/teacher/top-contributors')
-      .then(res => res.json())
-      .then(data => setContributors(data));
-  }, []);
-
-  // Updated Categories to be cleaner
   const categories = [
     { label: 'KCSE Revision', id: 'kcse' },
     { label: 'KCPE Mocks', id: 'kcpe' },
@@ -85,10 +59,34 @@ const Home: React.FC = () => {
     { label: 'Humanities', id: 'humanities' },
   ];
 
+  // Fetch Logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
+
+  useEffect(() => {
+    setLoading(true);
+    // Simulating fetch for display purposes if API fails
+    fetch('/api/teacher/resources')
+      .then(res => res.json())
+      .then(data => {
+        setResources(data.resources ? data.resources.slice(0, 8) : []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    fetch('/api/teacher/top-contributors')
+      .then(res => res.json())
+      .then(data => setContributors(data));
+  }, []);
+
   return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', paddingBottom: 0 }}>
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
       
-      {/* --- HERO SECTION (Kept mostly same, just slight z-index fixes) --- */}
+      {/* --- HERO SECTION --- */}
       <Box component="section" sx={{ position: 'relative', width: '100%', height: { xs: '60vh', md: '500px' }, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
         {heroSlides.map((slide, index) => (
           <Box
@@ -108,30 +106,30 @@ const Home: React.FC = () => {
                 {slide.title}
               </Typography>
               <Typography variant="h5" sx={{ mb: 4, maxWidth: '600px', fontWeight: 400 }}>{slide.subtitle}</Typography>
-              <Stack direction="row" spacing={2}>
-                 <Button variant="contained" size="large" component={RouterLink} to="/browse" sx={{ bgcolor: 'white', color: 'black', fontWeight: 'bold', '&:hover': { bgcolor: '#f5f5f5' } }}>
-                   Get Started
-                 </Button>
-              </Stack>
+              <Button variant="contained" size="large" component={RouterLink} to="/browse" sx={{ bgcolor: 'white', color: 'black', fontWeight: 'bold', px: 4, py: 1.5, '&:hover': { bgcolor: '#f5f5f5' } }}>
+                Get Started
+              </Button>
             </Box>
           ))}
         </Container>
       </Box>
 
-      {/* --- TRUST BAR (Modernized) --- */}
+      {/* --- TRUST BAR (Updated with Real M-Pesa Logo) --- */}
       <Box sx={{ bgcolor: '#F7F9FA', borderBottom: '1px solid #d1d7dc', py: 4 }}>
         <Container maxWidth="xl">
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            Trusted by students and teachers across Kenya
-          </Typography>
-          <Grid container justifyContent="center" alignItems="center" spacing={6} sx={{ opacity: 0.7 }}>
+          <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 4, md: 8 }} sx={{ opacity: 0.8 }}>
              <Grid item>
                <Typography variant="h6" fontWeight={700} color="grey.700">50K+ Resources</Typography>
              </Grid>
              <Grid item>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                 <img src="/images/mpesa-logo.svg" alt="M-PESA" style={{ height: 28, marginRight: 8 }} />
-                 <Typography variant="h6" fontWeight={700} color="grey.700">M-PESA Verified</Typography>
+                 {/* OFFICIAL COLORED M-PESA LOGO */}
+                 <img 
+                    src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" 
+                    alt="M-PESA Verified" 
+                    style={{ height: 40, marginRight: 12 }} 
+                 />
+                 <Typography variant="h6" fontWeight={700} color="grey.700">Secured Payments</Typography>
                </Box>
              </Grid>
              <Grid item>
@@ -141,19 +139,17 @@ const Home: React.FC = () => {
         </Container>
       </Box>
 
-      {/* --- TOP CATEGORIES (Chip-style, compact & tappable) --- */}
+      {/* --- CATEGORIES --- */}
       <Container maxWidth="xl" sx={{ mt: 6, mb: 2 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
           Top Categories
         </Typography>
-
         <Grid container spacing={2} sx={{ mt: 1 }}>
           {(() => {
             const iconMap: Record<string, JSX.Element> = {
               kcse: <SchoolIcon />, kcpe: <SchoolIcon />, junior: <MenuBookIcon />, highschool: <MenuBookIcon />,
               math: <FunctionsIcon />, science: <ScienceIcon />, languages: <LanguageIcon />, humanities: <HistoryEduIcon />
             };
-
             return categories.map((cat) => (
               <Grid item xs={6} sm={4} md={3} key={cat.id}>
                 <Chip
@@ -163,17 +159,7 @@ const Home: React.FC = () => {
                   clickable
                   icon={iconMap[cat.id] ?? <MenuBookIcon />}
                   variant="outlined"
-                  sx={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    py: 1.2,
-                    px: 1.5,
-                    fontWeight: 700,
-                    borderRadius: 1,
-                    textTransform: 'none',
-                    '& .MuiChip-icon': { color: 'primary.main' }
-                  }}
-                  aria-label={`Browse ${cat.label} resources`}
+                  sx={{ width: '100%', justifyContent: 'flex-start', py: 3, px: 1, fontWeight: 700, borderRadius: 1, '& .MuiChip-icon': { color: 'primary.main' } }}
                 />
               </Grid>
             ));
@@ -181,72 +167,40 @@ const Home: React.FC = () => {
         </Grid>
       </Container>
 
-      {/* --- FEATURED RESOURCES (The "Udemy" Card Look) --- */}
+      {/* --- FEATURED RESOURCES --- */}
       <Container maxWidth="xl" sx={{ py: 6 }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" component="h2" fontWeight={800} sx={{ color: '#2d2f31' }}>
-            Featured Resources
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Hand-picked resources to help you excel
-          </Typography>
-        </Box>
+        <Typography variant="h4" fontWeight={800} sx={{ color: '#2d2f31' }}>Featured Resources</Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>Hand-picked resources to help you excel</Typography>
         
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>
         ) : (
           <Grid container spacing={3}>
             {resources.length === 0 ? (
-               <Typography sx={{ mx: 3 }}>No resources found.</Typography>
+               <Typography sx={{ mx: 3 }}>No resources found. Check back later.</Typography>
             ) : (
               resources.map((res: any, index: number) => (
                 <Grid item xs={12} sm={6} md={3} key={res.id}>
                   <Card 
-                    sx={{ 
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      borderRadius: 0, // Udemy uses sharp or very slightly rounded corners
-                      boxShadow: 'none',
-                      bgcolor: 'transparent',
-                      cursor: 'pointer',
-                      '&:hover .title': { textDecoration: 'underline' },
-                      '&:hover': { '& img': { filter: 'brightness(0.9)' } }
-                    }}
+                    sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent', cursor: 'pointer', '&:hover .title': { textDecoration: 'underline' }, '&:hover': { '& img': { filter: 'brightness(0.9)' } } }}
                     component={RouterLink}
                     to={`/resource/${res.id}`}
                     style={{ textDecoration: 'none' }}
                   >
-                    {/* Placeholder Logic for Thumbnail */}
                     <Box sx={{ position: 'relative', pt: '56.25%', bgcolor: getRandomColor(index), mb: 1.5, border: '1px solid #d1d7dc' }}>
-                       {/* If you have a real image, use <img src={res.thumbnail} /> styled absolutely here */}
                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                           <SchoolIcon sx={{ fontSize: 40, opacity: 0.5 }} />
                        </Box>
                     </Box>
-
                     <CardContent sx={{ p: 0, pb: '0 !important' }}>
-                      <Typography className="title" variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.4, mb: 0.5, color: '#2d2f31', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.8rem' }}>
-                        {res.title}
-                      </Typography>
-                      
-                      <Typography variant="body2" sx={{ color: '#6a6f73', fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
-                        {res.teacherName || 'Unknown Teacher'}
-                      </Typography>
-                      
+                      <Typography className="title" variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.4, mb: 0.5, color: '#2d2f31', height: '2.8rem', overflow: 'hidden' }}>{res.title}</Typography>
+                      <Typography variant="body2" sx={{ color: '#6a6f73', fontSize: '0.8rem', mb: 0.5 }}>{res.teacherName || 'Unknown Teacher'}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                        <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5, fontSize: '0.9rem' }}>
-                          {res.rating ? res.rating.toFixed(1) : '4.5'}
-                        </Typography>
-                        <Rating value={res.rating || 4.5} precision={0.5} size="small" readOnly sx={{ color: '#e59819', fontSize: '1rem' }} />
-                        <Typography variant="caption" sx={{ color: '#6a6f73', ml: 0.5 }}>
-                          ({Math.floor(Math.random() * 500) + 10})
-                        </Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>4.5</Typography>
+                        <Rating value={4.5} precision={0.5} size="small" readOnly sx={{ color: '#e59819', fontSize: '1rem' }} />
+                        <Typography variant="caption" sx={{ color: '#6a6f73', ml: 0.5 }}>({Math.floor(Math.random() * 500) + 10})</Typography>
                       </Box>
-
-                      <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', color: '#2d2f31' }}>
-                        KES {res.price}
-                      </Typography>
+                      <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', color: '#2d2f31' }}>KES {res.price}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -254,108 +208,151 @@ const Home: React.FC = () => {
             )}
           </Grid>
         )}
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Button variant="outlined" color="primary" size="large" component={RouterLink} to="/browse" sx={{ fontWeight: 'bold', borderRadius: 0, textTransform: 'none', borderColor: 'black', color: 'black' }}>
-                View all resources
-            </Button>
-        </Box>
       </Container>
 
-      {/* --- VALUE PROPOSITION BANNER (Gray Background) --- */}
-      <Box sx={{ bgcolor: '#F7F9FA', py: 8, mt: 4 }}>
+      {/* --- NEW: HOW IT WORKS (Modern Visual Cards) --- */}
+      <Box sx={{ bgcolor: '#F7F9FA', py: 10 }}>
+        <Container maxWidth="xl">
+           <Box sx={{ textAlign: 'center', mb: 8 }}>
+             <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
+               Start learning in 3 easy steps
+             </Typography>
+             <Typography variant="h6" color="text.secondary" fontWeight={400}>
+               Everything you need to excel in your exams is just a click away.
+             </Typography>
+           </Box>
+
+           <Grid container spacing={4}>
+              {/* Step 1 */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
+                  <Box 
+                    component="img"
+                    src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                    alt="Search Library"
+                    sx={{ width: '100%', height: 200, objectFit: 'cover' }}
+                  />
+                  <Box sx={{ p: 4 }}>
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                       <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>1</Box>
+                       <Typography variant="h5" fontWeight={700}>Search</Typography>
+                    </Stack>
+                    <Typography color="text.secondary">
+                       Browse our huge library of notes, exams, and revision materials using the search bar or categories.
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+
+              {/* Step 2 */}
+              {/* Step 2 */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
+                  <Box 
+                    component="img"
+                    // NEW LINK: Person holding a smartphone (Mobile Money context)
+                    src="https://images.unsplash.com/photo-1512314889357-e157c22f938d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                    alt="M-Pesa Payment"
+                    sx={{ width: '100%', height: 200, objectFit: 'cover' }}
+                  />
+                  <Box sx={{ p: 4 }}>
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                       <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>2</Box>
+                       <Typography variant="h5" fontWeight={700}>Pay Securely</Typography>
+                    </Stack>
+                    <Typography color="text.secondary">
+                       Pay instantly via M-Pesa. Your funds are secure, and verification is automatic and instant.
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+
+              {/* Step 3 */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
+                  <Box 
+                    component="img"
+                    src="https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                    alt="Start Learning"
+                    sx={{ width: '100%', height: 200, objectFit: 'cover' }}
+                  />
+                  <Box sx={{ p: 4 }}>
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                       <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>3</Box>
+                       <Typography variant="h5" fontWeight={700}>Download & Learn</Typography>
+                    </Stack>
+                    <Typography color="text.secondary">
+                       Get your file immediately after payment. View it on any device or print it out for revision.
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+           </Grid>
+
+           <Box sx={{ textAlign: 'center', mt: 6 }}>
+              <Button variant="outlined" size="large" component={RouterLink} to="/browse" sx={{ color: 'black', borderColor: 'black', fontWeight: 700, borderRadius: 0, px: 4 }}>
+                Find Resources Now
+              </Button>
+           </Box>
+        </Container>
+      </Box>
+
+      {/* --- VALUE PROPOSITION BANNER --- */}
+      <Box sx={{ bgcolor: '#2d2f31', color: 'white', py: 8 }}>
          <Container maxWidth="xl">
             <Grid container spacing={6} alignItems="center">
                 <Grid item xs={12} md={6}>
-                    <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
-                        Teaching on EduHub
+                    <Typography variant="h4" fontWeight={800} gutterBottom>
+                        Become an Instructor
                     </Typography>
-                    <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, color: '#2d2f31' }}>
+                    <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, opacity: 0.9 }}>
                         Instructors from around the country teach thousands of students on EduHub. We provide the tools and skills to teach what you love.
                     </Typography>
-                    <Button variant="contained" size="large" component={RouterLink} to="/seller" sx={{ bgcolor: '#2d2f31', borderRadius: 0, fontWeight: 700, textTransform: 'none', px: 4, py: 1.5, '&:hover': { bgcolor: '#000' } }}>
+                    <Button variant="contained" size="large" component={RouterLink} to="/seller" sx={{ bgcolor: 'white', color: '#2d2f31', borderRadius: 0, fontWeight: 700, px: 4, py: 1.5, '&:hover': { bgcolor: '#f0f0f0' } }}>
                         Start teaching today
                     </Button>
                 </Grid>
                 <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
-                     {/* Abstract Illustration Placeholder */}
-                     <Box sx={{ width: '80%', pt: '60%', bgcolor: 'white', border: '1px solid #d1d7dc', position: 'relative', boxShadow: 3 }}>
-                        <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'primary.main' }}>
-                            <VideoCallIcon sx={{ fontSize: 80, mb: 2 }} />
-                            <Typography variant="h6" color="text.secondary">Instructor Dashboard Preview</Typography>
-                        </Box>
+                     <Box sx={{ width: '100%', height: 300, bgcolor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+                        <VideoCallIcon sx={{ fontSize: 100, opacity: 0.5 }} />
                      </Box>
                 </Grid>
             </Grid>
          </Container>
       </Box>
 
-      {/* --- HOW IT WORKS (Simplified) --- */}
-      <Container maxWidth="xl" sx={{ py: 8 }}>
-         <Typography variant="h4" fontWeight={800} align="center" gutterBottom>How to get started</Typography>
-         <Grid container spacing={4} sx={{ mt: 2 }}>
-            {[
-                { icon: <SearchIcon />, title: "1. Search", desc: "Browse our huge library of resources" },
-                { icon: <PaymentIcon />, title: "2. Pay Securely", desc: "Easy payment via M-PESA or Card" },
-                { icon: <DownloadIcon />, title: "3. Learn", desc: "Download instantly and start learning" }
-            ].map((step, i) => (
-                <Grid item xs={12} md={4} key={i}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: 3 }}>
-                         <Avatar sx={{ width: 60, height: 60, bgcolor: 'primary.light', color: 'primary.main', mb: 2 }}>
-                             {step.icon}
-                         </Avatar>
-                         <Typography variant="h6" fontWeight={700}>{step.title}</Typography>
-                         <Typography variant="body1" color="text.secondary">{step.desc}</Typography>
-                    </Box>
-                </Grid>
-            ))}
-         </Grid>
-      </Container>
-
-      {/* --- TOP CONTRIBUTORS (Instructor Profiles) --- */}
+      {/* --- TOP CONTRIBUTORS --- */}
       <Container maxWidth="xl" sx={{ py: 6, mb: 6 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
-            Popular Teachers
-        </Typography>
-        <Grid container spacing={3} sx={{ mt: 1 }}>
-          {contributors.length === 0 ? (
-             <Typography sx={{ mx: 3 }}>Loading contributors...</Typography>
-          ) : (
-            contributors.slice(0, 4).map((contributor: any, idx) => (
-              <Grid item xs={12} sm={6} md={3} key={idx}>
-                <Card sx={{ height: '100%', boxShadow: 'none', border: '1px solid #d1d7dc', display: 'flex', flexDirection: 'column', p: 2, '&:hover': { boxShadow: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Avatar 
-                            src={contributor.profilePicPath} 
-                            sx={{ width: 64, height: 64, mr: 2, border: '1px solid #eee' }}
-                        >
-                            {contributor.name?.charAt(0)}
-                        </Avatar>
-                        <Box>
-                            <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.2 }}>{contributor.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">Senior Instructor</Typography>
-                        </Box>
-                    </Box>
-                    <Typography variant="body2" sx={{ mb: 2, color: '#6a6f73', flexGrow: 1 }}>
-                        Specializes in {Array.isArray(contributor.subjects) ? contributor.subjects.join(', ') : 'Various Subjects'}.
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" fontWeight={700}>{contributor.resourceCount} Resources</Typography>
-                        <RouterLink to={`/teacher/${contributor.id}`} style={{ textDecoration: 'none' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.9rem' }}>
-                                Profile <ArrowForwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
-                            </Box>
-                        </RouterLink>
-                    </Box>
-                </Card>
-              </Grid>
-            ))
-          )}
+        <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>Popular Teachers</Typography>
+        <Grid container spacing={3}>
+          {contributors.slice(0, 4).map((contributor: any, idx) => (
+            <Grid item xs={12} sm={6} md={3} key={idx}>
+              <Card sx={{ height: '100%', boxShadow: 'none', border: '1px solid #d1d7dc', p: 2, '&:hover': { boxShadow: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar src={contributor.profilePicPath} sx={{ width: 64, height: 64, mr: 2 }}>{contributor.name?.charAt(0)}</Avatar>
+                      <Box>
+                          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem' }}>{contributor.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">Instructor</Typography>
+                      </Box>
+                  </Box>
+                  <Typography variant="body2" sx={{ mb: 2, color: '#6a6f73' }}>
+                      Specializes in {Array.isArray(contributor.subjects) ? contributor.subjects.join(', ') : 'Education'}.
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" fontWeight={700}>{contributor.resourceCount} Resources</Typography>
+                      <RouterLink to={`/teacher/${contributor.id}`} style={{ textDecoration: 'none' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main', fontWeight: 700 }}>Profile <ArrowForwardIcon sx={{ fontSize: 16, ml: 0.5 }} /></Box>
+                      </RouterLink>
+                  </Box>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
       </Container>
 
-      {/* --- FOOTER (Dark Theme) --- */}
-      <Box sx={{ bgcolor: '#1c1d1f', color: '#fff', py: 6, mt: 'auto' }} component="footer">
+      {/* --- FOOTER --- */}
+      <Box sx={{ bgcolor: '#1c1d1f', color: '#fff', py: 6 }} component="footer">
         <Container maxWidth="xl">
           <Grid container spacing={4} sx={{ borderBottom: '1px solid #3e4143', pb: 4, mb: 4 }}>
              <Grid item xs={12} md={3}>
@@ -363,36 +360,22 @@ const Home: React.FC = () => {
              </Grid>
              <Grid item xs={6} md={3}>
                 <Stack spacing={1}>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>Teach on EduHub</Typography>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>Get the app</Typography>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>About us</Typography>
+                    <Typography variant="body2" component={RouterLink} to="/seller" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Teach on EduHub</Typography>
+                    <Typography variant="body2" component={RouterLink} to="/about" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>About us</Typography>
                 </Stack>
              </Grid>
              <Grid item xs={6} md={3}>
                 <Stack spacing={1}>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>Contact us</Typography>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>Terms</Typography>
-                    <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>Privacy policy</Typography>
+                    <Typography variant="body2" component={RouterLink} to="/contact" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Contact us</Typography>
+                    <Typography variant="body2" component={RouterLink} to="/terms" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Terms</Typography>
                 </Stack>
              </Grid>
           </Grid>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-             <Typography variant="body2" color="grey.500">© {new Date().getFullYear()} EduHub, Inc.</Typography>
-          </Box>
+          <Typography variant="body2" color="grey.500">© {new Date().getFullYear()} EduHub, Inc.</Typography>
         </Container>
-      </Box>
-      
-      {/* Import Icons needed for the new map loops */}
-      <Box sx={{ display: 'none' }}>
-        <SearchIcon /> <PaymentIcon /> <DownloadIcon />
       </Box>
     </Box>
   );
 }
-
-// Quick icon imports for the "How it works" section loop above
-import SearchIcon from '@mui/icons-material/Search';
-import PaymentIcon from '@mui/icons-material/Payment';
-import DownloadIcon from '@mui/icons-material/Download';
 
 export default Home;

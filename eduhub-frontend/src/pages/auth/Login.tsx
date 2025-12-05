@@ -1,16 +1,34 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, TextField, Button, Paper, Link, useTheme } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  TextField, 
+  Button, 
+  Grid, 
+  Link, 
+  useTheme, 
+  InputAdornment, 
+  IconButton, 
+  Divider,
+  Stack
+} from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+// Icons
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import GoogleIcon from '@mui/icons-material/Google';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const Login: React.FC = () => {
   const theme = useTheme();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,158 +38,220 @@ const Login: React.FC = () => {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
+        body: JSON.stringify(formData),
         credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
-        setMessage('Login successful! Redirecting to your dashboard...');
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
+        
+        setMessage('Success! Redirecting...');
         setTimeout(() => {
-          const userRole = data.role.toLowerCase();
-          if (userRole === 'teacher') {
-            navigate('/dashboard/teacher');
-          } else if (userRole === 'student') {
-            navigate('/dashboard/student');
-          } else {
-            navigate('/');
-          }
-        }, 1000);
+          const userRole = data.role?.toLowerCase();
+          if (userRole === 'teacher') navigate('/dashboard/teacher');
+          else if (userRole === 'student') navigate('/dashboard/student');
+          else navigate('/');
+        }, 800);
       } else {
         const data = await response.text();
-        setMessage(data || 'Login failed.');
+        setMessage(data || 'Invalid email or password.');
       }
     } catch (error) {
-      setMessage('An error occurred.');
+      setMessage('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        background: `linear-gradient(45deg, ${theme.palette.primary.light} 30%, ${theme.palette.primary.main} 90%)`,
-        py: 4
-      }}
-    >
-      <Container maxWidth="xs" sx={{ minHeight: { xs: '100vh', md: '80vh' }, display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 2, md: 6 } }}>
-        <Box sx={{ width: '100%', mt: { xs: 2, md: 8 } }}>
-          <Typography variant="h4" fontWeight={700} gutterBottom align="center" sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
-            Login
-          </Typography>
-          <Typography 
-            variant="body1" 
-            align="center" 
-            color="text.secondary"
-            sx={{ mb: 4 }}
+    <Grid container component="main" sx={{ minHeight: '100vh' }}>
+      
+      {/* LEFT SIDE: FORM */}
+      <Grid 
+        item 
+        xs={12} 
+        md={6} 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'center',
+          p: { xs: 3, sm: 6, md: 8 }, 
+          bgcolor: '#fff'
+        }}
+      >
+        <Box maxWidth="sm" sx={{ mx: 'auto', width: '100%' }}>
+          
+          <Button 
+            startIcon={<ArrowBackIcon />} 
+            component={RouterLink} 
+            to="/" 
+            sx={{ mb: 4, color: 'text.secondary', pl: 0 }}
           >
-            Sign in to continue your learning journey
-          </Typography>
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: 4,
-              borderRadius: 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)'
-            }}
+            Back to Home
+          </Button>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <Box 
-              component="form" 
-              onSubmit={handleSubmit} 
-              sx={{ mt: 2 }}
+            <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#1a1b1d', fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+              Welcome back
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Please enter your details to sign in.
+            </Typography>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              sx={{ 
+                py: 1.5, 
+                mb: 3, 
+                color: '#555', 
+                borderColor: '#ddd',
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': { bgcolor: '#f5f5f5', borderColor: '#ccc' }
+              }}
+              onClick={() => setMessage('Social login coming soon!')}
             >
-              {message && <Typography color="success.main" align="center">{message}</Typography>}
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                margin="normal"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    '&:hover fieldset': {
-                      borderColor: theme.palette.primary.main,
-                    },
-                  },
-                  mb: { xs: 2, md: 3 }
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                margin="normal"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    '&:hover fieldset': {
-                      borderColor: theme.palette.primary.main,
-                    },
-                  },
-                  mb: { xs: 2, md: 3 }
-                }}
-              />
+              Sign in with Google
+            </Button>
+
+            <Divider sx={{ mb: 3 }}>
+              <Typography variant="caption" color="text.secondary">OR WITH EMAIL</Typography>
+            </Divider>
+
+            <Box component="form" onSubmit={handleSubmit}>
+              {message && (
+                <Box sx={{ 
+                  p: 2, 
+                  mb: 3, 
+                  bgcolor: message.includes('Success') ? 'success.light' : 'error.light', 
+                  color: message.includes('Success') ? 'success.contrastText' : 'error.contrastText',
+                  borderRadius: 2
+                }}>
+                  <Typography variant="body2" fontWeight={500}>{message}</Typography>
+                </Box>
+              )}
+
+              <Stack spacing={2.5}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                    <Link component={RouterLink} to="/forgot-password" variant="body2" color="primary" underline="hover">
+                      Forgot password?
+                    </Link>
+                  </Box>
+                </Box>
+              </Stack>
+
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                color="primary"
                 disabled={loading}
                 sx={{
-                  mt: 3,
-                  mb: 2,
-                  py: 1.5,
+                  mt: 4,
+                  py: 1.8,
                   borderRadius: 2,
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
                   textTransform: 'none',
-                  boxShadow: 3,
+                  boxShadow: 'none',
+                  bgcolor: theme.palette.primary.main,
                   '&:hover': {
-                    boxShadow: 6,
+                    bgcolor: theme.palette.primary.dark,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   },
-                  minHeight: 48,
-                  fontSize: { xs: '1rem', md: '1.1rem' }
                 }}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
+
+              <Box sx={{ mt: 3, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Don't have an account?{' '}
-                  <Link 
-                    component={RouterLink} 
-                    to="/register"
-                    sx={{ 
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none',
-                      '&:hover': {
-                        textDecoration: 'underline',
-                      },
-                    }}
-                  >
+                  Don't have an account yet?{' '}
+                  <Link component={RouterLink} to="/register" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>
                     Sign up
                   </Link>
                 </Typography>
               </Box>
             </Box>
-          </Paper>
+          </motion.div>
         </Box>
-      </Container>
-    </Box>
+      </Grid>
+
+      {/* RIGHT SIDE: IMAGE (Hidden on Mobile) */}
+      <Grid 
+        item 
+        xs={false} 
+        md={6} 
+        sx={{ 
+          display: { xs: 'none', md: 'block' },
+          position: 'relative',
+          backgroundImage: 'url(https://images.unsplash.com/photo-1497215728101-856f4ea42174?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            p: 8,
+            color: 'white'
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Typography variant="h3" fontWeight={800} gutterBottom sx={{ lineHeight: 1.2 }}>
+              Education is the passport to the future.
+            </Typography>
+            <Typography variant="h6" fontWeight={400} sx={{ opacity: 0.9 }}>
+              Continue where you left off.
+            </Typography>
+          </motion.div>
+        </Box>
+      </Grid>
+    </Grid>
   );
 };
 

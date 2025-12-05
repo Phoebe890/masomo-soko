@@ -169,30 +169,64 @@ const SellerLanding: React.FC = () => {
       {/* =========================================
           SECTION 2: TRUST SIGNALS (Stats)
       ========================================= */}
+     {/* =========================================
+          SECTION 2: TRUST SIGNALS (Stats)
+      ========================================= */}
       <Box sx={{ bgcolor: '#f7f9fa', py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4} justifyContent="center" textAlign="center">
-            {[
-              { label: 'Commission to You', value: '85%', color: theme.palette.success.main },
-              { label: 'Instant Payouts', value: 'M-Pesa', color: theme.palette.primary.main },
-              { label: 'Active Teachers', value: '500+', color: '#2d2f31' },
-            ].map((stat, index) => (
-              <Grid item xs={12} sm={4} key={index}>
-                <Typography 
-                  variant="h3" 
-                  fontWeight={800} 
-                  sx={{ 
-                    color: stat.color, 
-                    fontSize: { xs: '2.5rem', md: '3.5rem' } 
-                  }}
-                >
-                  {stat.value}
-                </Typography>
-                <Typography variant="h6" color="text.secondary" fontWeight={500}>
-                  {stat.label}
-                </Typography>
-              </Grid>
-            ))}
+          <Grid container spacing={4} justifyContent="center" textAlign="center" alignItems="end">
+            
+            {/* Stat 1: Commission */}
+            <Grid item xs={12} sm={4}>
+              <Typography 
+                variant="h3" 
+                fontWeight={800} 
+                sx={{ 
+                  color: 'success.main', 
+                  fontSize: { xs: '3rem', md: '4rem' },
+                  lineHeight: 1
+                }}
+              >
+                85%
+              </Typography>
+              <Typography variant="h6" color="text.secondary" fontWeight={500} sx={{ mt: 2 }}>
+                Commission to You
+              </Typography>
+            </Grid>
+
+            {/* Stat 2: M-Pesa Logo */}
+            <Grid item xs={12} sm={4}>
+              {/* Container to align logo height with the text numbers */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: { xs: '3rem', md: '4rem' } }}>
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" 
+                  alt="M-Pesa" 
+                  style={{ height: '100%', maxHeight: '50px', objectFit: 'contain' }} 
+                />
+              </Box>
+              <Typography variant="h6" color="text.secondary" fontWeight={500} sx={{ mt: 2 }}>
+                Instant Payouts
+              </Typography>
+            </Grid>
+
+            {/* Stat 3: Teachers */}
+            <Grid item xs={12} sm={4}>
+              <Typography 
+                variant="h3" 
+                fontWeight={800} 
+                sx={{ 
+                  color: '#2d2f31', 
+                  fontSize: { xs: '3rem', md: '4rem' },
+                  lineHeight: 1
+                }}
+              >
+                500+
+              </Typography>
+              <Typography variant="h6" color="text.secondary" fontWeight={500} sx={{ mt: 2 }}>
+                Active Teachers
+              </Typography>
+            </Grid>
+
           </Grid>
         </Container>
       </Box>
