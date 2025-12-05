@@ -5,6 +5,11 @@ import {
 } from '@mui/material';
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import FunctionsIcon from '@mui/icons-material/Functions';
+import ScienceIcon from '@mui/icons-material/Science';
+import LanguageIcon from '@mui/icons-material/Language';
+import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -120,40 +125,59 @@ const Home: React.FC = () => {
             Trusted by students and teachers across Kenya
           </Typography>
           <Grid container justifyContent="center" alignItems="center" spacing={6} sx={{ opacity: 0.7 }}>
-             <Grid item><Typography variant="h6" fontWeight={700} color="grey.700">50K+ Resources</Typography></Grid>
-             <Grid item><Typography variant="h6" fontWeight={700} color="grey.700">M-PESA Verified</Typography></Grid>
-             <Grid item><Typography variant="h6" fontWeight={700} color="grey.700">Expert Content</Typography></Grid>
+             <Grid item>
+               <Typography variant="h6" fontWeight={700} color="grey.700">50K+ Resources</Typography>
+             </Grid>
+             <Grid item>
+               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                 <img src="/images/mpesa-logo.svg" alt="M-PESA" style={{ height: 28, marginRight: 8 }} />
+                 <Typography variant="h6" fontWeight={700} color="grey.700">M-PESA Verified</Typography>
+               </Box>
+             </Grid>
+             <Grid item>
+               <Typography variant="h6" fontWeight={700} color="grey.700">Expert Content</Typography>
+             </Grid>
           </Grid>
         </Container>
       </Box>
 
-      {/* --- TOP CATEGORIES (Pill / Chip Style) --- */}
+      {/* --- TOP CATEGORIES (Chip-style, compact & tappable) --- */}
       <Container maxWidth="xl" sx={{ mt: 6, mb: 2 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
           Top Categories
         </Typography>
+
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          {categories.map((cat) => (
-            <Grid item xs={6} sm={4} md={3} lg={1.5} key={cat.id}>
-              <Button
-                component={RouterLink}
-                to={`/browse?category=${cat.id}`}
-                variant="outlined"
-                fullWidth
-                sx={{
-                  color: 'black',
-                  borderColor: 'black',
-                  borderRadius: 0,
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  py: 1.5,
-                  '&:hover': { bgcolor: '#f7f9fa', borderColor: 'black', borderWidth: 1 }
-                }}
-              >
-                {cat.label}
-              </Button>
-            </Grid>
-          ))}
+          {(() => {
+            const iconMap: Record<string, JSX.Element> = {
+              kcse: <SchoolIcon />, kcpe: <SchoolIcon />, junior: <MenuBookIcon />, highschool: <MenuBookIcon />,
+              math: <FunctionsIcon />, science: <ScienceIcon />, languages: <LanguageIcon />, humanities: <HistoryEduIcon />
+            };
+
+            return categories.map((cat) => (
+              <Grid item xs={6} sm={4} md={3} key={cat.id}>
+                <Chip
+                  component={RouterLink}
+                  to={`/browse?category=${cat.id}`}
+                  label={cat.label}
+                  clickable
+                  icon={iconMap[cat.id] ?? <MenuBookIcon />}
+                  variant="outlined"
+                  sx={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    py: 1.2,
+                    px: 1.5,
+                    fontWeight: 700,
+                    borderRadius: 1,
+                    textTransform: 'none',
+                    '& .MuiChip-icon': { color: 'primary.main' }
+                  }}
+                  aria-label={`Browse ${cat.label} resources`}
+                />
+              </Grid>
+            ));
+          })()}
         </Grid>
       </Container>
 

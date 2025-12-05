@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, InputBase, useTheme, Avatar, IconButton, Menu, MenuItem, Divider, Drawer, List, ListItem, ListItemText } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, InputBase, useTheme, Avatar, IconButton, Menu, MenuItem, Divider, Drawer, List, ListItem, ListItemText, Paper, InputAdornment, TextField } from '@mui/material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 const Header: React.FC = () => {
@@ -14,6 +15,7 @@ const Header: React.FC = () => {
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
@@ -37,14 +39,18 @@ const Header: React.FC = () => {
     }
   };
 
+  const openMobileSearch = () => setSearchOpen(true);
+  const closeMobileSearch = () => setSearchOpen(false);
+
   const navLinks = [
     { label: 'Browse', to: '/browse' },
     { label: 'Upload', to: '/upload' },
+    { label: 'Teach', to: '/seller' }
   ];
 
   return (
     <header>
-      <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+  <AppBar position="sticky" color="inherit" elevation={1} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, backgroundColor: '#fff' }}>
         <Toolbar sx={{ minHeight: 72, px: { xs: 1, md: 3 }, justifyContent: 'space-between' }}>
           {/* Left: Logo and Name */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -62,43 +68,54 @@ const Header: React.FC = () => {
               </Typography>
             </Box>
           </Box>
-          {/* Center: Search Bar (hide on mobile) */}
+          {/* Center: Search Bar (desktop) */}
           {!isMobile && (
-            <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 4, maxWidth: 420, display: 'flex', alignItems: 'center', bgcolor: '#f5f6fa', borderRadius: 2, px: 2, py: 0.5 }}>
-              <IconButton type="submit" sx={{ color: 'grey.600', mr: 1 }} aria-label="search">
-                <SearchIcon />
-              </IconButton>
-              <InputBase
-                placeholder="Search for resources..."
-                inputProps={{ 'aria-label': 'search' }}
-                sx={{ width: 320, fontSize: '1rem' }}
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSearch(e); }}
-              />
+            <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 4, maxWidth: 640, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Paper component="div" elevation={0} sx={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: 640, bgcolor: '#f5f6fa', borderRadius: 2, px: 1 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search for resources, teachers, or topics..."
+                  variant="standard"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(e); }}
+                  InputProps={{
+                    disableUnderline: true,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Button onClick={handleSearch} sx={{ textTransform: 'none', fontWeight: 700 }}>Search</Button>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Paper>
             </Box>
           )}
           {/* Right: Nav Links and Auth Buttons or Hamburger */}
           {isMobile ? (
-            <IconButton edge="end" color="inherit" aria-label="Open navigation menu" onClick={() => setDrawerOpen(true)} sx={{ ml: 1, width: 48, height: 48 }}>
-              <MenuIcon fontSize="large" />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton aria-label="search" onClick={openMobileSearch} sx={{ width: 44, height: 44 }}>
+                <SearchIcon />
+              </IconButton>
+              <IconButton edge="end" color="inherit" aria-label="Open navigation menu" onClick={() => setDrawerOpen(true)} sx={{ ml: 1, width: 48, height: 48 }}>
+                <MenuIcon fontSize="large" />
+              </IconButton>
+            </Box>
           ) : !isLoggedIn ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button component={RouterLink} to="/browse" color="inherit" sx={{ fontWeight: 500, fontSize: '1rem', textTransform: 'none' }}>
-                Browse
-              </Button>
-              <Button component={RouterLink} to="/upload" color="inherit" sx={{ fontWeight: 500, fontSize: '1rem', textTransform: 'none' }}>
-                Upload
-              </Button>
-              <Button component={RouterLink} to="/login" color="inherit" sx={{ fontWeight: 500, fontSize: '1rem', textTransform: 'none', ml: 2 }}>
+              {navLinks.map(l => (
+                <Button key={l.to} component={RouterLink} to={l.to} color="inherit" sx={{ fontWeight: 500, fontSize: '1rem', textTransform: 'none' }}>{l.label}</Button>
+              ))}
+              <Button component={RouterLink} to="/login" color="inherit" sx={{ fontWeight: 500, fontSize: '1rem', textTransform: 'none' }}>
                 Sign In
               </Button>
               <Button component={RouterLink} to="/register?role=teacher" variant="contained" color="primary" sx={{ fontWeight: 700, fontSize: '1rem', borderRadius: 2, ml: 1, boxShadow: 2, textTransform: 'none' }}>
-                Sign Up as a Teacher
-              </Button>
-              <Button component={RouterLink} to="/register?role=student" variant="outlined" color="primary" sx={{ fontWeight: 700, fontSize: '1rem', borderRadius: 2, ml: 1, textTransform: 'none' }}>
-                Sign Up as a Student
+                Sign Up
               </Button>
             </Box>
           ) : (
@@ -134,6 +151,12 @@ const Header: React.FC = () => {
         >
           <nav aria-label="Mobile navigation">
             <List sx={{ width: 240 }}>
+              <ListItem>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <Typography variant="h6" fontWeight={800}>Menu</Typography>
+                  <IconButton onClick={() => setDrawerOpen(false)} aria-label="Close menu"><CloseIcon /></IconButton>
+                </Box>
+              </ListItem>
               {navLinks.map(link => (
                 <ListItem button component={RouterLink} to={link.to} key={link.to} onClick={() => setDrawerOpen(false)}>
                   <ListItemText primary={link.label} />
@@ -146,10 +169,7 @@ const Header: React.FC = () => {
                     <ListItemText primary="Sign In" />
                   </ListItem>
                   <ListItem button component={RouterLink} to="/register?role=teacher" onClick={() => setDrawerOpen(false)}>
-                    <ListItemText primary="Sign Up as a Teacher" />
-                  </ListItem>
-                  <ListItem button component={RouterLink} to="/register?role=student" onClick={() => setDrawerOpen(false)}>
-                    <ListItemText primary="Sign Up as a Student" />
+                    <ListItemText primary="Sign Up" />
                   </ListItem>
                 </>
               ) : (
@@ -171,6 +191,20 @@ const Header: React.FC = () => {
               )}
             </List>
           </nav>
+        </Drawer>
+        {/* Mobile Search Drawer */}
+        <Drawer anchor="top" open={searchOpen} onClose={closeMobileSearch} aria-label="Mobile search">
+          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }} component="form" onSubmit={handleSearch}>
+            <TextField
+              autoFocus
+              fullWidth
+              placeholder="Search resources..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
+            />
+            <IconButton onClick={closeMobileSearch} aria-label="Close search"><CloseIcon /></IconButton>
+          </Box>
         </Drawer>
       </AppBar>
     </header>
