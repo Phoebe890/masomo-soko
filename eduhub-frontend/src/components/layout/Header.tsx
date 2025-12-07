@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { 
   AppBar, Toolbar, Typography, Button, Box, useTheme, Avatar, IconButton, 
   Menu, MenuItem, Divider, Drawer, List, ListItemButton, ListItemText, 
-  InputAdornment, TextField, Badge, ListItemIcon 
+  InputAdornment, TextField, Badge, ListItemIcon, Stack 
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -19,14 +20,15 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonIcon from '@mui/icons-material/Person';
 import LoginIcon from '@mui/icons-material/Login';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 const Header: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const isLoggedIn = Boolean(localStorage.getItem('email'));
-  const role = (localStorage.getItem('role') || '').toLowerCase();
+  // const role = (localStorage.getItem('role') || '').toLowerCase(); // Unused currently
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -48,6 +50,7 @@ const Header: React.FC = () => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/browse?search=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchOpen(false); // Close mobile search if open
     }
   };
 
@@ -60,20 +63,17 @@ const Header: React.FC = () => {
   // --- STYLES ---
   const styles = {
     appBar: {
-      backgroundColor: '#fff', // Pure white
+      backgroundColor: '#fff', 
       borderBottom: `1px solid ${theme.palette.divider}`,
       width: '100%', 
-      left: 0,
-      right: 0,
-      zIndex: theme.zIndex.drawer + 1,
+      // REMOVED zIndex here so the Drawer can sit on top naturally
     },
-    // The "Underline Slide" Effect for Links
     navLink: {
       position: 'relative',
       textTransform: 'none',
       fontWeight: 500,
       fontSize: '0.95rem',
-      color: '#4b5563', // Modern dark grey
+      color: '#4b5563', 
       mx: 0.5,
       '&:after': {
         content: '""',
@@ -89,41 +89,35 @@ const Header: React.FC = () => {
       '&:hover': {
         backgroundColor: 'transparent',
         color: theme.palette.primary.main,
-        '&:after': {
-          width: '80%',
-        },
+        '&:after': { width: '80%' },
       },
     },
-    // The "Pill" Search Bar
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
-        backgroundColor: '#f3f4f6', // Very light grey
+        backgroundColor: '#f3f4f6', 
         height: 46,
         paddingRight: 1,
         transition: 'all 0.2s ease',
         '& fieldset': { borderWidth: '1px', borderColor: 'transparent' },
-        '&:hover': {
-          backgroundColor: '#e5e7eb',
-        },
+        '&:hover': { backgroundColor: '#e5e7eb' },
         '&.Mui-focused': {
           backgroundColor: '#fff',
-          boxShadow: `0 0 0 4px ${theme.palette.primary.main}20`, // Glow effect
+          boxShadow: `0 0 0 4px ${theme.palette.primary.main}20`,
           '& fieldset': { borderColor: theme.palette.primary.main },
         },
       }
     },
-    // "Sign Up" Pill Button
     signUpBtn: {
       textTransform: 'none',
       fontWeight: 600,
-      borderRadius: 50, // Fully rounded
+      borderRadius: 50,
       px: 3,
       py: 1,
-      boxShadow: `0 4px 14px 0 ${theme.palette.primary.main}40`, // Colored shadow
+      boxShadow: `0 4px 14px 0 ${theme.palette.primary.main}40`,
       transition: 'transform 0.2s',
       '&:hover': {
-        transform: 'translateY(-2px)', // Lift effect
+        transform: 'translateY(-2px)',
         boxShadow: `0 6px 20px 0 ${theme.palette.primary.main}60`,
       }
     }
@@ -135,23 +129,20 @@ const Header: React.FC = () => {
         <Toolbar sx={{ minHeight: 72, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
           {/* LOGO */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1 }}>
+          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1 }}>
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                 <rect width="32" height="32" rx="8" fill={theme.palette.primary.main} />
                 <path d="M16 8L28 12L16 16L4 12L16 8Z" fill="#fff" />
                 <path d="M16 16V24" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
                 <ellipse cx="16" cy="24.5" rx="4" ry="1.5" fill="#fff" />
               </svg>
-              {!isMobile && (
-                <Typography variant="h6" fontWeight={800} color="primary" sx={{ letterSpacing: '-0.5px', ml: 1 }}>
-                  EduHub
-                </Typography>
-              )}
-            </Box>
+              {/* Show Text on Desktop, or on Mobile if search isn't open */}
+              <Typography variant="h6" fontWeight={800} color="primary" sx={{ letterSpacing: '-0.5px', ml: 1, display: { xs: 'none', sm: 'block' } }}>
+                EduHub
+              </Typography>
           </Box>
 
-          {/* SEARCH (Desktop) */}
+          {/* DESKTOP SEARCH */}
           {!isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 4, maxWidth: 600 }}>
               <TextField
@@ -171,17 +162,17 @@ const Header: React.FC = () => {
             </Box>
           )}
 
-          {/* NAVIGATION (Desktop) */}
+          {/* ACTIONS & NAVIGATION */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             
-            {/* Mobile Search Trigger */}
+            {/* Mobile Search Icon */}
             {isMobile && (
-              <IconButton onClick={() => setSearchOpen(true)}>
+              <IconButton onClick={() => setSearchOpen(true)} sx={{ color: 'text.primary' }}>
                 <SearchIcon />
               </IconButton>
             )}
 
-            {/* Desktop Links with Hover Effect */}
+            {/* Desktop Navigation Links */}
             {!isMobile && !isLoggedIn && navLinks.map(l => (
               <Button key={l.to} component={RouterLink} to={l.to} sx={styles.navLink}>
                 {l.label}
@@ -189,7 +180,7 @@ const Header: React.FC = () => {
             ))}
 
             {isLoggedIn ? (
-              // LOGGED IN STATE
+              // LOGGED IN
               <>
                 {!isMobile && (
                   <>
@@ -210,6 +201,7 @@ const Header: React.FC = () => {
                   </Avatar>
                 </IconButton>
 
+                {/* Dropdown Menu */}
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
@@ -219,144 +211,169 @@ const Header: React.FC = () => {
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  <MenuItem component={RouterLink} to="/profile">Profile</MenuItem>
-                  <MenuItem component={RouterLink} to="/account">Settings</MenuItem>
+                  <MenuItem component={RouterLink} to="/profile"><ListItemIcon><PersonIcon fontSize="small"/></ListItemIcon> Profile</MenuItem>
+                  <MenuItem component={RouterLink} to="/account"><ListItemIcon><SettingsIcon fontSize="small"/></ListItemIcon> Settings</MenuItem>
                   <Divider />
-                  <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                  <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+                      <ListItemIcon><LogoutIcon fontSize="small" color="error"/></ListItemIcon> Logout
+                  </MenuItem>
                 </Menu>
               </>
             ) : (
-              // LOGGED OUT STATE
+              // LOGGED OUT
               !isMobile && (
                 <>
-                  {/* Clean Text Link for Login */}
-                  <Button 
-                    component={RouterLink} 
-                    to="/login" 
-                    sx={styles.navLink}
-                  >
-                    Log In
-                  </Button>
-                  
-                  {/* Modern Pill Button for Sign Up */}
-                  <Button 
-                    component={RouterLink} 
-                    to="/register?role=teacher" 
-                    variant="contained" 
-                    color="primary"
-                    sx={styles.signUpBtn}
-                  >
-                    Sign Up
-                  </Button>
+                  <Button component={RouterLink} to="/login" sx={styles.navLink}>Log In</Button>
+                  <Button component={RouterLink} to="/register?role=teacher" variant="contained" color="primary" sx={styles.signUpBtn}>Sign Up</Button>
                 </>
               )
             )}
 
-            {/* Mobile Hamburger */}
+            {/* Mobile Hamburger Trigger */}
             {isMobile && (
-              <IconButton edge="end" onClick={() => setDrawerOpen(true)} sx={{ ml: 1 }}>
+              <IconButton edge="end" onClick={() => setDrawerOpen(true)} sx={{ ml: 1, color: 'text.primary' }}>
                 <MenuIcon />
               </IconButton>
             )}
           </Box>
         </Toolbar>
 
-        {/* ---------------- MOBILE DRAWER (Modernized) ---------------- */}
+        {/* ---------------- MOBILE DRAWER (Fixed) ---------------- */}
         <Drawer
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          // 1. Z-Index: Ensure it's higher than AppBar
+          sx={{ zIndex: theme.zIndex.appBar + 100 }} 
           PaperProps={{ 
             sx: { 
-              width: 280, 
-              borderTopLeftRadius: 20, 
-              borderBottomLeftRadius: 20 
+              width: '85%', // Takes up more space for better readability
+              maxWidth: 320,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
             } 
           }}
-          // Backdrop blur effect
-          componentsProps={{ backdrop: { sx: { backdropFilter: 'blur(3px)', backgroundColor: 'rgba(0,0,0,0.2)' } } }}
+          // Blur backdrop
+          ModalProps={{ keepMounted: true }} // Better performance on mobile
         >
-          {/* Drawer Header with Gradient */}
+          {/* Header Section */}
           <Box sx={{ 
             p: 3, 
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`, 
             color: '#fff' 
           }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="h6" fontWeight={700}>Menu</Typography>
-              <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                <CloseIcon />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+               <Box>
+                  <Typography variant="h6" fontWeight={800}>EduHub</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Learn anywhere, anytime</Typography>
+               </Box>
+              <IconButton 
+                onClick={() => setDrawerOpen(false)} 
+                sx={{ 
+                    color: 'white', 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } 
+                }}
+              >
+                <CloseIcon fontSize="small" />
               </IconButton>
             </Box>
+            
             {isLoggedIn && (
-               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, p: 1.5, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
                   <Avatar sx={{ bgcolor: '#fff', color: theme.palette.primary.main }}>{userInitial}</Avatar>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Welcome back,</Typography>
-                    <Typography variant="subtitle1" fontWeight={700}>{userInitial}</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Signed in as</Typography>
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1 }}>{localStorage.getItem('email') || 'User'}</Typography>
                   </Box>
                </Box>
             )}
           </Box>
 
-          <List sx={{ p: 2 }}>
-            <ListItemButton component={RouterLink} to="/" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 0.5 }}>
-              <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}><HomeIcon /></ListItemIcon>
-              <ListItemText primary="Home" />
-            </ListItemButton>
-
-            {navLinks.map(link => (
-              <ListItemButton key={link.to} component={RouterLink} to={link.to} onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}>{link.icon}</ListItemIcon>
-                <ListItemText primary={link.label} />
+          {/* Scrollable List */}
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+            <List component="nav">
+              <ListItemButton component={RouterLink} to="/" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}><HomeIcon /></ListItemIcon>
+                <ListItemText primary="Home" primaryTypographyProps={{ fontWeight: 500 }} />
               </ListItemButton>
-            ))}
 
-            <Divider sx={{ my: 2 }} />
+              {navLinks.map(link => (
+                <ListItemButton key={link.to} component={RouterLink} to={link.to} onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
+                  <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}>{link.icon}</ListItemIcon>
+                  <ListItemText primary={link.label} primaryTypographyProps={{ fontWeight: 500 }} />
+                </ListItemButton>
+              ))}
 
+              <Divider sx={{ my: 2 }} />
+
+              {/* Mobile Profile Actions */}
+              {isLoggedIn && (
+                 <>
+                    <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
+                        <ListItemIcon sx={{ minWidth: 40 }}><PersonIcon /></ListItemIcon>
+                        <ListItemText primary="My Profile" />
+                    </ListItemButton>
+                    <ListItemButton component={RouterLink} to="/cart" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
+                        <ListItemIcon sx={{ minWidth: 40 }}><ShoppingCartOutlinedIcon /></ListItemIcon>
+                        <ListItemText primary="My Cart" />
+                    </ListItemButton>
+                 </>
+              )}
+            </List>
+          </Box>
+
+          {/* Footer Section */}
+          <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: '#f9fafb' }}>
             {!isLoggedIn ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Stack spacing={2}>
                 <Button 
+                  fullWidth
                   component={RouterLink} 
                   to="/login" 
+                  variant="outlined"
                   startIcon={<LoginIcon />}
-                  sx={{ justifyContent: 'flex-start', color: '#4b5563', textTransform: 'none' }}
                   onClick={() => setDrawerOpen(false)}
                 >
                   Log In
                 </Button>
                 <Button 
+                  fullWidth
                   component={RouterLink} 
                   to="/register?role=teacher" 
                   variant="contained" 
                   startIcon={<HowToRegIcon />}
-                  sx={{ borderRadius: 50, py: 1.5, fontWeight: 700, textTransform: 'none', boxShadow: 4 }}
                   onClick={() => setDrawerOpen(false)}
+                  sx={{ boxShadow: 2 }}
                 >
-                  Sign Up for Free
+                  Sign Up
                 </Button>
-              </Box>
+              </Stack>
             ) : (
-              <>
-                <ListItemButton component={RouterLink} to="/dashboard" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2 }}>
-                  <ListItemIcon sx={{ minWidth: 40 }}><DashboardIcon /></ListItemIcon>
-                  <ListItemText primary="Dashboard" />
-                </ListItemButton>
-                <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2 }}>
-                  <ListItemIcon sx={{ minWidth: 40 }}><PersonIcon /></ListItemIcon>
-                  <ListItemText primary="Profile" />
-                </ListItemButton>
-                <ListItemButton onClick={() => { setDrawerOpen(false); handleLogout(); }} sx={{ borderRadius: 2, color: 'error.main' }}>
-                   <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}><LoginIcon sx={{ transform: 'rotate(180deg)' }} /></ListItemIcon>
-                  <ListItemText primary="Logout" />
-                </ListItemButton>
-              </>
+                <Button 
+                  fullWidth
+                  color="error"
+                  variant="outlined"
+                  startIcon={<LogoutIcon />}
+                  onClick={() => { setDrawerOpen(false); handleLogout(); }}
+                >
+                  Logout
+                </Button>
             )}
-          </List>
+            <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mt: 3 }}>
+                © 2025 EduHub Inc.
+            </Typography>
+          </Box>
         </Drawer>
 
-        {/* ---------------- SEARCH DRAWER ---------------- */}
-        <Drawer anchor="top" open={searchOpen} onClose={() => setSearchOpen(false)}>
+        {/* ---------------- MOBILE SEARCH DRAWER ---------------- */}
+        <Drawer 
+            anchor="top" 
+            open={searchOpen} 
+            onClose={() => setSearchOpen(false)}
+            sx={{ zIndex: theme.zIndex.tooltip + 1 }} // Search on top of everything
+        >
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }} component="form" onSubmit={handleSearch}>
             <TextField
               autoFocus
@@ -369,8 +386,9 @@ const Header: React.FC = () => {
                 sx: { borderRadius: 50, backgroundColor: '#f3f4f6' }
               }}
               variant="outlined"
+              size="small"
             />
-            <IconButton onClick={() => setSearchOpen(false)}><CloseIcon /></IconButton>
+            <Button onClick={() => setSearchOpen(false)} sx={{ minWidth: 'auto', p: 1 }}>Cancel</Button>
           </Box>
         </Drawer>
 

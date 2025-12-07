@@ -11,7 +11,7 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-
+import Footer from '../../components/layout/Footer';
 // Icons
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -521,11 +521,11 @@ const SellerLanding: React.FC = () => {
 {/* =========================================
           SECTION 7: FOOTER
       ========================================= */}
-      <Box component="footer" sx={{ bgcolor: '#1a1b1d', color: '#fff', py: 8, borderTop: '1px solid #333' }}>
+     {/* <Box component="footer" sx={{ bgcolor: '#1a1b1d', color: '#fff', py: 8, borderTop: '1px solid #333' }}>
         <Container maxWidth="lg">
           <Grid container spacing={6}>
             
-            {/* Column 1: Brand & Desc */}
+            
             <Grid item xs={12} md={4}>
               <Typography variant="h5" fontWeight={700} gutterBottom>
                 EduHub
@@ -538,7 +538,7 @@ const SellerLanding: React.FC = () => {
               </Typography>
             </Grid>
 
-            {/* Column 2: For Teachers */}
+           
             <Grid item xs={6} md={2}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 For Teachers
@@ -551,7 +551,7 @@ const SellerLanding: React.FC = () => {
               </Stack>
             </Grid>
 
-            {/* Column 3: Support */}
+
             <Grid item xs={6} md={2}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 Support
@@ -564,7 +564,7 @@ const SellerLanding: React.FC = () => {
               </Stack>
             </Grid>
 
-            {/* Column 4: Contact/Social */}
+
             <Grid item xs={12} md={4}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
                 Contact
@@ -579,7 +579,8 @@ const SellerLanding: React.FC = () => {
 
           </Grid>
         </Container>
-      </Box>
+      </Box>  */}
+      <Footer />
     </Box>
   );
 };

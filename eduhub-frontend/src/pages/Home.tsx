@@ -4,7 +4,7 @@ import {
   useTheme, Grid, CircularProgress, Avatar, Divider, Chip, Stack, Rating 
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-
+import Footer from '../components/layout/Footer';
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -320,7 +320,6 @@ const Home: React.FC = () => {
             </Grid>
          </Container>
       </Box>
-
       {/* --- TOP CONTRIBUTORS --- */}
       <Container maxWidth="xl" sx={{ py: 6, mb: 6 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>Popular Teachers</Typography>
@@ -350,9 +349,9 @@ const Home: React.FC = () => {
           ))}
         </Grid>
       </Container>
-
+      <Footer />
       {/* --- FOOTER --- */}
-      <Box sx={{ bgcolor: '#1c1d1f', color: '#fff', py: 6 }} component="footer">
+     {/* <Box sx={{ bgcolor: '#1c1d1f', color: '#fff', py: 6 }} component="footer">
         <Container maxWidth="xl">
           <Grid container spacing={4} sx={{ borderBottom: '1px solid #3e4143', pb: 4, mb: 4 }}>
              <Grid item xs={12} md={3}>
@@ -373,7 +372,7 @@ const Home: React.FC = () => {
           </Grid>
           <Typography variant="body2" color="grey.500">© {new Date().getFullYear()} EduHub, Inc.</Typography>
         </Container>
-      </Box>
+      </Box> */}
     </Box>
   );
 }
