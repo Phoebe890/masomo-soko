@@ -22,13 +22,13 @@ import LoginIcon from '@mui/icons-material/Login';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SchoolIcon from '@mui/icons-material/School'; // <--- NEW IMPORT
 
 const Header: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const isLoggedIn = Boolean(localStorage.getItem('email'));
-  // const role = (localStorage.getItem('role') || '').toLowerCase(); // Unused currently
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -50,7 +50,7 @@ const Header: React.FC = () => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate(`/browse?search=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchOpen(false); // Close mobile search if open
+      setSearchOpen(false); 
     }
   };
 
@@ -66,7 +66,6 @@ const Header: React.FC = () => {
       backgroundColor: '#fff', 
       borderBottom: `1px solid ${theme.palette.divider}`,
       width: '100%', 
-      // REMOVED zIndex here so the Drawer can sit on top naturally
     },
     navLink: {
       position: 'relative',
@@ -128,16 +127,22 @@ const Header: React.FC = () => {
       <AppBar position="sticky" elevation={0} sx={styles.appBar}>
         <Toolbar sx={{ minHeight: 72, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* LOGO */}
-          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 1 }}>
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="8" fill={theme.palette.primary.main} />
-                <path d="M16 8L28 12L16 16L4 12L16 8Z" fill="#fff" />
-                <path d="M16 16V24" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                <ellipse cx="16" cy="24.5" rx="4" ry="1.5" fill="#fff" />
-              </svg>
-              {/* Show Text on Desktop, or on Mobile if search isn't open */}
-              <Typography variant="h6" fontWeight={800} color="primary" sx={{ letterSpacing: '-0.5px', ml: 1, display: { xs: 'none', sm: 'block' } }}>
+          {/* --- NEW LOGO (Matches Footer) --- */}
+          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+              <Box sx={{ 
+                  bgcolor: theme.palette.primary.main, 
+                  borderRadius: '50%', 
+                  width: 40, 
+                  height: 40,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  mr: 1.5
+              }}>
+                 <SchoolIcon sx={{ color: 'white', fontSize: 24 }} />
+              </Box>
+              
+              <Typography variant="h5" fontWeight={800} color="primary" sx={{ letterSpacing: '-0.5px' }}>
                 EduHub
               </Typography>
           </Box>
@@ -238,24 +243,22 @@ const Header: React.FC = () => {
           </Box>
         </Toolbar>
 
-        {/* ---------------- MOBILE DRAWER (Fixed) ---------------- */}
+        {/* ---------------- MOBILE DRAWER ---------------- */}
         <Drawer
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          // 1. Z-Index: Ensure it's higher than AppBar
           sx={{ zIndex: theme.zIndex.appBar + 100 }} 
           PaperProps={{ 
             sx: { 
-              width: '85%', // Takes up more space for better readability
+              width: '85%', 
               maxWidth: 320,
               height: '100%',
               display: 'flex',
               flexDirection: 'column'
             } 
           }}
-          // Blur backdrop
-          ModalProps={{ keepMounted: true }} // Better performance on mobile
+          ModalProps={{ keepMounted: true }}
         >
           {/* Header Section */}
           <Box sx={{ 
@@ -264,10 +267,26 @@ const Header: React.FC = () => {
             color: '#fff' 
           }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-               <Box>
-                  <Typography variant="h6" fontWeight={800}>EduHub</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Learn anywhere, anytime</Typography>
+               
+               {/* Mobile Menu Logo (White version) */}
+               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ 
+                      bgcolor: 'white', 
+                      borderRadius: '50%', 
+                      width: 36, 
+                      height: 36,
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      mr: 1.5
+                  }}>
+                     <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight={800} color="white">
+                    EduHub
+                  </Typography>
                </Box>
+
               <IconButton 
                 onClick={() => setDrawerOpen(false)} 
                 sx={{ 
@@ -372,7 +391,7 @@ const Header: React.FC = () => {
             anchor="top" 
             open={searchOpen} 
             onClose={() => setSearchOpen(false)}
-            sx={{ zIndex: theme.zIndex.tooltip + 1 }} // Search on top of everything
+            sx={{ zIndex: theme.zIndex.tooltip + 1 }} 
         >
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }} component="form" onSubmit={handleSearch}>
             <TextField
