@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   AppBar, Toolbar, Typography, Button, Box, useTheme, Avatar, IconButton, 
   Menu, MenuItem, Divider, Drawer, List, ListItemButton, ListItemText, 
-  InputAdornment, TextField, Badge, ListItemIcon, Stack 
+  InputAdornment, TextField, Badge, ListItemIcon, Stack, Tooltip 
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -16,21 +16,29 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import HomeIcon from '@mui/icons-material/Home';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PersonIcon from '@mui/icons-material/Person';
+import DashboardIcon from '@mui/icons-material/Dashboard'; // Filled Icon for Menu
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'; // Outlined for Mobile
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LoginIcon from '@mui/icons-material/Login';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
-import SchoolIcon from '@mui/icons-material/School'; // <--- NEW IMPORT
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import SchoolIcon from '@mui/icons-material/School'; 
 
 const Header: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Auth State
   const isLoggedIn = Boolean(localStorage.getItem('email'));
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
+  const userRole = localStorage.getItem('role'); 
   
+  // Determine Dashboard URL based on Role
+  const isTeacher = userRole === 'TEACHER' || userRole === 'ROLE_TEACHER';
+  const dashboardRoute = isTeacher ? '/dashboard/teacher' : '/dashboard/student';
+
+  // UI State
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -41,8 +49,7 @@ const Header: React.FC = () => {
   const handleMenuClose = () => setAnchorEl(null);
   
   const handleLogout = () => {
-    localStorage.removeItem('email');
-    localStorage.removeItem('role');
+    localStorage.clear(); // Clear all auth data
     window.location.href = '/';
   };
 
@@ -56,8 +63,6 @@ const Header: React.FC = () => {
 
   const navLinks = [
     { label: 'Browse', to: '/browse', icon: <StorefrontIcon /> },
-    { label: 'Upload', to: '/upload', icon: <CloudUploadIcon /> },
-    { label: 'Teach', to: '/seller', icon: <DashboardIcon /> }
   ];
 
   // --- STYLES ---
@@ -68,98 +73,76 @@ const Header: React.FC = () => {
       width: '100%', 
     },
     navLink: {
-      position: 'relative',
       textTransform: 'none',
       fontWeight: 500,
       fontSize: '0.95rem',
       color: '#4b5563', 
       mx: 0.5,
-      '&:after': {
-        content: '""',
-        position: 'absolute',
-        width: '0%',
-        height: '2px',
-        bottom: '6px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: theme.palette.primary.main,
-        transition: 'width 0.3s ease-in-out',
-      },
-      '&:hover': {
-        backgroundColor: 'transparent',
-        color: theme.palette.primary.main,
-        '&:after': { width: '80%' },
-      },
+      '&:hover': { color: theme.palette.primary.main, bgcolor: 'transparent' },
     },
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
         backgroundColor: '#f3f4f6', 
-        height: 46,
+        height: 44,
         paddingRight: 1,
         transition: 'all 0.2s ease',
         '& fieldset': { borderWidth: '1px', borderColor: 'transparent' },
         '&:hover': { backgroundColor: '#e5e7eb' },
         '&.Mui-focused': {
           backgroundColor: '#fff',
-          boxShadow: `0 0 0 4px ${theme.palette.primary.main}20`,
+          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
           '& fieldset': { borderColor: theme.palette.primary.main },
         },
       }
     },
-    signUpBtn: {
-      textTransform: 'none',
-      fontWeight: 600,
-      borderRadius: 50,
-      px: 3,
-      py: 1,
-      boxShadow: `0 4px 14px 0 ${theme.palette.primary.main}40`,
-      transition: 'transform 0.2s',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: `0 6px 20px 0 ${theme.palette.primary.main}60`,
-      }
+    menuPaper: {
+      mt: 1.5, 
+      minWidth: 240, 
+      borderRadius: 3, 
+      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      overflow: 'visible',
+      '&:before': { // The little triangle arrow
+        content: '""',
+        display: 'block',
+        position: 'absolute',
+        top: 0,
+        right: 14,
+        width: 10,
+        height: 10,
+        bgcolor: 'background.paper',
+        transform: 'translateY(-50%) rotate(45deg)',
+        zIndex: 0,
+      },
     }
   };
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
       <AppBar position="sticky" elevation={0} sx={styles.appBar}>
-        <Toolbar sx={{ minHeight: 72, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
+        <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* --- NEW LOGO (Matches Footer) --- */}
+          {/* 1. BRANDING */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <Box sx={{ 
-                  bgcolor: theme.palette.primary.main, 
-                  borderRadius: '50%', 
-                  width: 40, 
-                  height: 40,
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  mr: 1.5
-              }}>
-                 <SchoolIcon sx={{ color: 'white', fontSize: 24 }} />
-              </Box>
-              
-              <Typography variant="h5" fontWeight={800} color="primary" sx={{ letterSpacing: '-0.5px' }}>
+              <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 32, mr: 1 }} />
+              <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ letterSpacing: '-0.5px' }}>
                 EduHub
               </Typography>
           </Box>
 
-          {/* DESKTOP SEARCH */}
+          {/* 2. DESKTOP SEARCH */}
           {!isMobile && (
-            <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 4, maxWidth: 600 }}>
+            <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 6, maxWidth: 500 }}>
               <TextField
                 fullWidth
-                placeholder="Search resources, teachers..."
+                placeholder="Search for resources..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 sx={styles.searchField}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start" sx={{ pl: 1 }}>
-                      <SearchIcon color="disabled" />
+                      <SearchIcon color="disabled" fontSize="small" />
                     </InputAdornment>
                   ),
                 }}
@@ -167,76 +150,136 @@ const Header: React.FC = () => {
             </Box>
           )}
 
-          {/* ACTIONS & NAVIGATION */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* 3. NAVIGATION & ACTIONS */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
             
-            {/* Mobile Search Icon */}
+            {/* Mobile Search Trigger */}
             {isMobile && (
-              <IconButton onClick={() => setSearchOpen(true)} sx={{ color: 'text.primary' }}>
+              <IconButton onClick={() => setSearchOpen(true)}>
                 <SearchIcon />
               </IconButton>
             )}
 
-            {/* Desktop Navigation Links */}
-            {!isMobile && !isLoggedIn && navLinks.map(l => (
-              <Button key={l.to} component={RouterLink} to={l.to} sx={styles.navLink}>
-                {l.label}
+            {/* Desktop Browse Link */}
+            {!isMobile && (
+              <Button component={RouterLink} to="/browse" sx={styles.navLink}>
+                Browse
               </Button>
-            ))}
+            )}
 
             {isLoggedIn ? (
-              // LOGGED IN
+              // --- LOGGED IN STATE ---
               <>
                 {!isMobile && (
                   <>
-                     <IconButton component={RouterLink} to="/cart">
-                        <ShoppingCartOutlinedIcon />
-                     </IconButton>
-                     <IconButton>
-                        <Badge color="error" variant="dot">
-                           <NotificationsNoneOutlinedIcon />
-                        </Badge>
-                     </IconButton>
+                     {/* "Teach" Link - Only if they are a teacher (Pattern from Airbnb/Udemy) */}
+                     {isTeacher && (
+                        <Button component={RouterLink} to="/dashboard/teacher/upload-first-resource" sx={styles.navLink}>
+                           Teach
+                        </Button>
+                     )}
+                     
+                     <Tooltip title="Shopping Cart">
+                        <IconButton component={RouterLink} to="/cart" size="small">
+                            <ShoppingCartOutlinedIcon />
+                        </IconButton>
+                     </Tooltip>
+
+                     <Tooltip title="Notifications">
+                        <IconButton size="small">
+                            <Badge color="error" variant="dot">
+                                <NotificationsNoneOutlinedIcon />
+                            </Badge>
+                        </IconButton>
+                     </Tooltip>
                   </>
                 )}
                 
-                <IconButton onClick={handleAvatarClick} sx={{ ml: 1, border: `2px solid ${theme.palette.primary.light}`, p: 0.5 }}>
-                  <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32, fontSize: '0.9rem' }}>
+                {/* USER AVATAR (The Main Dashboard Entry) */}
+                <IconButton 
+                    onClick={handleAvatarClick} 
+                    size="small"
+                    sx={{ 
+                        ml: 1, 
+                        p: 0.5,
+                        border: `1px solid ${theme.palette.divider}`,
+                        transition: '0.2s',
+                        '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
+                    }}
+                >
+                  <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32, fontSize: '0.9rem', fontWeight: 700 }}>
                     {userInitial}
                   </Avatar>
                 </IconButton>
 
-                {/* Dropdown Menu */}
+                {/* --- MODERN DROPDOWN MENU --- */}
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
                   onClose={handleMenuClose}
                   onClick={handleMenuClose}
-                  PaperProps={{ sx: { mt: 2, minWidth: 200, borderRadius: 3, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' } }}
+                  PaperProps={{ sx: styles.menuPaper }}
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  <MenuItem component={RouterLink} to="/profile"><ListItemIcon><PersonIcon fontSize="small"/></ListItemIcon> Profile</MenuItem>
-                  <MenuItem component={RouterLink} to="/account"><ListItemIcon><SettingsIcon fontSize="small"/></ListItemIcon> Settings</MenuItem>
+                  {/* Top Section: Dashboard Link */}
+                  <MenuItem component={RouterLink} to={dashboardRoute} sx={{ py: 1.5, px: 2.5 }}>
+                      <ListItemIcon>
+                          <DashboardIcon color="primary" />
+                      </ListItemIcon>
+                      <ListItemText 
+                          primary="Dashboard" 
+                          primaryTypographyProps={{ fontWeight: 700 }}
+                          secondary="Manage your activity"
+                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                      />
+                  </MenuItem>
+                  
                   <Divider />
-                  <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-                      <ListItemIcon><LogoutIcon fontSize="small" color="error"/></ListItemIcon> Logout
+
+                  <MenuItem component={RouterLink} to="/profile" sx={{ py: 1.5 }}>
+                      <ListItemIcon><PersonOutlineIcon fontSize="small"/></ListItemIcon> 
+                      Public Profile
+                  </MenuItem>
+                  <MenuItem component={RouterLink} to="/account" sx={{ py: 1.5 }}>
+                      <ListItemIcon><SettingsOutlinedIcon fontSize="small"/></ListItemIcon> 
+                      Account Settings
+                  </MenuItem>
+                  
+                  <Divider />
+                  
+                  <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: 'error.main' }}>
+                      <ListItemIcon><LogoutIcon fontSize="small" color="error"/></ListItemIcon> 
+                      Log out
                   </MenuItem>
                 </Menu>
               </>
             ) : (
-              // LOGGED OUT
+              // --- LOGGED OUT STATE ---
               !isMobile && (
                 <>
-                  <Button component={RouterLink} to="/login" sx={styles.navLink}>Log In</Button>
-                  <Button component={RouterLink} to="/register?role=teacher" variant="contained" color="primary" sx={styles.signUpBtn}>Sign Up</Button>
+                  <Button component={RouterLink} to="/login" sx={{ ...styles.navLink, fontWeight: 700 }}>Log in</Button>
+                  <Button 
+                    component={RouterLink} 
+                    to="/register" 
+                    variant="contained" 
+                    sx={{ 
+                        borderRadius: 50, 
+                        textTransform: 'none', 
+                        fontWeight: 700,
+                        px: 3,
+                        boxShadow: 'none'
+                    }}
+                  >
+                    Sign up
+                  </Button>
                 </>
               )
             )}
 
-            {/* Mobile Hamburger Trigger */}
+            {/* Mobile Hamburger */}
             {isMobile && (
-              <IconButton edge="end" onClick={() => setDrawerOpen(true)} sx={{ ml: 1, color: 'text.primary' }}>
+              <IconButton edge="end" onClick={() => setDrawerOpen(true)}>
                 <MenuIcon />
               </IconButton>
             )}
@@ -248,166 +291,75 @@ const Header: React.FC = () => {
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          sx={{ zIndex: theme.zIndex.appBar + 100 }} 
-          PaperProps={{ 
-            sx: { 
-              width: '85%', 
-              maxWidth: 320,
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
-            } 
-          }}
-          ModalProps={{ keepMounted: true }}
+          PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
         >
-          {/* Header Section */}
-          <Box sx={{ 
-            p: 3, 
-            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`, 
-            color: '#fff' 
-          }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-               
-               {/* Mobile Menu Logo (White version) */}
-               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ 
-                      bgcolor: 'white', 
-                      borderRadius: '50%', 
-                      width: 36, 
-                      height: 36,
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      mr: 1.5
-                  }}>
-                     <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
-                  </Box>
-                  <Typography variant="h6" fontWeight={800} color="white">
-                    EduHub
-                  </Typography>
-               </Box>
-
-              <IconButton 
-                onClick={() => setDrawerOpen(false)} 
-                sx={{ 
-                    color: 'white', 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' } 
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
-            
-            {isLoggedIn && (
-               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, p: 1.5, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                  <Avatar sx={{ bgcolor: '#fff', color: theme.palette.primary.main }}>{userInitial}</Avatar>
-                  <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Signed in as</Typography>
-                    <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1 }}>{localStorage.getItem('email') || 'User'}</Typography>
-                  </Box>
-               </Box>
-            )}
+          <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
+            <Typography variant="h6" fontWeight={800} color="primary">EduHub</Typography>
+            <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
           </Box>
 
-          {/* Scrollable List */}
-          <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-            <List component="nav">
-              <ListItemButton component={RouterLink} to="/" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
-                <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}><HomeIcon /></ListItemIcon>
-                <ListItemText primary="Home" primaryTypographyProps={{ fontWeight: 500 }} />
-              </ListItemButton>
-
-              {navLinks.map(link => (
-                <ListItemButton key={link.to} component={RouterLink} to={link.to} onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon sx={{ minWidth: 40, color: theme.palette.primary.main }}>{link.icon}</ListItemIcon>
-                  <ListItemText primary={link.label} primaryTypographyProps={{ fontWeight: 500 }} />
-                </ListItemButton>
-              ))}
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Mobile Profile Actions */}
-              {isLoggedIn && (
+          <Box sx={{ p: 2 }}>
+            <List>
+               {isLoggedIn ? (
                  <>
-                    <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}><PersonIcon /></ListItemIcon>
-                        <ListItemText primary="My Profile" />
+                    {/* Highlighted Dashboard Link for Mobile */}
+                    <ListItemButton 
+                        component={RouterLink} 
+                        to={dashboardRoute} 
+                        onClick={() => setDrawerOpen(false)}
+                        sx={{ bgcolor: theme.palette.primary.main + '15', borderRadius: 2, mb: 1 }}
+                    >
+                        <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
+                        <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 700, color: 'primary' }} />
                     </ListItemButton>
-                    <ListItemButton component={RouterLink} to="/cart" onClick={() => setDrawerOpen(false)} sx={{ borderRadius: 2, mb: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}><ShoppingCartOutlinedIcon /></ListItemIcon>
-                        <ListItemText primary="My Cart" />
+
+                    <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)}>
+                        <ListItemIcon><PersonOutlineIcon /></ListItemIcon>
+                        <ListItemText primary="Profile" />
                     </ListItemButton>
                  </>
-              )}
-            </List>
-          </Box>
+               ) : (
+                 // Mobile Login/Signup
+                 <Stack spacing={2} sx={{ mb: 3 }}>
+                    <Button variant="contained" fullWidth component={RouterLink} to="/register" size="large" onClick={() => setDrawerOpen(false)}>
+                        Sign up
+                    </Button>
+                    <Button variant="outlined" fullWidth component={RouterLink} to="/login" size="large" onClick={() => setDrawerOpen(false)}>
+                        Log in
+                    </Button>
+                 </Stack>
+               )}
 
-          {/* Footer Section */}
-          <Box sx={{ p: 3, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: '#f9fafb' }}>
-            {!isLoggedIn ? (
-              <Stack spacing={2}>
-                <Button 
-                  fullWidth
-                  component={RouterLink} 
-                  to="/login" 
-                  variant="outlined"
-                  startIcon={<LoginIcon />}
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  Log In
-                </Button>
-                <Button 
-                  fullWidth
-                  component={RouterLink} 
-                  to="/register?role=teacher" 
-                  variant="contained" 
-                  startIcon={<HowToRegIcon />}
-                  onClick={() => setDrawerOpen(false)}
-                  sx={{ boxShadow: 2 }}
-                >
-                  Sign Up
-                </Button>
-              </Stack>
-            ) : (
-                <Button 
-                  fullWidth
-                  color="error"
-                  variant="outlined"
-                  startIcon={<LogoutIcon />}
-                  onClick={() => { setDrawerOpen(false); handleLogout(); }}
-                >
-                  Logout
-                </Button>
-            )}
-            <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mt: 3 }}>
-                © 2025 EduHub Inc.
-            </Typography>
+               <Divider sx={{ my: 2 }} />
+
+               <ListItemButton component={RouterLink} to="/browse" onClick={() => setDrawerOpen(false)}>
+                   <ListItemIcon><StorefrontIcon /></ListItemIcon>
+                   <ListItemText primary="Browse Resources" />
+               </ListItemButton>
+               
+               {isLoggedIn && (
+                   <ListItemButton onClick={() => { setDrawerOpen(false); handleLogout(); }}>
+                       <ListItemIcon><LogoutIcon color="error" /></ListItemIcon>
+                       <ListItemText primary="Log out" primaryTypographyProps={{ color: 'error' }} />
+                   </ListItemButton>
+               )}
+            </List>
           </Box>
         </Drawer>
 
-        {/* ---------------- MOBILE SEARCH DRAWER ---------------- */}
-        <Drawer 
-            anchor="top" 
-            open={searchOpen} 
-            onClose={() => setSearchOpen(false)}
-            sx={{ zIndex: theme.zIndex.tooltip + 1 }} 
-        >
-          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }} component="form" onSubmit={handleSearch}>
+        {/* ---------------- MOBILE SEARCH OVERLAY ---------------- */}
+        <Drawer anchor="top" open={searchOpen} onClose={() => setSearchOpen(false)}>
+          <Box sx={{ p: 2, display: 'flex', gap: 1 }} component="form" onSubmit={handleSearch}>
             <TextField
               autoFocus
               fullWidth
               placeholder="Search..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              InputProps={{ 
-                startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
-                sx: { borderRadius: 50, backgroundColor: '#f3f4f6' }
-              }}
-              variant="outlined"
               size="small"
+              InputProps={{ sx: { borderRadius: 50 } }}
             />
-            <Button onClick={() => setSearchOpen(false)} sx={{ minWidth: 'auto', p: 1 }}>Cancel</Button>
+            <Button onClick={() => setSearchOpen(false)}>Cancel</Button>
           </Box>
         </Drawer>
 
