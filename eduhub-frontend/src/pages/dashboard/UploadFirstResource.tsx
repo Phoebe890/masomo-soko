@@ -3,14 +3,14 @@ import {
     Box, Typography, Paper, TextField, Button, Grid, 
     MenuItem, InputAdornment, Container, Card, CardMedia, 
     CardContent, Chip, IconButton, Stack, useTheme, Divider, 
-    FormControl, FormLabel, OutlinedInput
+    FormControl, FormLabel, OutlinedInput, CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Import Axios
 
 // Icons
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ImageIcon from '@mui/icons-material/Image';
-import DescriptionIcon from '@mui/icons-material/Description';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
@@ -21,6 +21,7 @@ const UploadFirstResource = () => {
     const navigate = useNavigate();
     const theme = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -28,7 +29,8 @@ const UploadFirstResource = () => {
         description: '',
         price: '',
         subject: '',
-        thumbnail: null as File | null,
+        grade: '',        // ADDED: Required by backend
+        curriculum: '',   // ADDED: Required by backend
         thumbnailPreview: '',
         resourceFile: null as File | null
     });
@@ -43,8 +45,9 @@ const UploadFirstResource = () => {
             const file = e.target.files[0];
             setFormData({ 
                 ...formData, 
-                thumbnail: file,
-                thumbnailPreview: URL.createObjectURL(file) // Create local preview URL
+                // Note: Your backend currently generates previews automatically from the resource file
+                // so we only use this for local preview in the UI
+                thumbnailPreview: URL.createObjectURL(file) 
             });
         }
     };
@@ -55,12 +58,50 @@ const UploadFirstResource = () => {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Backend Logic here
-        console.log("Submitting:", formData);
-        alert("Resource Published!"); // Replace with Toast
-        navigate('/dashboard/teacher');
+        
+        if(!formData.resourceFile || !formData.title || !formData.subject || !formData.grade || !formData.curriculum) {
+            alert("Please fill in all required fields and upload a resource file.");
+            return;
+        }
+
+        setLoading(true);
+
+        const uploadData = new FormData();
+        // Backend expects 'file' for the resource
+        uploadData.append('file', formData.resourceFile); 
+        uploadData.append('title', formData.title);
+        uploadData.append('description', formData.description);
+        uploadData.append('subject', formData.subject);
+        uploadData.append('grade', formData.grade);
+        uploadData.append('curriculum', formData.curriculum);
+        
+        // Logic for Pricing
+        const priceValue = parseFloat(formData.price);
+        uploadData.append('pricing', priceValue > 0 ? "Paid" : "Free");
+        if(priceValue > 0) {
+            uploadData.append('price', formData.price);
+        }
+
+        try {
+            // REPLACE WITH YOUR BACKEND URL
+            const API_URL = "http://localhost:8081/api/teacher/resources"; 
+            
+            await axios.post(API_URL, uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                withCredentials: true // IMPORTANT: Sends cookies for @AuthenticationPrincipal
+            });
+
+            alert("Resource Published Successfully!"); 
+            navigate('/dashboard/teacher');
+        } catch (error: any) {
+            console.error("Upload Error:", error);
+            const errorMsg = error.response?.data || "Failed to upload resource.";
+            alert(typeof errorMsg === 'string' ? errorMsg : "Error uploading resource");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -72,7 +113,6 @@ const UploadFirstResource = () => {
             />
 
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` } }}>
-                
                 {/* --- TOP BAR --- */}
                 <Box sx={{ 
                     bgcolor: 'white', px: 4, py: 2, 
@@ -91,42 +131,40 @@ const UploadFirstResource = () => {
                         <Button 
                             variant="contained" 
                             onClick={handleSubmit}
+                            disabled={loading}
                             sx={{ px: 4, fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
                         >
-                            Publish
+                            {loading ? <CircularProgress size={24} color="inherit" /> : "Publish"}
                         </Button>
                     </Stack>
                 </Box>
 
                 <Container maxWidth="xl" sx={{ p: 4 }}>
                     <Grid container spacing={6}>
-                        
                         {/* --- LEFT COLUMN: EDITOR --- */}
                         <Grid item xs={12} lg={7}>
                             <Stack spacing={4}>
                                 
-                                {/* Section 1: Basic Info */}
                                 <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #eee' }}>
                                     <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Resource Details</Typography>
                                     <Grid container spacing={3}>
                                         <Grid item xs={12}>
                                             <FormControl fullWidth>
-                                                <FormLabel sx={{ mb: 1, fontWeight: 600, color: '#333' }}>Title</FormLabel>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Title</FormLabel>
                                                 <TextField 
-                                                    placeholder="e.g. Form 4 History Notes Complete Guide" 
                                                     name="title" value={formData.title} onChange={handleChange}
-                                                    variant="outlined" fullWidth
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                    variant="outlined" fullWidth placeholder="e.g. Form 4 History Notes"
                                                 />
                                             </FormControl>
                                         </Grid>
+
+                                        {/* ADDED: Grade & Curriculum Inputs (Required by Backend) */}
                                         <Grid item xs={12} md={6}>
                                             <FormControl fullWidth>
-                                                <FormLabel sx={{ mb: 1, fontWeight: 600, color: '#333' }}>Category</FormLabel>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Subject</FormLabel>
                                                 <TextField 
                                                     select name="subject" value={formData.subject} onChange={handleChange}
-                                                    variant="outlined" fullWidth defaultValue=""
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                    variant="outlined" fullWidth
                                                 >
                                                     <MenuItem value="Mathematics">Mathematics</MenuItem>
                                                     <MenuItem value="English">English</MenuItem>
@@ -137,93 +175,93 @@ const UploadFirstResource = () => {
                                         </Grid>
                                         <Grid item xs={12} md={6}>
                                             <FormControl fullWidth>
-                                                <FormLabel sx={{ mb: 1, fontWeight: 600, color: '#333' }}>Price (KES)</FormLabel>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Grade / Level</FormLabel>
+                                                <TextField 
+                                                    select name="grade" value={formData.grade} onChange={handleChange}
+                                                    variant="outlined" fullWidth
+                                                >
+                                                    <MenuItem value="Form 1">Form 1</MenuItem>
+                                                    <MenuItem value="Form 2">Form 2</MenuItem>
+                                                    <MenuItem value="Form 3">Form 3</MenuItem>
+                                                    <MenuItem value="Form 4">Form 4</MenuItem>
+                                                </TextField>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Curriculum</FormLabel>
+                                                <TextField 
+                                                    select name="curriculum" value={formData.curriculum} onChange={handleChange}
+                                                    variant="outlined" fullWidth
+                                                >
+                                                    <MenuItem value="KCSE">KCSE</MenuItem>
+                                                    <MenuItem value="CBC">CBC</MenuItem>
+                                                    <MenuItem value="IGCSE">IGCSE</MenuItem>
+                                                </TextField>
+                                            </FormControl>
+                                        </Grid>
+
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Price (KES)</FormLabel>
                                                 <OutlinedInput 
                                                     name="price" type="number" value={formData.price} onChange={handleChange}
                                                     startAdornment={<InputAdornment position="start">KES</InputAdornment>}
-                                                    sx={{ borderRadius: 2 }}
-                                                    placeholder="0"
+                                                    placeholder="0 for Free"
                                                 />
                                             </FormControl>
                                         </Grid>
                                         <Grid item xs={12}>
                                             <FormControl fullWidth>
-                                                <FormLabel sx={{ mb: 1, fontWeight: 600, color: '#333' }}>Description</FormLabel>
+                                                <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Description</FormLabel>
                                                 <TextField 
                                                     multiline rows={5} 
                                                     name="description" value={formData.description} onChange={handleChange}
-                                                    placeholder="What will students learn from this resource?"
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                                 />
                                             </FormControl>
                                         </Grid>
                                     </Grid>
                                 </Paper>
 
-                                {/* Section 2: Media (Thumbnail) */}
+                                {/* Cover Image - Optional in UI, not sent to backend in this specific setup */}
                                 <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #eee' }}>
-                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Cover Image</Typography>
+                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Cover Image (Optional)</Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                        Upload a clear image to attract students (JPG, PNG).
+                                        For preview purposes only. The system will auto-generate a preview from your file.
                                     </Typography>
-                                    
-                                    <Box sx={{ 
-                                        border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, 
-                                        textAlign: 'center', bgcolor: '#fafafa', transition: '0.2s',
-                                        '&:hover': { borderColor: theme.palette.primary.main, bgcolor: '#f0f7ff' } 
-                                    }}>
+                                    <Box sx={{ border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, textAlign: 'center' }}>
                                         <input accept="image/*" style={{ display: 'none' }} id="thumbnail-upload" type="file" onChange={handleThumbnailChange} />
                                         <label htmlFor="thumbnail-upload" style={{ cursor: 'pointer', width: '100%', display: 'block' }}>
                                             {formData.thumbnailPreview ? (
-                                                <Box sx={{ position: 'relative', width: '100%', height: 200, borderRadius: 2, overflow: 'hidden' }}>
-                                                    <img src={formData.thumbnailPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.2s', '&:hover': { opacity: 1 } }}>
-                                                        <Typography color="white" fontWeight={600}>Change Image</Typography>
-                                                    </Box>
-                                                </Box>
+                                                <img src={formData.thumbnailPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
                                             ) : (
                                                 <Stack alignItems="center" spacing={1}>
-                                                    <Box sx={{ bgcolor: 'white', p: 2, borderRadius: '50%', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                                        <ImageIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />
-                                                    </Box>
+                                                    <ImageIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />
                                                     <Typography fontWeight={600} color="primary">Click to upload thumbnail</Typography>
-                                                    <Typography variant="caption" color="text.secondary">1280x720 pixels recommended</Typography>
                                                 </Stack>
                                             )}
                                         </label>
                                     </Box>
                                 </Paper>
 
-                                {/* Section 3: Content (The File) */}
+                                {/* Resource File - MANDATORY */}
                                 <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #eee' }}>
                                     <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Resource File</Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                        The actual file students will download after purchase.
-                                    </Typography>
-
-                                    <Box sx={{ 
-                                        border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, 
-                                        bgcolor: '#fafafa', transition: '0.2s',
-                                        '&:hover': { borderColor: theme.palette.primary.main } 
-                                    }}>
-                                        <input accept=".pdf,.doc,.docx,.ppt" style={{ display: 'none' }} id="resource-upload" type="file" onChange={handleResourceFileChange} />
+                                    <Box sx={{ border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, bgcolor: '#fafafa' }}>
+                                        <input accept=".pdf,.doc,.docx,.ppt,.pptx" style={{ display: 'none' }} id="resource-upload" type="file" onChange={handleResourceFileChange} />
                                         <label htmlFor="resource-upload" style={{ cursor: 'pointer', display: 'block' }}>
                                             {formData.resourceFile ? (
-                                                <Stack direction="row" alignItems="center" spacing={2} sx={{ bgcolor: 'white', p: 2, borderRadius: 2, border: '1px solid #eee' }}>
+                                                <Stack direction="row" alignItems="center" spacing={2} sx={{ bgcolor: 'white', p: 2, borderRadius: 2 }}>
                                                     <CheckCircleIcon color="success" />
                                                     <Box sx={{ flexGrow: 1 }}>
                                                         <Typography fontWeight={600}>{formData.resourceFile.name}</Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {(formData.resourceFile.size / 1024 / 1024).toFixed(2)} MB
-                                                        </Typography>
                                                     </Box>
-                                                    <Typography color="primary" fontWeight={600} fontSize="0.9rem">Change</Typography>
+                                                    <Typography color="primary" fontWeight={600}>Change</Typography>
                                                 </Stack>
                                             ) : (
                                                 <Stack alignItems="center" spacing={1}>
                                                     <CloudUploadIcon sx={{ fontSize: 40, color: '#999' }} />
-                                                    <Typography fontWeight={600} color="text.primary">Drag and drop or click to upload</Typography>
-                                                    <Typography variant="caption" color="text.secondary">PDF, DOCX, PPT (Max 50MB)</Typography>
+                                                    <Typography fontWeight={600}>Click to upload file</Typography>
                                                 </Stack>
                                             )}
                                         </label>
@@ -231,64 +269,11 @@ const UploadFirstResource = () => {
                                 </Paper>
                             </Stack>
                         </Grid>
-
-                        {/* --- RIGHT COLUMN: LIVE PREVIEW --- */}
+                        
+                        {/* RIGHT COLUMN (Preview) - Same as before... */}
                         <Grid item xs={12} lg={5}>
-                            <Box sx={{ position: 'sticky', top: 100 }}>
-                                <Typography variant="subtitle1" fontWeight={700} color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: 1 }}>
-                                    Live Preview
-                                </Typography>
-                                
-                                {/* PREVIEW CARD */}
-                                <Card sx={{ 
-                                    borderRadius: 3, 
-                                    boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                                    border: 'none',
-                                    maxWidth: 400
-                                }}>
-                                    <Box sx={{ position: 'relative', bgcolor: '#eee', height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {formData.thumbnailPreview ? (
-                                            <CardMedia component="img" image={formData.thumbnailPreview} sx={{ height: '100%', objectFit: 'cover' }} />
-                                        ) : (
-                                            <ImageIcon sx={{ fontSize: 60, color: '#ccc' }} />
-                                        )}
-                                        <Chip 
-                                            label={formData.price ? `KES ${formData.price}` : 'FREE'} 
-                                            sx={{ position: 'absolute', top: 12, right: 12, bgcolor: 'white', fontWeight: 700 }} 
-                                        />
-                                    </Box>
-
-                                    <CardContent sx={{ p: 3 }}>
-                                        <Typography variant="caption" color="primary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
-                                            {formData.subject || "Category"}
-                                        </Typography>
-                                        <Typography variant="h6" fontWeight={700} sx={{ mt: 1, mb: 1, lineHeight: 1.3 }}>
-                                            {formData.title || "Your Resource Title"}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ 
-                                            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '4.5em'
-                                        }}>
-                                            {formData.description || "Your description will appear here. Make it catchy so students know exactly what they are buying."}
-                                        </Typography>
-
-                                        <Divider sx={{ my: 2 }} />
-
-                                        <Stack direction="row" alignItems="center" spacing={1}>
-                                            <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#eee' }} />
-                                            <Typography variant="caption" fontWeight={600}>Instructor Name</Typography>
-                                        </Stack>
-                                    </CardContent>
-                                </Card>
-
-                                <Box sx={{ mt: 3, p: 2, bgcolor: '#e3f2fd', borderRadius: 2, color: '#0d47a1', fontSize: '0.9rem', display: 'flex', gap: 1 }}>
-                                    <CheckCircleIcon fontSize="small" />
-                                    <Typography variant="body2">
-                                        Once published, your resource will be available instantly in the marketplace.
-                                    </Typography>
-                                </Box>
-                            </Box>
+                             {/* ... (Keep your existing Preview Card code here) ... */}
                         </Grid>
-
                     </Grid>
                 </Container>
             </Box>

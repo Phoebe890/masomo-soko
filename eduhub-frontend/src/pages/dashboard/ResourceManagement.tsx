@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Paper, Button, TextField, MenuItem, Select, InputLabel, FormControl, 
-  RadioGroup, FormControlLabel, Radio, Grid, Chip, Container, Table, TableBody, 
+  RadioGroup, FormControlLabel, Radio, Chip, Container, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, IconButton, Dialog, DialogTitle, 
-  DialogContent, DialogActions, Alert, CircularProgress 
+  DialogContent, DialogActions, Alert, CircularProgress, useTheme, useMediaQuery 
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import TeacherSidebar from './TeacherSidebar';
-import { useLocation } from 'react-router-dom';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import TeacherSidebar from './TeacherSidebar';
+
+// --- CONFIGURATION ---
+const BACKEND_URL = "http://localhost:8081";
 
 const SUBJECTS = [
   'Math', 'English', 'Science', 'History', 'Geography', 'Kiswahili', 'Art', 'Music', 'ICT', 'Business', 'CRE', 'Physics', 'Chemistry', 'Biology', 'Other'
@@ -58,11 +58,17 @@ const ResourceManagement: React.FC = () => {
   const fetchResources = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/teacher/dashboard', {
-        credentials: 'include'
+      // FIX: Added BACKEND_URL to point to port 8081
+      const response = await fetch(`${BACKEND_URL}/api/teacher/dashboard`, {
+        credentials: 'include', // Important for cookies/session
+        headers: {
+            'Content-Type': 'application/json'
+        }
       });
+
       if (!response.ok) throw new Error('Failed to fetch resources');
       const data = await response.json();
+      // Ensure we access the 'resources' array from the dashboard response
       setResources(data.resources || []);
     } catch (err) {
       console.error('Failed to fetch resources:', err);
@@ -94,23 +100,31 @@ const ResourceManagement: React.FC = () => {
       formData.append('file', file);
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('subject', subject.join(','));
+      // Join array to string for backend
+      formData.append('subject', subject.join(',')); 
       formData.append('grade', grade);
       formData.append('curriculum', curriculum);
-      formData.append('pricing', pricing);
-      if (pricing === 'paid') formData.append('price', price);
+      formData.append('pricing', pricing === 'paid' ? 'Paid' : 'Free'); // Ensure Capitalized if backend expects it
       
-      const response = await fetch('/api/teacher/resources', {
+      if (pricing === 'paid') {
+          formData.append('price', price);
+      }
+
+      // FIX: Added BACKEND_URL to point to port 8081
+      const response = await fetch(`${BACKEND_URL}/api/teacher/resources`, {
         method: 'POST',
         credentials: 'include',
         body: formData
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Failed to upload resource');
       }
+      
       setUploadLoading(false);
       setSuccess(true);
+      
       // Reset form
       setFile(null);
       setTitle('');
@@ -120,12 +134,14 @@ const ResourceManagement: React.FC = () => {
       setCurriculum('');
       setPricing('free');
       setPrice('');
+      
       // Refresh resources list
       setTimeout(() => {
         setSuccess(false);
         setUploadDialogOpen(false);
         fetchResources();
       }, 1500);
+
     } catch (err: any) {
       setUploadLoading(false);
       setError(err.message || 'Failed to upload resource.');
@@ -156,8 +172,18 @@ const ResourceManagement: React.FC = () => {
 
   const handleDelete = async (resourceId: number) => {
     if (!window.confirm('Are you sure you want to delete this resource?')) return;
-    // TODO: Implement delete API call
-    console.log('Delete resource:', resourceId);
+    try {
+        // Example Delete implementation
+        const response = await fetch(`${BACKEND_URL}/api/teacher/resources/${resourceId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if(response.ok) {
+            fetchResources(); // Refresh list
+        }
+    } catch (e) {
+        console.error("Delete failed", e);
+    }
   };
 
   const handleEdit = (resource: any) => {
@@ -395,4 +421,3 @@ const ResourceManagement: React.FC = () => {
 };
 
 export default ResourceManagement;
-

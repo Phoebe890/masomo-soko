@@ -6,7 +6,6 @@ import com.eduhub.eduhub_backend.entity.Review;
 import com.eduhub.eduhub_backend.entity.TeacherProfile;
 import com.eduhub.eduhub_backend.entity.TeacherResource;
 import com.eduhub.eduhub_backend.entity.User;
-import com.eduhub.eduhub_backend.entity.Notification;
 import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.ReviewRepository;
 import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +68,6 @@ public class TeacherController {
 
         TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
 
-        // This check now works because we added the field to the User entity
         boolean isZoomConnected = currentUser.getZoomAccessToken() != null
                 && !currentUser.getZoomAccessToken().isEmpty();
 
@@ -79,7 +78,6 @@ public class TeacherController {
         return ResponseEntity.ok(response);
     }
 
-    // ... onboarding, resources, payout methods are all fine ...
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
@@ -134,14 +132,13 @@ public class TeacherController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
-            // Check if user is authenticated
             if (userDetails == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
             }
             
-            // Check if user has TEACHER role
             boolean isTeacher = userDetails.getAuthorities().stream()
-                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_TEACHER"));
+                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_TEACHER") 
+                    || authority.getAuthority().equals("TEACHER"));
             
             if (!isTeacher) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied. Teacher role required.");
@@ -165,9 +162,6 @@ public class TeacherController {
             resource.setUser(user);
             resource.setFilePath(fileUrl);
 
-            // The method setPreviewImageUrl(String) is undefined for the type
-            // TeacherResource
-            // So, we should not call it. Only set hasPreview.
             if (previewUrl != null) {
                 resource.setHasPreview(true);
             } else {
@@ -210,34 +204,71 @@ public class TeacherController {
         }
     }
 
+    // --- UPDATED DASHBOARD METHOD (FIXES 500 ERROR) ---
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(404).body("User not found");
+        try {
+            // 1. Get User
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(404).body("User not found");
+            }
 
-        List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
-        TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
+            // 2. Get Profile (Handle null safely)
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
 
-        List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
-        long totalSales = resourceIds.isEmpty() ? 0 : purchaseRepository.countByResourceIdIn(resourceIds);
+            // 3. Get Resources (Handle null safely)
+            List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
+            if (resources == null) {
+                resources = new ArrayList<>();
+            }
 
-        Double currentBalance = resourceIds.isEmpty() ? 0.0 : purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+            // 4. Calculate Stats (Wrapped in try-catch to prevent crash if DB is empty)
+            long totalSales = 0;
+            Double currentBalance = 0.0;
 
-        // --- THIS IS THE FIX ---
-        // We map the List<TeacherResource> to a List<TeacherResourceDTO>
-        List<TeacherResourceDTO> resourceDtos = resources.stream()
-                .map(TeacherResourceDTO::new)
-                .collect(Collectors.toList());
+            if (!resources.isEmpty()) {
+                try {
+                    List<Long> resourceIds = resources.stream()
+                            .map(TeacherResource::getId)
+                            .collect(Collectors.toList());
+                    
+                    if (!resourceIds.isEmpty()) {
+                        // Attempt to get sales count
+                        totalSales = purchaseRepository.countByResourceIdIn(resourceIds);
+                        
+                        // Attempt to get balance (Check for NULL return from SUM)
+                        Double balanceResult = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+                        currentBalance = (balanceResult != null) ? balanceResult : 0.0;
+                    }
+                } catch (Exception dbEx) {
+                    System.err.println("Dashboard Stats Error: " + dbEx.getMessage());
+                    // Don't crash, just proceed with 0 sales
+                    dbEx.printStackTrace();
+                }
+            }
 
-        return ResponseEntity.ok(Map.of(
-                "resources", resourceDtos, // Now sending the correct DTO list
-                "totalSales", totalSales,
-                "currentBalance", currentBalance != null ? currentBalance : 0.0,
-                "profile", profile));
+            // 5. Convert Resources to DTOs
+            List<TeacherResourceDTO> resourceDtos = resources.stream()
+                    .map(TeacherResourceDTO::new)
+                    .collect(Collectors.toList());
+
+            // 6. Build Response
+            Map<String, Object> response = new HashMap<>();
+            response.put("resources", resourceDtos);
+            response.put("totalSales", totalSales);
+            response.put("currentBalance", currentBalance);
+            response.put("profile", profile);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            // Print the actual error causing the 500
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Server Error: " + e.getMessage());
+        }
     }
 
-    // ... other methods are fine ...
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,
@@ -331,9 +362,7 @@ public class TeacherController {
 
     @GetMapping("/top-contributors")
     public ResponseEntity<?> getTopContributors() {
-        // Get user IDs and resource counts
         List<Object[]> topContributors = teacherResourceRepository.findTopContributors();
-        // For each, fetch TeacherProfile and User
         List<Map<String, Object>> result = topContributors.stream().map(obj -> {
             Long userId = (Long) obj[0];
             Long resourceCount = (Long) obj[1];
@@ -391,12 +420,10 @@ public class TeacherController {
             User currentUser = userRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Clear Zoom tokens from user
             currentUser.setZoomAccessToken(null);
             currentUser.setZoomRefreshToken(null);
             userRepository.save(currentUser);
 
-            // Also clear from teacher profile if exists
             TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
             if (profile != null) {
                 profile.setZoomAccessToken(null);

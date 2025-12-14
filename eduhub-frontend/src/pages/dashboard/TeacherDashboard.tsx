@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Button, Avatar, 
-    Grid, Card, CardContent, IconButton, Menu, MenuItem, 
-    useTheme, useMediaQuery, Chip, Container, Stack, Paper, 
-    Divider, ListItemIcon, List, ListItem, ListItemAvatar, ListItemText, LinearProgress 
+    Grid, IconButton, Menu, MenuItem, 
+    useTheme, useMediaQuery, Chip, Container, Paper, 
+    Divider, ListItemIcon, List, ListItem, ListItemAvatar, ListItemText, 
+    CircularProgress
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 // Icons
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -23,8 +25,31 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 // Import Sidebar
 import TeacherSidebar from './TeacherSidebar';
 
-// 1. IMPORT THE LOADING HOOK
+// Import Loading Context (Ensure this path is correct for your project)
 import { useLoading } from '../../context/LoadingContext';
+
+// --- Types based on your Spring Boot DTOs ---
+interface TeacherResourceDTO {
+    id: number;
+    title: string;
+    subject: string;
+    price: number;
+    pricing: string;
+    salesCount?: number; // Optional depending on DTO
+}
+
+interface TeacherProfile {
+    bio: string;
+    profilePicPath: string;
+    paymentNumber: string;
+}
+
+interface DashboardData {
+    resources: TeacherResourceDTO[];
+    totalSales: number;
+    currentBalance: number;
+    profile: TeacherProfile | null;
+}
 
 const TeacherDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -32,58 +57,66 @@ const TeacherDashboard: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // 2. GET THE LOADING FUNCTIONS
+    // Loading Context
     const { startLoading, stopLoading } = useLoading();
 
     // State
-    const [profile, setProfile] = useState<any>(null);
-    const [totalSales, setTotalSales] = useState(0);
-    const [currentBalance, setCurrentBalance] = useState(0);
+    const [dashboardData, setDashboardData] = useState<DashboardData>({
+        resources: [],
+        totalSales: 0,
+        currentBalance: 0.0,
+        profile: null
+    });
     
     // UI State
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-    // Fetch Data
-    useEffect(() => {
-        // 3. START LOADING
+    // Fetch Data from Backend
+   // Inside TeacherDashboard.tsx
+
+useEffect(() => {
+    const fetchData = async () => {
         startLoading();
+        try {
+            // FIX: Ensure this is http://localhost:8081
+            const response = await axios.get('http://localhost:8081/api/teacher/dashboard', {
+                withCredentials: true
+            });
 
-        // Simulating a Fetch Request (Added timeout so you can see the spinner)
-        const fetchData = async () => {
-            try {
-                // In a real app, this is where: await fetch('...') happens
-                
-                // Simulate 1 second network delay
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                setProfile({ firstName: 'Instructor', profilePicPath: '' });
-                setTotalSales(15400);
-                setCurrentBalance(4200);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                // 4. STOP LOADING (Always run this at the end)
-                stopLoading();
+            if (response.status === 200) {
+                setDashboardData(response.data);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        } finally {
+            stopLoading();
+        }
+    };
 
-        fetchData();
-    }, []);
+    fetchData();
+}, []);
 
     // Handlers
     const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
     const handleMenuClose = () => setAnchorEl(null);
-    const handleLogout = () => {
-        // Show loader during logout too for a smooth effect
+    
+    const handleLogout = async () => {
         startLoading();
-        setTimeout(() => {
-            localStorage.removeItem('email');
-            localStorage.removeItem('role');
+        try {
+            // Optional: Call backend logout endpoint if you have one
+            // await axios.post('http://localhost:8080/logout'); 
+            
+            // Clear local storage
+            localStorage.clear();
+            
+            navigate('/'); // Redirect to Home/Login
+        } catch (error) {
+            console.error("Logout failed", error);
+        } finally {
             stopLoading();
             handleMenuClose();
-            navigate('/');
-        }, 500);
+        }
     };
 
     // --- SUB-COMPONENTS ---
@@ -112,14 +145,17 @@ const TeacherDashboard: React.FC = () => {
         </Paper>
     );
 
+    // Placeholder Chart - (Backend endpoint /analytics is separate, using mock data for UI visual)
     const RevenueChart = () => (
         <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
                 <Box>
                     <Typography variant="h6" fontWeight={700}>Revenue Analytics</Typography>
-                    <Typography variant="body2" color="text.secondary">Income over the last 7 days</Typography>
+                    <Typography variant="body2" color="text.secondary">Income Overview</Typography>
                 </Box>
-                <Button variant="outlined" size="small" endIcon={<ArrowForwardIcon />}>Full Report</Button>
+                <Button variant="outlined" size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate('/teacher/analytics')}>
+                    Full Report
+                </Button>
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, gap: 1 }}>
@@ -139,41 +175,6 @@ const TeacherDashboard: React.FC = () => {
                     </Box>
                 ))}
             </Box>
-        </Paper>
-    );
-
-    const RecentActivity = () => (
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
-            <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Sales</Typography>
-            <List disablePadding>
-                {[
-                    { name: 'John Doe', item: 'Form 4 Math Notes', time: '2 mins ago', amount: 'KES 200' },
-                    { name: 'Sarah Smith', item: 'Biology Revision', time: '1 hour ago', amount: 'KES 500' },
-                    { name: 'Mike Johnson', item: 'History Paper 1', time: '3 hours ago', amount: 'KES 150' },
-                    { name: 'Emily Davis', item: 'Physics Guide', time: '5 hours ago', amount: 'KES 300' },
-                ].map((sale, i) => (
-                    <React.Fragment key={i}>
-                        <ListItem alignItems="flex-start" sx={{ px: 0 }}>
-                            <ListItemAvatar>
-                                <Avatar sx={{ bgcolor: i % 2 === 0 ? '#E0F2FE' : '#FCE7F3', color: i % 2 === 0 ? '#0284C7' : '#DB2777', fontWeight: 700, fontSize: '0.9rem' }}>
-                                    {sale.name[0]}
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                                primary={<Typography variant="subtitle2" fontWeight={700}>{sale.item}</Typography>}
-                                secondary={
-                                    <Typography variant="caption" component="span" color="text.secondary">
-                                        Sold to <b>{sale.name}</b> • {sale.time}
-                                    </Typography>
-                                }
-                            />
-                            <Typography variant="subtitle2" fontWeight={700} color="success.main">+{sale.amount}</Typography>
-                        </ListItem>
-                        {i < 3 && <Divider variant="inset" component="li" sx={{ ml: 7 }} />}
-                    </React.Fragment>
-                ))}
-            </List>
-            <Button fullWidth sx={{ mt: 1, textTransform: 'none' }}>View All Transactions</Button>
         </Paper>
     );
 
@@ -209,12 +210,15 @@ const TeacherDashboard: React.FC = () => {
                             Upload
                         </Button>
                         <IconButton><NotificationsNoneIcon /></IconButton>
+                        
+                        {/* PROFILE AVATAR FROM BACKEND DATA */}
                         <Avatar 
-                            src={profile?.profilePicPath} 
+                            src={dashboardData.profile?.profilePicPath} 
                             onClick={handleAvatarClick} 
                             sx={{ cursor: 'pointer', bgcolor: theme.palette.primary.main, width: 36, height: 36 }}
                         >
-                            {profile?.firstName?.[0] || 'T'}
+                            {/* Fallback Initial */}
+                            T
                         </Avatar>
                         
                         <Menu 
@@ -234,29 +238,30 @@ const TeacherDashboard: React.FC = () => {
                 {/* --- MAIN CONTENT BODY --- */}
                 <Container maxWidth="xl" sx={{ p: { xs: 2, md: 4 } }}>
                     
-                    {/* 1. STATS ROW */}
+                    {/* 1. STATS ROW - Data from Backend */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget 
                                 title="Total Earnings" 
-                                value={`KES ${totalSales.toLocaleString()}`} 
+                                value={`KES ${dashboardData.currentBalance.toLocaleString()}`} 
                                 icon={<AttachMoneyIcon />} 
                                 color={theme.palette.success.main}
-                                trend="+12% this week"
+                                trend="Lifetime"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget 
-                                title="Current Balance" 
-                                value={`KES ${currentBalance.toLocaleString()}`} 
+                                title="Total Sales" 
+                                value={dashboardData.totalSales} 
                                 icon={<ShoppingBagIcon />} 
                                 color={theme.palette.primary.main}
+                                trend="Items sold"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget 
-                                title="Total Students" 
-                                value="1,204" 
+                                title="Total Resources" 
+                                value={dashboardData.resources.length} 
                                 icon={<PeopleIcon />} 
                                 color="#8B5CF6" // Purple
                             />
@@ -278,59 +283,80 @@ const TeacherDashboard: React.FC = () => {
                             <RevenueChart />
                         </Grid>
                         
-                        {/* Recent Activity Feed */}
+                        {/* Recent Activity (Placeholder as backend dashboard endpoint only gives summaries) */}
                         <Grid item xs={12} md={4}>
-                            <RecentActivity />
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
+                                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>System Status</Typography>
+                                <List disablePadding>
+                                    <ListItem>
+                                        <ListItemAvatar><Avatar sx={{ bgcolor: '#E0F2FE', color: '#0284C7' }}><CheckCircleIcon /></Avatar></ListItemAvatar>
+                                        <ListItemText primary="Account Active" secondary="Your profile is visible" />
+                                    </ListItem>
+                                    <Divider variant="inset" component="li" />
+                                    <ListItem>
+                                        <ListItemAvatar><Avatar sx={{ bgcolor: '#FCE7F3', color: '#DB2777' }}><CloudUploadIcon /></Avatar></ListItemAvatar>
+                                        <ListItemText primary="Uploads Enabled" secondary="You can publish resources" />
+                                    </ListItem>
+                                </List>
+                            </Paper>
                         </Grid>
                     </Grid>
 
-                    {/* 3. QUICK ACTIONS & TOP RESOURCES */}
+                    {/* 3. QUICK ACTIONS & TOP RESOURCES TABLE */}
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={12}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6" fontWeight={700}>Top Performing Resources</Typography>
+                                <Typography variant="h6" fontWeight={700}>Your Resources</Typography>
                                 <Button onClick={() => navigate('/dashboard/teacher/resources')}>View All</Button>
                             </Box>
                             
                             <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #eee', overflow: 'hidden' }}>
-                                {/* Mock Table Header */}
+                                {/* Table Header */}
                                 <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, bgcolor: '#F8F9FA', borderBottom: '1px solid #eee' }}>
                                     <Typography variant="caption" fontWeight={700} color="text.secondary">RESOURCE NAME</Typography>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">SALES</Typography>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">REVENUE</Typography>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">SUBJECT</Typography>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">PRICE</Typography>
                                     <Typography variant="caption" fontWeight={700} color="text.secondary">STATUS</Typography>
                                 </Box>
                                 
-                                {/* Mock Rows */}
-                                {[
-                                    { title: 'Complete KCSE Math Revision', sales: 124, revenue: 'KES 24,800', status: 'Active' },
-                                    { title: 'Biology Form 2 Notes', sales: 98, revenue: 'KES 9,800', status: 'Active' },
-                                    { title: 'History & Government Guide', sales: 45, revenue: 'KES 6,750', status: 'Review' },
-                                ].map((row, index) => (
-                                    <Box key={index} sx={{ 
-                                        display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, 
-                                        borderBottom: index !== 2 ? '1px solid #f0f0f0' : 'none',
-                                        alignItems: 'center',
-                                        '&:hover': { bgcolor: '#F8F9FA' }
-                                    }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: '#eee' }} />
-                                            <Typography variant="body2" fontWeight={600}>{row.title}</Typography>
+                                {/* Rows - Mapped from Backend Data */}
+                                {dashboardData.resources.length > 0 ? (
+                                    dashboardData.resources.slice(0, 5).map((resource, index) => (
+                                        <Box key={resource.id} sx={{ 
+                                            display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, 
+                                            borderBottom: '1px solid #f0f0f0',
+                                            alignItems: 'center',
+                                            '&:hover': { bgcolor: '#F8F9FA' }
+                                        }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                {/* Fallback Icon for resource */}
+                                                <Box sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: '#eee', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                                    <PeopleIcon fontSize="small" color="disabled"/>
+                                                </Box>
+                                                <Typography variant="body2" fontWeight={600}>{resource.title}</Typography>
+                                            </Box>
+                                            <Typography variant="body2">{resource.subject}</Typography>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {resource.pricing === "Free" ? "Free" : `KES ${resource.price}`}
+                                            </Typography>
+                                            <Chip 
+                                                label="Active" 
+                                                size="small" 
+                                                sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, width: 'fit-content' }} 
+                                            />
                                         </Box>
-                                        <Typography variant="body2">{row.sales}</Typography>
-                                        <Typography variant="body2" fontWeight={600}>{row.revenue}</Typography>
-                                        <Chip 
-                                            label={row.status} 
-                                            size="small" 
-                                            sx={{ 
-                                                bgcolor: row.status === 'Active' ? '#E6FFFA' : '#FFFAF0', 
-                                                color: row.status === 'Active' ? '#047857' : '#9A3412',
-                                                fontWeight: 700,
-                                                width: 'fit-content'
-                                            }} 
-                                        />
+                                    ))
+                                ) : (
+                                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                                        <Typography color="text.secondary">You haven't uploaded any resources yet.</Typography>
+                                        <Button 
+                                            variant="outlined" sx={{ mt: 2 }}
+                                            onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
+                                        >
+                                            Upload First Resource
+                                        </Button>
                                     </Box>
-                                ))}
+                                )}
                             </Paper>
                         </Grid>
                     </Grid>
@@ -340,5 +366,9 @@ const TeacherDashboard: React.FC = () => {
         </Box>
     );
 };
+
+// Simple icon import helper for the status section
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 export default TeacherDashboard;
