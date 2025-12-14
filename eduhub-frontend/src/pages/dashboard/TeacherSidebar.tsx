@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
     Drawer, Box, List, ListItemButton, ListItemIcon, 
-    ListItemText, Typography, Divider, Avatar, useTheme 
+    ListItemText, Typography, Divider, useTheme 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,16 +23,32 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
     const navigate = useNavigate();
 
     const menuItems = [
-        { text: 'Dashboard', icon: <DashboardIcon />, path: '/seller' },
+        { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard/teacher' },
         { text: 'My Resources', icon: <LibraryBooksIcon />, path: '/dashboard/teacher/resources' },
-        { text: 'Upload New', icon: <CloudUploadIcon />, path: '/upload' },
+        // --- UPDATED PATH HERE ---
+        { text: 'Upload New', icon: <CloudUploadIcon />, path: '/dashboard/teacher/upload-first-resource' },
         { text: 'Profile Settings', icon: <AccountCircleIcon />, path: '/teacher/settings' },
     ];
 
     const drawerContent = (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0E243C', color: 'white' }}>
-            {/* --- LOGO AREA --- */}
-            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            
+            {/* --- CLICKABLE LOGO TO GO HOME --- */}
+            <Box 
+                onClick={() => navigate('/')} 
+                sx={{ 
+                    p: 3, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { 
+                        bgcolor: 'rgba(255,255,255,0.05)',
+                        opacity: 0.9 
+                    }
+                }}
+            >
                 <Box sx={{ 
                     width: 40, height: 40, borderRadius: '50%', 
                     bgcolor: theme.palette.primary.main, display: 'flex', alignItems: 'center', justifyContent: 'center' 

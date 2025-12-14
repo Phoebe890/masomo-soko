@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Button, Avatar, 
-    Grid, Card, CardContent, CardMedia, 
-    IconButton, Menu, MenuItem, useTheme, 
-    useMediaQuery, Chip, Container, Stack, Paper
+    Grid, Card, CardContent, IconButton, Menu, MenuItem, 
+    useTheme, useMediaQuery, Chip, Container, Stack, Paper, 
+    Divider, ListItemIcon, List, ListItem, ListItemAvatar, ListItemText, LinearProgress 
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -11,14 +11,20 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import MenuIcon from '@mui/icons-material/Menu';
 import AddIcon from '@mui/icons-material/Add';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
+import HomeIcon from '@mui/icons-material/Home';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-// Import the new Sidebar
+// Import Sidebar
 import TeacherSidebar from './TeacherSidebar';
+
+// 1. IMPORT THE LOADING HOOK
+import { useLoading } from '../../context/LoadingContext';
 
 const TeacherDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -26,246 +32,309 @@ const TeacherDashboard: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // --- YOUR ORIGINAL STATE ---
-    const [resources, setResources] = useState<any[]>([]);
+    // 2. GET THE LOADING FUNCTIONS
+    const { startLoading, stopLoading } = useLoading();
+
+    // State
     const [profile, setProfile] = useState<any>(null);
     const [totalSales, setTotalSales] = useState(0);
     const [currentBalance, setCurrentBalance] = useState(0);
-
-    // Sidebar & UI State
+    
+    // UI State
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-    // --- YOUR ORIGINAL FETCH LOGIC ---
+    // Fetch Data
     useEffect(() => {
-        fetch('http://localhost:8089/api/teacher/dashboard', {
-            credentials: 'include'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to fetch dashboard data');
-            return res.json();
-        })
-        .then(data => {
-            setResources(data.resources || []);
-            setProfile(data.profile || null);
-            setTotalSales(data.totalSales || 0);
-            setCurrentBalance(data.currentBalance || 0);
-        })
-        .catch((err) => console.error("Failed to fetch dashboard data:", err));
+        // 3. START LOADING
+        startLoading();
+
+        // Simulating a Fetch Request (Added timeout so you can see the spinner)
+        const fetchData = async () => {
+            try {
+                // In a real app, this is where: await fetch('...') happens
+                
+                // Simulate 1 second network delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                setProfile({ firstName: 'Instructor', profilePicPath: '' });
+                setTotalSales(15400);
+                setCurrentBalance(4200);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                // 4. STOP LOADING (Always run this at the end)
+                stopLoading();
+            }
+        };
+
+        fetchData();
     }, []);
 
     // Handlers
     const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
     const handleMenuClose = () => setAnchorEl(null);
     const handleLogout = () => {
-        localStorage.removeItem('email');
-        localStorage.removeItem('role');
-        handleMenuClose();
-        navigate('/');
+        // Show loader during logout too for a smooth effect
+        startLoading();
+        setTimeout(() => {
+            localStorage.removeItem('email');
+            localStorage.removeItem('role');
+            stopLoading();
+            handleMenuClose();
+            navigate('/');
+        }, 500);
     };
 
-    // Helper for thumbnails
-    const getThumbnail = (index: number) => {
-        const images = [
-            "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=500&q=80", 
-            "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&q=80", 
-            "https://images.unsplash.com/photo-1513258496099-48168024aec0?w=500&q=80", 
-            "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&q=80"
-        ];
-        return images[index % images.length];
-    };
+    // --- SUB-COMPONENTS ---
 
-    // --- WIDGET COMPONENT ---
-    const DashboardWidget = ({ title, value, icon, color, gradient }: any) => (
-        <Paper sx={{ 
-            p: 3, 
-            height: '100%', 
-            borderRadius: 4, 
-            background: gradient, // Gradient Background
-            color: 'white',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-            position: 'relative',
-            overflow: 'hidden'
+    const StatWidget = ({ title, value, icon, trend, color }: any) => (
+        <Paper elevation={0} sx={{ 
+            p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
-            {/* Background Icon Decoration */}
-            <Box sx={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.2, transform: 'scale(2.5)' }}>
-                {icon}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: `${color}15`, color: color }}>
+                    {icon}
+                </Box>
+                {trend && (
+                    <Chip 
+                        label={trend} 
+                        size="small" 
+                        sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, borderRadius: 1 }} 
+                    />
+                )}
+            </Box>
+            <Box>
+                <Typography variant="h4" fontWeight={800} sx={{ color: '#0E243C' }}>{value}</Typography>
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
+            </Box>
+        </Paper>
+    );
+
+    const RevenueChart = () => (
+        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+                <Box>
+                    <Typography variant="h6" fontWeight={700}>Revenue Analytics</Typography>
+                    <Typography variant="body2" color="text.secondary">Income over the last 7 days</Typography>
+                </Box>
+                <Button variant="outlined" size="small" endIcon={<ArrowForwardIcon />}>Full Report</Button>
             </Box>
             
-            <Stack spacing={1}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, opacity: 0.9 }}>
-                    {icon}
-                    <Typography variant="body2" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
-                        {title}
-                    </Typography>
-                </Box>
-                <Typography variant="h3" fontWeight={800}>
-                    {value}
-                </Typography>
-            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, gap: 1 }}>
+                {[40, 65, 30, 80, 55, 90, 70].map((height, i) => (
+                    <Box key={i} sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ 
+                            width: '60%', 
+                            height: `${height}%`, 
+                            bgcolor: i === 6 ? theme.palette.primary.main : '#E2E8F0', 
+                            borderRadius: 2,
+                            transition: 'height 1s',
+                            '&:hover': { bgcolor: theme.palette.primary.main }
+                        }} />
+                        <Typography variant="caption" color="text.secondary">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
+                        </Typography>
+                    </Box>
+                ))}
+            </Box>
+        </Paper>
+    );
+
+    const RecentActivity = () => (
+        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
+            <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Sales</Typography>
+            <List disablePadding>
+                {[
+                    { name: 'John Doe', item: 'Form 4 Math Notes', time: '2 mins ago', amount: 'KES 200' },
+                    { name: 'Sarah Smith', item: 'Biology Revision', time: '1 hour ago', amount: 'KES 500' },
+                    { name: 'Mike Johnson', item: 'History Paper 1', time: '3 hours ago', amount: 'KES 150' },
+                    { name: 'Emily Davis', item: 'Physics Guide', time: '5 hours ago', amount: 'KES 300' },
+                ].map((sale, i) => (
+                    <React.Fragment key={i}>
+                        <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+                            <ListItemAvatar>
+                                <Avatar sx={{ bgcolor: i % 2 === 0 ? '#E0F2FE' : '#FCE7F3', color: i % 2 === 0 ? '#0284C7' : '#DB2777', fontWeight: 700, fontSize: '0.9rem' }}>
+                                    {sale.name[0]}
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText
+                                primary={<Typography variant="subtitle2" fontWeight={700}>{sale.item}</Typography>}
+                                secondary={
+                                    <Typography variant="caption" component="span" color="text.secondary">
+                                        Sold to <b>{sale.name}</b> • {sale.time}
+                                    </Typography>
+                                }
+                            />
+                            <Typography variant="subtitle2" fontWeight={700} color="success.main">+{sale.amount}</Typography>
+                        </ListItem>
+                        {i < 3 && <Divider variant="inset" component="li" sx={{ ml: 7 }} />}
+                    </React.Fragment>
+                ))}
+            </List>
+            <Button fullWidth sx={{ mt: 1, textTransform: 'none' }}>View All Transactions</Button>
         </Paper>
     );
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F4F6F8' }}>
+        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8F9FA' }}>
             
-            {/* 1. SIDEBAR */}
             <TeacherSidebar 
                 selectedRoute={location.pathname} 
                 mobileOpen={sidebarOpen} 
                 onClose={() => setSidebarOpen(false)} 
             />
 
-            {/* 2. MAIN CONTENT */}
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` } }}>
                 
                 {/* --- HEADER --- */}
                 <Box sx={{ 
                     bgcolor: 'white', px: { xs: 2, md: 4 }, py: 2, 
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    borderBottom: '1px solid #E0E0E0'
+                    borderBottom: '1px solid #E0E0E0', position: 'sticky', top: 0, zIndex: 100
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {isMobile && (
-                            <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>
-                        )}
-                        <Typography variant="h5" fontWeight={800} color="text.primary">
-                            Dashboard
-                        </Typography>
+                        {isMobile && <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>}
+                        <Typography variant="h6" fontWeight={800} color="text.primary">Dashboard Overview</Typography>
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Button 
+                            variant="contained" 
+                            startIcon={<AddIcon />} 
+                            onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
+                            sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', display: { xs: 'none', sm: 'flex' } }}
+                        >
+                            Upload
+                        </Button>
                         <IconButton><NotificationsNoneIcon /></IconButton>
-                        <Stack direction="row" alignItems="center" spacing={1} onClick={handleAvatarClick} sx={{ cursor: 'pointer', bgcolor: '#f5f5f5', p: 0.5, pr: 2, borderRadius: 50 }}>
-                            <Avatar src={profile?.profilePicPath} sx={{ width: 32, height: 32 }}>{profile?.firstName?.[0]}</Avatar>
-                            <Typography variant="body2" fontWeight={600} sx={{ display: { xs: 'none', sm: 'block' } }}>
-                                {profile?.firstName || 'Instructor'}
-                            </Typography>
-                        </Stack>
-                        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-                            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-                                <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Logout
-                            </MenuItem>
+                        <Avatar 
+                            src={profile?.profilePicPath} 
+                            onClick={handleAvatarClick} 
+                            sx={{ cursor: 'pointer', bgcolor: theme.palette.primary.main, width: 36, height: 36 }}
+                        >
+                            {profile?.firstName?.[0] || 'T'}
+                        </Avatar>
+                        
+                        <Menu 
+                            anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
+                            PaperProps={{ sx: { minWidth: 200, mt: 1.5, borderRadius: 3, boxShadow: 3 } }}
+                            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                        >
+                            <MenuItem onClick={() => { handleMenuClose(); navigate('/'); }}><ListItemIcon><HomeIcon fontSize="small" /></ListItemIcon>Home Page</MenuItem>
+                            <MenuItem onClick={() => { handleMenuClose(); navigate('/teacher/settings'); }}><ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>Settings</MenuItem>
+                            <Divider />
+                            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}><ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>Logout</MenuItem>
                         </Menu>
                     </Box>
                 </Box>
 
-                {/* --- BODY --- */}
+                {/* --- MAIN CONTENT BODY --- */}
                 <Container maxWidth="xl" sx={{ p: { xs: 2, md: 4 } }}>
                     
-                    {/* Welcome Banner */}
-                    <Box sx={{ mb: 4 }}>
-                        <Typography variant="h4" fontWeight={800} sx={{ color: '#0E243C' }}>
-                            Hello, {profile?.firstName || 'Teacher'} 👋
-                        </Typography>
-                        <Typography color="text.secondary">
-                            Here is an overview of your sales and resources.
-                        </Typography>
-                    </Box>
-
-                    {/* Stats Widgets */}
-                    <Grid container spacing={3} sx={{ mb: 5 }}>
-                        <Grid item xs={12} md={4}>
-                            <DashboardWidget 
+                    {/* 1. STATS ROW */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
                                 title="Total Earnings" 
                                 value={`KES ${totalSales.toLocaleString()}`} 
                                 icon={<AttachMoneyIcon />} 
-                                gradient="linear-gradient(135deg, #0E243C 0%, #203A58 100%)" // Navy Gradient
+                                color={theme.palette.success.main}
+                                trend="+12% this week"
                             />
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <DashboardWidget 
-                                title="Available Balance" 
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Current Balance" 
                                 value={`KES ${currentBalance.toLocaleString()}`} 
                                 icon={<ShoppingBagIcon />} 
-                                gradient={`linear-gradient(135deg, ${theme.palette.primary.main} 0%, #1e54d6 100%)`} // Blue Gradient
+                                color={theme.palette.primary.main}
                             />
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                            <DashboardWidget 
-                                title="Active Resources" 
-                                value={resources.length} 
-                                icon={<LibraryBooksIcon />} 
-                                gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" // Orange Gradient
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Total Students" 
+                                value="1,204" 
+                                icon={<PeopleIcon />} 
+                                color="#8B5CF6" // Purple
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Avg. Rating" 
+                                value="4.8" 
+                                icon={<TrendingUpIcon />} 
+                                color="#F59E0B" // Orange
                             />
                         </Grid>
                     </Grid>
 
-                    {/* Resources Section */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                        <Typography variant="h5" fontWeight={700} sx={{ color: '#0E243C' }}>Your Resources</Typography>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<AddIcon />} 
-                            onClick={() => navigate('/upload')}
-                            sx={{ 
-                                borderRadius: 2, px: 3, py: 1, fontWeight: 700, 
-                                boxShadow: '0 4px 14px rgba(47, 107, 255, 0.4)' 
-                            }}
-                        >
-                            Create New
-                        </Button>
-                    </Box>
-
-                    {resources.length === 0 ? (
-                        <Paper sx={{ 
-                            p: 6, textAlign: 'center', borderRadius: 4, 
-                            border: '2px dashed #e0e0e0', bgcolor: 'white' 
-                        }}>
-                            <LibraryBooksIcon sx={{ fontSize: 60, color: '#ddd', mb: 2 }} />
-                            <Typography variant="h6" fontWeight={600} gutterBottom>No Resources Yet</Typography>
-                            <Typography color="text.secondary" sx={{ mb: 3 }}>
-                                Upload your first study material to start earning.
-                            </Typography>
-                            <Button variant="outlined" onClick={() => navigate('/upload')}>Upload Now</Button>
-                        </Paper>
-                    ) : (
-                        <Grid container spacing={3}>
-                            {resources.map((resource, index) => (
-                                <Grid item xs={12} sm={6} lg={3} key={resource.id}>
-                                    <Card sx={{ 
-                                        height: '100%', display: 'flex', flexDirection: 'column', 
-                                        borderRadius: 3, border: 'none', 
-                                        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                                        transition: 'transform 0.2s',
-                                        '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }
-                                    }}>
-                                        <CardMedia
-                                            component="img"
-                                            height="180"
-                                            image={resource.thumbnail || getThumbnail(index)}
-                                            alt={resource.title}
-                                        />
-                                        <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                <Chip 
-                                                    label={resource.price > 0 ? `KES ${resource.price}` : 'FREE'} 
-                                                    size="small" 
-                                                    sx={{ 
-                                                        fontWeight: 700, 
-                                                        bgcolor: resource.price > 0 ? '#E3F2FD' : '#E8F5E9', 
-                                                        color: resource.price > 0 ? '#1565C0' : '#2E7D32' 
-                                                    }} 
-                                                />
-                                                <IconButton size="small"><MoreVertIcon fontSize="small" /></IconButton>
-                                            </Box>
-                                            
-                                            <Typography variant="h6" sx={{ 
-                                                fontSize: '1rem', fontWeight: 700, lineHeight: 1.4, mb: 1,
-                                                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
-                                            }}>
-                                                {resource.title}
-                                            </Typography>
-                                            
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                                Uploaded on {new Date().toLocaleDateString()}
-                                            </Typography>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                            ))}
+                    {/* 2. ANALYTICS & ACTIVITY ROW */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        {/* Revenue Chart */}
+                        <Grid item xs={12} md={8}>
+                            <RevenueChart />
                         </Grid>
-                    )}
+                        
+                        {/* Recent Activity Feed */}
+                        <Grid item xs={12} md={4}>
+                            <RecentActivity />
+                        </Grid>
+                    </Grid>
+
+                    {/* 3. QUICK ACTIONS & TOP RESOURCES */}
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={12}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" fontWeight={700}>Top Performing Resources</Typography>
+                                <Button onClick={() => navigate('/dashboard/teacher/resources')}>View All</Button>
+                            </Box>
+                            
+                            <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #eee', overflow: 'hidden' }}>
+                                {/* Mock Table Header */}
+                                <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, bgcolor: '#F8F9FA', borderBottom: '1px solid #eee' }}>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">RESOURCE NAME</Typography>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">SALES</Typography>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">REVENUE</Typography>
+                                    <Typography variant="caption" fontWeight={700} color="text.secondary">STATUS</Typography>
+                                </Box>
+                                
+                                {/* Mock Rows */}
+                                {[
+                                    { title: 'Complete KCSE Math Revision', sales: 124, revenue: 'KES 24,800', status: 'Active' },
+                                    { title: 'Biology Form 2 Notes', sales: 98, revenue: 'KES 9,800', status: 'Active' },
+                                    { title: 'History & Government Guide', sales: 45, revenue: 'KES 6,750', status: 'Review' },
+                                ].map((row, index) => (
+                                    <Box key={index} sx={{ 
+                                        display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, 
+                                        borderBottom: index !== 2 ? '1px solid #f0f0f0' : 'none',
+                                        alignItems: 'center',
+                                        '&:hover': { bgcolor: '#F8F9FA' }
+                                    }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: '#eee' }} />
+                                            <Typography variant="body2" fontWeight={600}>{row.title}</Typography>
+                                        </Box>
+                                        <Typography variant="body2">{row.sales}</Typography>
+                                        <Typography variant="body2" fontWeight={600}>{row.revenue}</Typography>
+                                        <Chip 
+                                            label={row.status} 
+                                            size="small" 
+                                            sx={{ 
+                                                bgcolor: row.status === 'Active' ? '#E6FFFA' : '#FFFAF0', 
+                                                color: row.status === 'Active' ? '#047857' : '#9A3412',
+                                                fontWeight: 700,
+                                                width: 'fit-content'
+                                            }} 
+                                        />
+                                    </Box>
+                                ))}
+                            </Paper>
+                        </Grid>
+                    </Grid>
+
                 </Container>
             </Box>
         </Box>

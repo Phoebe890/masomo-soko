@@ -18,6 +18,9 @@ import {
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// 1. IMPORT LOADING HOOK
+import { useLoading } from '../../context/LoadingContext';
+
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -26,11 +29,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const Register: React.FC = () => {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const navigate = useNavigate();
+
+  // 2. GET LOADING FUNCTIONS
+  const { startLoading, stopLoading } = useLoading();
 
   const initialRole = params.get('role') === 'teacher' ? 'teacher' : 'student';
   
@@ -45,7 +50,6 @@ const Register: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +65,8 @@ const Register: React.FC = () => {
       return;
     }
 
-    setLoading(true);
+    // 3. START LOADING
+    startLoading();
 
     try {
       // 2. API Call
@@ -82,9 +87,6 @@ const Register: React.FC = () => {
         localStorage.setItem('email', formData.email.trim().toLowerCase());
         localStorage.setItem('role', formData.role.toLowerCase());
         
-        // 4. SMART REDIRECT LOGIC
-        // If Teacher -> Go to the new Onboarding Wizard
-        // If Student -> Go to Student Dashboard (or previous page)
         let target = '/dashboard/student';
         if (formData.role.toLowerCase() === 'teacher') {
           target = '/dashboard/teacher/onboarding';
@@ -99,7 +101,8 @@ const Register: React.FC = () => {
     } catch (error) {
       setMessage('An error occurred. Please try again.');
     } finally {
-      setLoading(false);
+      // 4. STOP LOADING
+      stopLoading();
     }
   };
 
@@ -109,7 +112,6 @@ const Register: React.FC = () => {
     navigate(`/register?role=${newRole}`, { replace: true });
   };
 
-  // Dynamic Content assets
   const bgImage = formData.role === 'teacher' 
     ? 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-1.2.1&auto=format&fit=crop&w=1650&q=80' 
     : 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-1.2.1&auto=format&fit=crop&w=1650&q=80';
@@ -147,7 +149,7 @@ const Register: React.FC = () => {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={formData.role} // Animates when role switches
+              key={formData.role} 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -231,7 +233,6 @@ const Register: React.FC = () => {
                 />
               </Stack>
 
-              {/* Terms Checkbox - Critical for Sellers */}
               <Box sx={{ mt: 2 }}>
                 <FormControlLabel
                   control={
@@ -253,14 +254,13 @@ const Register: React.FC = () => {
                 type="submit"
                 fullWidth
                 variant="contained"
-                disabled={loading}
                 sx={{
                   mt: 3, py: 1.8, borderRadius: 2, fontSize: '1.1rem', fontWeight: 700, textTransform: 'none', boxShadow: 'none',
                   bgcolor: theme.palette.primary.main,
                   '&:hover': { bgcolor: theme.palette.primary.dark }
                 }}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                Create Account
               </Button>
 
               <Box sx={{ mt: 3, textAlign: 'center' }}>
@@ -296,7 +296,7 @@ const Register: React.FC = () => {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={formData.role} // Re-renders image on role change
+            key={formData.role} 
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}

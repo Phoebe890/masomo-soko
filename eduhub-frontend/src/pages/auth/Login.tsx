@@ -16,7 +16,10 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+
+// 1. IMPORT LOADING HOOK
+import { useLoading } from '../../context/LoadingContext';
 
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
@@ -30,16 +33,20 @@ const Login: React.FC = () => {
   // Check media query to hide image on mobile
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
+  // 2. GET LOADING FUNCTIONS
+  const { startLoading, stopLoading } = useLoading();
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    setLoading(true);
+    
+    // 3. START LOADING
+    startLoading();
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -56,7 +63,6 @@ const Login: React.FC = () => {
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
         
-        // Optional: If you implement "Remember Me", you might set a longer persistence token here
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
         }
@@ -68,9 +74,6 @@ const Login: React.FC = () => {
           const userRole = data.role?.toLowerCase();
           
           if (userRole === 'teacher') {
-            // Note: If your backend sends a flag like 'isSetupComplete', 
-            // you could redirect to '/dashboard/teacher/onboarding' if false.
-            // For now, we send them to dashboard, and let the dashboard handle the check.
             navigate('/dashboard/teacher');
           } else if (userRole === 'student') {
             navigate('/dashboard/student');
@@ -79,14 +82,14 @@ const Login: React.FC = () => {
           }
         }, 800);
       } else {
-        // Handle explicit error messages from backend
         const errorText = await response.text();
         setMessage(errorText || 'Invalid email or password.');
       }
     } catch (error) {
       setMessage('Network error. Please try again later.');
     } finally {
-      setLoading(false);
+      // 4. STOP LOADING (Always runs)
+      stopLoading();
     }
   };
 
@@ -187,7 +190,6 @@ const Login: React.FC = () => {
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                   
-                  {/* Remember Me & Forgot Password Row */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
                     <FormControlLabel
                       control={
@@ -211,14 +213,13 @@ const Login: React.FC = () => {
                 type="submit"
                 fullWidth
                 variant="contained"
-                disabled={loading}
                 sx={{
                   mt: 3, py: 1.8, borderRadius: 2, fontSize: '1.1rem', fontWeight: 700, textTransform: 'none', boxShadow: 'none',
                   bgcolor: theme.palette.primary.main,
                   '&:hover': { bgcolor: theme.palette.primary.dark, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' },
                 }}
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                Sign In
               </Button>
 
               <Box sx={{ mt: 3, textAlign: 'center' }}>
@@ -242,7 +243,6 @@ const Login: React.FC = () => {
         sx={{ 
           display: { xs: 'none', md: 'block' },
           position: 'relative',
-          // A different image than Register to distinguish context
           backgroundImage: 'url(https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1650&q=80)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',

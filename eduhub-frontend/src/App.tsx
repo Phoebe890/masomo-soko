@@ -51,45 +51,68 @@ function AuthGate() {
 }
 
 function App() {
-  // Note: We REMOVED <Router> from here because it is now in main.tsx
+  const location = useLocation();
+
+  // Define which paths should NOT have the global Header/Footer (Layout)
+  const isDashboardRoute = 
+    location.pathname.startsWith('/dashboard') || 
+    location.pathname.startsWith('/teacher');
+
+  // We define the routes content once to avoid duplication
+  const appRoutes = (
+    <Routes>
+      {/* Main Public Routes */}
+      <Route path="/" element={<Home />} />
+      <Route path="/browse" element={<BrowseResources />} />
+      <Route path="/resource/:id" element={<ResourceDetail />} />
+      <Route path="/purchase-confirmation" element={<PurchaseConfirmation />} />
+      
+      {/* Seller Landing is PUBLIC, so it stays inside Layout logic normally, 
+          but if you want it to have no header, add it to isDashboardRoute logic above */}
+      <Route path="/seller" element={<SellerLanding />} />
+
+      {/* Authentication Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      
+      {/* Student Dashboard */}
+      <Route path="/dashboard/student" element={<StudentDashboard />} />
+
+      {/* --- TEACHER FLOW --- */}
+      
+      {/* 1. The Main Dashboard */}
+      <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
+      
+      {/* 2. The New Onboarding Wizard */}
+      <Route path="/dashboard/teacher/onboarding" element={<TeacherOnboarding />} />
+      
+      {/* 3. Resource Management */}
+      <Route path="/dashboard/teacher/resources" element={<ResourceManagement />} />
+      <Route path="/dashboard/teacher/upload-first-resource" element={<UploadFirstResource />} />
+      
+      {/* 4. Coaching & Settings */}
+      <Route path="/teacher/settings" element={<TeacherSettings />} />
+      <Route path="/teacher/coaching-services" element={<CoachingServiceManager />} />
+      <Route path="/teacher/availability" element={<AvailabilityCalendar />} />
+    </Routes>
+  );
+
   return (
     <>
       <AuthGate />
-      <Layout>
-        <Routes>
-          {/* Main Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/browse" element={<BrowseResources />} />
-          <Route path="/resource/:id" element={<ResourceDetail />} />
-          <Route path="/purchase-confirmation" element={<PurchaseConfirmation />} />
-          <Route path="/seller" element={<SellerLanding />} />
-
-          {/* Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Student Dashboard */}
-          <Route path="/dashboard/student" element={<StudentDashboard />} />
-
-          {/* --- TEACHER FLOW --- */}
-          
-          {/* 1. The Main Dashboard */}
-          <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
-          
-          {/* 2. The New Onboarding Wizard */}
-          <Route path="/dashboard/teacher/onboarding" element={<TeacherOnboarding />} />
-          
-          {/* 3. Resource Management */}
-          <Route path="/dashboard/teacher/resources" element={<ResourceManagement />} />
-          <Route path="/dashboard/teacher/upload-first-resource" element={<UploadFirstResource />} />
-          
-          {/* 4. Coaching & Settings */}
-          <Route path="/teacher/settings" element={<TeacherSettings />} />
-          <Route path="/teacher/coaching-services" element={<CoachingServiceManager />} />
-          <Route path="/teacher/availability" element={<AvailabilityCalendar />} />
-
-        </Routes>
-      </Layout>
+      
+      {/* 
+         LOGIC: 
+         If we are on a dashboard page, render routes DIRECTLY (Sidebar will handle layout).
+         If we are on a public page, wrap routes in <Layout> (Header + Footer).
+      */}
+      {isDashboardRoute ? (
+        appRoutes
+      ) : (
+        <Layout>
+          {appRoutes}
+        </Layout>
+      )}
     </>
   );
 }
