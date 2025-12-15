@@ -1,35 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Paper,
-  Avatar,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Divider,
-  Stack,
-  Rating,
-  Chip,
-  Container,
-  Breadcrumbs,
-  Link
+  Box, Typography, Button, CircularProgress, Paper, Avatar, Grid, Dialog, 
+  DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, 
+  Stack, Rating, Chip, Container, Breadcrumbs, Link
 } from '@mui/material';
 
 // Icons
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VerifiedIcon from '@mui/icons-material/Verified';
 
 const paymentMethods = [
@@ -46,16 +27,7 @@ const ResourceDetail = () => {
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [processing, setProcessing] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
-  const isLoggedIn = Boolean(localStorage.getItem('email'));
-  
-  // Review State
-  const [canReview, setCanReview] = useState(false);
-  const [reviewed, setReviewed] = useState(false);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [reviewError, setReviewError] = useState('');
-  const [refreshReviews, setRefreshReviews] = useState(0);
+  const isLoggedIn = Boolean(localStorage.getItem('email')); // Or better check role cookie
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -64,19 +36,11 @@ const ResourceDetail = () => {
       .then(async res => {
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
-        // Support backend DTO
         setResource(data.resource || data);
       })
       .catch(() => setResource(null))
       .finally(() => setLoading(false));
-
-    // Check review status (mock logic based on your previous code)
-    const email = localStorage.getItem('email');
-    if (email && id) {
-       // Assuming these endpoints exist as per your logic
-       // Ignoring implementation details for UI focus
-    }
-  }, [id, refreshReviews]);
+  }, [id]);
 
   // --- HANDLERS ---
   const handleBuyNow = () => {
@@ -89,31 +53,29 @@ const ResourceDetail = () => {
 
   const handlePayment = () => {
     setProcessing(true);
-    const email = localStorage.getItem('email');
+    
+    // Using fetch with credentials: 'include' sends the JSESSIONID cookie
+    // This authenticates the user on the backend without sending email in body
     fetch('http://localhost:8081/api/student/purchase', {
       method: 'POST',
+      credentials: 'include', // <--- CRITICAL FIX
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `email=${encodeURIComponent(email || '')}&resourceId=${encodeURIComponent(id || '')}`
+      body: `resourceId=${encodeURIComponent(id || '')}`
     })
     .then(async res => {
       setProcessing(false);
       if (res.ok) {
         setBuyOpen(false);
-        navigate('/purchase-confirmation');
+        navigate('/purchase-confirmation'); // Ensure you have this route or change to dashboard
       } else {
-        alert('Purchase failed. Please try again.');
+        const errorText = await res.text();
+        alert(errorText || 'Purchase failed.');
       }
     })
     .catch(() => {
       setProcessing(false);
       alert('Network error during purchase.');
     });
-  };
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Simplified logic for UI demo
-    alert("Review logic goes here");
   };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 20 }}><CircularProgress /></Box>;
@@ -167,7 +129,6 @@ const ResourceDetail = () => {
                              </Box>
                          )}
                          
-                         {/* Watermark Overlay (Visual Effect) */}
                          <Box sx={{ position: 'absolute', bottom: 20, right: 20, bgcolor: 'rgba(0,0,0,0.7)', color: 'white', px: 2, py: 0.5, borderRadius: 20, fontSize: '0.75rem', fontWeight: 600 }}>
                              PREVIEW MODE
                          </Box>
@@ -212,12 +173,6 @@ const ResourceDetail = () => {
                         <Typography variant="body1" sx={{ color: '#4B5563', lineHeight: 1.8, fontSize: '1.05rem' }}>
                             {resource.description}
                         </Typography>
-                        {/* Mock extended description if needed */}
-                        <Typography variant="body1" sx={{ mt: 2, color: '#4B5563', lineHeight: 1.8, fontSize: '1.05rem' }}>
-                            This comprehensive guide is designed to help students master the key concepts of {resource.subject}. 
-                            It includes detailed notes, practice questions, and step-by-step solutions that align with the 
-                            {resource.curriculum || 'standard'} curriculum. Perfect for revision and exam preparation.
-                        </Typography>
                     </Box>
 
                     {/* Reviews Section */}
@@ -238,9 +193,6 @@ const ResourceDetail = () => {
                                              <Typography variant="subtitle2" fontWeight={700}>{rev.studentName}</Typography>
                                              <Stack direction="row" spacing={1} alignItems="center">
                                                 <Rating value={rev.rating} readOnly size="small" />
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Recent'}
-                                                </Typography>
                                              </Stack>
                                          </Box>
                                      </Stack>
@@ -315,20 +267,6 @@ const ResourceDetail = () => {
                                 <LockIcon fontSize="small" />
                                 <Typography variant="caption" fontWeight={600}>Secure Payment via M-Pesa</Typography>
                             </Stack>
-                        </Paper>
-
-                        {/* Teacher Mini Profile */}
-                        <Paper variant="outlined" sx={{ mt: 3, p: 3, borderRadius: 3, textAlign: 'center', bgcolor: '#F9FAFB', border: 'none' }}>
-                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-                                Need help with this resource?
-                            </Typography>
-                            <Button 
-                                variant="outlined" 
-                                fullWidth 
-                                sx={{ borderRadius: 20, textTransform: 'none', fontWeight: 600, bgcolor: 'white' }}
-                            >
-                                Contact Instructor
-                            </Button>
                         </Paper>
                     </Box>
                 </Grid>
