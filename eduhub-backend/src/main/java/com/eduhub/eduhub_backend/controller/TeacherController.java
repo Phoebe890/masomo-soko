@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime; // Required import
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,42 +43,82 @@ public class TeacherController {
 
     @Autowired
     private FileUploadService fileUploadService;
-
     @Autowired
     private TeacherProfileRepository teacherProfileRepository;
-
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private TeacherResourceRepository teacherResourceRepository;
-
     @Autowired
     private PurchaseRepository purchaseRepository;
-
     @Autowired
     private ReviewRepository reviewRepository;
-
     @Autowired
     private NotificationRepository notificationRepository;
 
+    // --- 1. SETTINGS / PROFILE ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
-        User currentUser = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        try {
+            User currentUser = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+            boolean isZoomConnected = currentUser.getZoomAccessToken() != null && !currentUser.getZoomAccessToken().isEmpty();
 
-        TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+            Map<String, Object> responseData = new HashMap<>();
+            Map<String, String> userData = new HashMap<>();
+            userData.put("name", currentUser.getName());
+            userData.put("email", currentUser.getEmail());
+            
+            Map<String, Object> profileData = new HashMap<>();
+            profileData.put("user", userData);
+            
+            if (profile != null) {
+                profileData.put("bio", profile.getBio());
+                profileData.put("subjects", profile.getSubjects());
+                profileData.put("grades", profile.getGrades());
+                profileData.put("paymentNumber", profile.getPaymentNumber());
+                profileData.put("profilePicPath", profile.getProfilePicPath());
+            }
 
-        boolean isZoomConnected = currentUser.getZoomAccessToken() != null
-                && !currentUser.getZoomAccessToken().isEmpty();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("profile", profile);
-        response.put("isZoomConnected", isZoomConnected);
-
-        return ResponseEntity.ok(response);
+            responseData.put("profile", profileData);
+            responseData.put("isZoomConnected", isZoomConnected);
+            return ResponseEntity.ok(responseData);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching settings");
+        }
     }
 
+    // --- 2. REVIEWS (THIS WAS MISSING) ---
+    @GetMapping("/reviews")
+    public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            
+            List<TeacherResource> resources = teacherResourceRepository.findByUserId(teacher.getId());
+            List<Map<String, Object>> allReviews = new ArrayList<>();
+            
+            for (TeacherResource res : resources) {
+                List<Review> reviews = reviewRepository.findByResource(res);
+                for (Review r : reviews) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", r.getId());
+                    map.put("resourceTitle", res.getTitle());
+                    map.put("studentName", r.getStudent().getName());
+                    map.put("rating", r.getRating());
+                    map.put("comment", r.getComment());
+                    map.put("date", r.getCreatedAt());
+                    allReviews.add(map);
+                }
+            }
+            
+            allReviews.sort((a, b) -> ((LocalDateTime)b.get("date")).compareTo((LocalDateTime)a.get("date")));
+            return ResponseEntity.ok(allReviews);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching reviews");
+        }
+    }
+
+    // --- 3. ONBOARDING / UPDATE PROFILE ---
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
@@ -87,13 +128,13 @@ public class TeacherController {
             @RequestParam("paymentNumber") String paymentNumber,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User user = userRepository.findByEmail(userDetails.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             ObjectMapper mapper = new ObjectMapper();
-            List<String> subjects = mapper.readValue(subjectsJson, new TypeReference<>() {
-            });
-            List<String> grades = mapper.readValue(gradesJson, new TypeReference<>() {
-            });
+            List<String> subjects = new ArrayList<>();
+            try { if(subjectsJson != null && !subjectsJson.isEmpty()) subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
+            
+            List<String> grades = new ArrayList<>();
+            try { if(gradesJson != null && !gradesJson.isEmpty()) grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
 
             String profilePicUrl = null;
             if (profilePic != null && !profilePic.isEmpty()) {
@@ -107,18 +148,16 @@ public class TeacherController {
             profile.setSubjects(subjects);
             profile.setGrades(grades);
             profile.setPaymentNumber(paymentNumber);
-            if (profilePicUrl != null) {
-                profile.setProfilePicPath(profilePicUrl);
-            }
+            if (profilePicUrl != null) profile.setProfilePicPath(profilePicUrl);
+            
             teacherProfileRepository.save(profile);
-
-            return ResponseEntity.ok("Onboarding data saved");
+            return ResponseEntity.ok("Profile updated");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Failed to save onboarding data: " + e.getMessage());
+            return ResponseEntity.status(500).body("Failed");
         }
     }
 
+    // --- 4. UPLOAD RESOURCE ---
     @PostMapping("/resources")
     public ResponseEntity<?> uploadResource(
             @RequestParam("file") MultipartFile file,
@@ -130,27 +169,12 @@ public class TeacherController {
             @RequestParam("pricing") String pricing,
             @RequestParam(value = "price", required = false) Double price,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         try {
-            if (userDetails == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
-            }
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             
-            boolean isTeacher = userDetails.getAuthorities().stream()
-                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_TEACHER") 
-                    || authority.getAuthority().equals("TEACHER"));
-            
-            if (!isTeacher) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied. Teacher role required.");
-            }
-            
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow(
-                    () -> new RuntimeException("User not found"));
-
             Map uploadResult = fileUploadService.uploadFile(file);
-            String fileUrl = (String) uploadResult.get("secure_url");
-            String previewUrl = fileUploadService.generatePreviewImageUrl(uploadResult);
-
+            
             TeacherResource resource = new TeacherResource();
             resource.setTitle(title);
             resource.setDescription(description);
@@ -160,24 +184,17 @@ public class TeacherController {
             resource.setPricing(pricing);
             resource.setPrice(price);
             resource.setUser(user);
-            resource.setFilePath(fileUrl);
-
-            if (previewUrl != null) {
-                resource.setHasPreview(true);
-            } else {
-                resource.setHasPreview(false);
-            }
+            resource.setFilePath((String) uploadResult.get("secure_url"));
+            resource.setHasPreview(fileUploadService.generatePreviewImageUrl(uploadResult) != null);
 
             teacherResourceRepository.save(resource);
-
-            return ResponseEntity.ok("Resource uploaded successfully.");
-
+            return ResponseEntity.ok("Uploaded");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Failed to upload resource: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
+    // --- 5. PAYOUT SETUP ---
     @PostMapping("/payout")
     public ResponseEntity<?> setupPayout(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -186,74 +203,49 @@ public class TeacherController {
             @RequestParam(value = "bank", required = false) String bank,
             @RequestParam(value = "account", required = false) String account) {
         try {
-            User user = userRepository.findByEmail(userDetails.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new RuntimeException("Profile not found"));
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElseThrow();
 
-            if ("mpesa".equals(method)) {
-                profile.setPaymentNumber(mpesa);
-            } else if ("bank".equals(method)) {
-                profile.setPaymentNumber(bank + ":" + account);
-            }
+            if ("mpesa".equals(method)) profile.setPaymentNumber(mpesa);
+            else if ("bank".equals(method)) profile.setPaymentNumber(bank + ":" + account);
+            
             teacherProfileRepository.save(profile);
-            return ResponseEntity.ok("Payout details saved");
+            return ResponseEntity.ok("Saved");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Failed to save payout details");
+            return ResponseEntity.status(500).body("Error saving payout");
         }
     }
 
-    // --- UPDATED DASHBOARD METHOD (FIXES 500 ERROR) ---
+    // --- 6. DASHBOARD ---
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            // 1. Get User
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-            if (user == null) {
-                return ResponseEntity.status(404).body("User not found");
-            }
-
-            // 2. Get Profile (Handle null safely)
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
-
-            // 3. Get Resources (Handle null safely)
             List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
-            if (resources == null) {
-                resources = new ArrayList<>();
-            }
+            if (resources == null) resources = new ArrayList<>();
 
-            // 4. Calculate Stats (Wrapped in try-catch to prevent crash if DB is empty)
             long totalSales = 0;
             Double currentBalance = 0.0;
 
             if (!resources.isEmpty()) {
                 try {
-                    List<Long> resourceIds = resources.stream()
-                            .map(TeacherResource::getId)
-                            .collect(Collectors.toList());
-                    
-                    if (!resourceIds.isEmpty()) {
-                        // Attempt to get sales count
+                    List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
+                    if(!resourceIds.isEmpty()) {
                         totalSales = purchaseRepository.countByResourceIdIn(resourceIds);
-                        
-                        // Attempt to get balance (Check for NULL return from SUM)
-                        Double balanceResult = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
-                        currentBalance = (balanceResult != null) ? balanceResult : 0.0;
+                        Double bal = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+                        currentBalance = (bal != null) ? bal : 0.0;
                     }
-                } catch (Exception dbEx) {
-                    System.err.println("Dashboard Stats Error: " + dbEx.getMessage());
-                    // Don't crash, just proceed with 0 sales
-                    dbEx.printStackTrace();
-                }
+                } catch (Exception e) { e.printStackTrace(); }
             }
 
-            // 5. Convert Resources to DTOs
-            List<TeacherResourceDTO> resourceDtos = resources.stream()
-                    .map(TeacherResourceDTO::new)
-                    .collect(Collectors.toList());
+            // Map resources to DTOs
+            List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
+                // Calculate rating for dashboard table
+                List<Review> reviews = reviewRepository.findByResource(res);
+                return new TeacherResourceDTO(res, reviews);
+            }).collect(Collectors.toList());
 
-            // 6. Build Response
             Map<String, Object> response = new HashMap<>();
             response.put("resources", resourceDtos);
             response.put("totalSales", totalSales);
@@ -261,14 +253,12 @@ public class TeacherController {
             response.put("profile", profile);
 
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
-            // Print the actual error causing the 500
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Server Error: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
+    // --- 7. PUBLIC RESOURCES ---
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,
@@ -288,48 +278,43 @@ public class TeacherController {
         } else {
             resources = teacherResourceRepository.findAll();
         }
-        List<TeacherResourceDTO> dtos = resources.stream()
-                .map(TeacherResourceDTO::new)
-                .toList();
+        List<TeacherResourceDTO> dtos = resources.stream().map(r -> {
+            // Also include reviews here for public browsing stats
+            List<Review> reviews = reviewRepository.findByResource(r);
+            return new TeacherResourceDTO(r, reviews);
+        }).toList();
         return ResponseEntity.ok(Map.of("resources", dtos));
     }
 
+    @GetMapping("/resources/{id}")
+    public ResponseEntity<?> getResourceById(@PathVariable Long id) {
+        TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
+        if (resource == null) return ResponseEntity.status(404).body("Not found");
+        var reviews = reviewRepository.findByResource(resource);
+        return ResponseEntity.ok(new TeacherResourceDTO(resource, reviews));
+    }
+    
     @GetMapping("/resources/{id}/reviews")
     public ResponseEntity<?> getResourceReviews(@PathVariable Long id) {
         TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
+        if (resource == null) return ResponseEntity.status(404).body("Not found");
         var reviews = reviewRepository.findByResource(resource);
         var dtos = reviews.stream().map(TeacherResourceDTO.ReviewDTO::new).toList();
         double avg = reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
         return ResponseEntity.ok(Map.of("averageRating", avg, "reviews", dtos));
     }
 
-    @GetMapping("/resources/{id}")
-    public ResponseEntity<?> getResourceById(@PathVariable Long id) {
-        TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
-        var reviews = reviewRepository.findByResource(resource);
-        return ResponseEntity.ok(new TeacherResourceDTO(resource, reviews));
-    }
-
+    // --- 8. ANALYTICS ---
     @GetMapping("/analytics")
     public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).collect(Collectors.toList());
-        List<Purchase> purchases = resourceIds.isEmpty() ? List.of()
-                : purchaseRepository.findByResourceIdIn(resourceIds);
+        List<Purchase> purchases = resourceIds.isEmpty() ? List.of() : purchaseRepository.findByResourceIdIn(resourceIds);
 
         Map<LocalDate, Long> salesLast30Days = new HashMap<>();
         LocalDate today = LocalDate.now();
-        for (int i = 29; i >= 0; i--) {
-            salesLast30Days.put(today.minusDays(i), 0L);
-        }
+        for (int i = 29; i >= 0; i--) salesLast30Days.put(today.minusDays(i), 0L);
         for (Purchase p : purchases) {
             LocalDate date = p.getPurchasedAt().toLocalDate();
             salesLast30Days.computeIfPresent(date, (k, v) -> v + 1);
@@ -340,6 +325,7 @@ public class TeacherController {
             Long rid = p.getResource().getId();
             resourceSales.put(rid, resourceSales.getOrDefault(rid, 0L) + 1);
         }
+        
         List<Map<String, Object>> topResources = resources.stream()
                 .map(r -> {
                     Map<String, Object> m = new HashMap<>();
@@ -352,74 +338,68 @@ public class TeacherController {
                 .limit(5)
                 .collect(Collectors.toList());
 
-        long totalSales = purchases.size();
-
         return ResponseEntity.ok(Map.of(
                 "salesLast30Days", salesLast30Days,
                 "topResources", topResources,
-                "totalSales", totalSales));
+                "totalSales", purchases.size()));
     }
 
+    // --- 9. TOP CONTRIBUTORS ---
     @GetMapping("/top-contributors")
     public ResponseEntity<?> getTopContributors() {
-        List<Object[]> topContributors = teacherResourceRepository.findTopContributors();
-        List<Map<String, Object>> result = topContributors.stream().map(obj -> {
-            Long userId = (Long) obj[0];
-            Long resourceCount = (Long) obj[1];
-            TeacherProfile profile = teacherProfileRepository.findByUserId(userId).orElse(null);
-            if (profile == null || profile.getUser() == null)
-                return null;
-            Map<String, Object> map = new HashMap<>();
-            map.put("name", profile.getUser().getName());
-            map.put("subjects", profile.getSubjects());
-            map.put("profilePicPath", profile.getProfilePicPath());
-            map.put("resourceCount", resourceCount);
-            return map;
-        }).filter(m -> m != null).limit(5).collect(Collectors.toList());
-        return ResponseEntity.ok(result);
+        try {
+            List<Object[]> topContributors = teacherResourceRepository.findTopContributors();
+            if (topContributors == null) return ResponseEntity.ok(List.of());
+
+            List<Map<String, Object>> result = topContributors.stream().map(obj -> {
+                try {
+                    Long userId = (Long) obj[0];
+                    Long resourceCount = (Long) obj[1];
+                    if (userId == null) return null;
+                    TeacherProfile profile = teacherProfileRepository.findByUserId(userId).orElse(null);
+                    if (profile == null || profile.getUser() == null) return null;
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("name", profile.getUser().getName());
+                    map.put("subjects", profile.getSubjects());
+                    map.put("profilePicPath", profile.getProfilePicPath());
+                    map.put("resourceCount", resourceCount);
+                    return map;
+                } catch(Exception e) { return null; }
+            }).filter(m -> m != null).limit(5).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(result);
+        } catch(Exception e) { return ResponseEntity.ok(List.of()); }
     }
 
+    // --- 10. NOTIFICATIONS ---
     @GetMapping("/notifications")
-    public ResponseEntity<?> getNotifications(
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
-        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        if (teacher == null)
-            return ResponseEntity.status(404).body("User not found");
-        var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
-        return ResponseEntity.ok(notifications);
+    public ResponseEntity<?> getNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher));
     }
 
     @PostMapping("/notifications/clear")
-    public ResponseEntity<?> clearNotifications(
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
-        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        if (teacher == null)
-            return ResponseEntity.status(404).body("User not found");
+    public ResponseEntity<?> clearNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
-        for (var n : notifications) {
-            n.setRead(true);
-        }
+        for (var n : notifications) n.setRead(true);
         notificationRepository.saveAll(notifications);
-        return ResponseEntity.ok("All notifications marked as read");
+        return ResponseEntity.ok("Cleared");
     }
 
     @PostMapping("/notifications/clearAll")
-    public ResponseEntity<?> clearAllNotifications(
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
-        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        if (teacher == null)
-            return ResponseEntity.status(404).body("User not found");
+    public ResponseEntity<?> clearAllNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
         notificationRepository.deleteAll(notifications);
-        return ResponseEntity.ok("All notifications deleted");
+        return ResponseEntity.ok("Deleted");
     }
 
+    // --- 11. ZOOM DISCONNECT ---
     @PostMapping("/zoom/disconnect")
     public ResponseEntity<?> disconnectZoom(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User currentUser = userRepository.findByEmail(userDetails.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
+            User currentUser = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             currentUser.setZoomAccessToken(null);
             currentUser.setZoomRefreshToken(null);
             userRepository.save(currentUser);
@@ -431,11 +411,9 @@ public class TeacherController {
                 profile.setZoomTokenExpiresAt(null);
                 teacherProfileRepository.save(profile);
             }
-
-            return ResponseEntity.ok(Map.of("message", "Zoom account disconnected successfully"));
+            return ResponseEntity.ok(Map.of("message", "Disconnected"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to disconnect Zoom account: " + e.getMessage()));
+            return ResponseEntity.status(500).body("Failed");
         }
     }
 }

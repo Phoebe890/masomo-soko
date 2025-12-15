@@ -9,7 +9,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Modern Outline Icons
+// Components
+import ReviewModal from '../../components/ReviewModal';
+
+// Icons
 import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined';
 import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
@@ -22,6 +25,7 @@ import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 
 const drawerWidth = 280;
 const BACKEND_URL = "http://localhost:8081";
@@ -44,7 +48,6 @@ interface DashboardData {
 
 // --- SUB-COMPONENTS ---
 
-// 1. STAT WIDGET
 const StatCard = ({ title, value, icon, color }: any) => (
     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid #F1F5F9', height: '100%', display: 'flex', alignItems: 'center', gap: 2.5, transition: '0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' } }}>
         <Box sx={{ p: 1.5, borderRadius: 3, bgcolor: `${color}15`, color: color, display: 'flex' }}>
@@ -57,7 +60,6 @@ const StatCard = ({ title, value, icon, color }: any) => (
     </Paper>
 );
 
-// 2. CONTINUE LEARNING BANNER
 const ContinueLearning = ({ recent, onResume }: any) => (
     <Paper elevation={0} sx={{ 
         p: 0, borderRadius: 4, bgcolor: '#1E293B', color: 'white', mb: 5, overflow: 'hidden', position: 'relative',
@@ -82,7 +84,6 @@ const ContinueLearning = ({ recent, onResume }: any) => (
                     {recent ? 'Resume Learning' : 'Browse Resources'}
                 </Button>
             </Box>
-            {/* Abstract Visual Decoration */}
             <Box sx={{ width: 140, height: 140, borderRadius: '50%', bgcolor: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Box sx={{ width: 100, height: 100, borderRadius: '50%', bgcolor: 'rgba(59, 130, 246, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <LocalLibraryOutlinedIcon sx={{ fontSize: 40, color: '#BFDBFE' }} />
@@ -92,8 +93,8 @@ const ContinueLearning = ({ recent, onResume }: any) => (
     </Paper>
 );
 
-// 3. RESOURCE CARD
-const ResourceCard = ({ resource }: { resource: Resource }) => (
+// Updated ResourceCard with Review Button
+const ResourceCard = ({ resource, onReview }: { resource: Resource, onReview: (res: Resource) => void }) => (
     <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 4, border: '1px solid #F1F5F9', transition: '0.2s', '&:hover': { boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05)', transform: 'translateY(-4px)' } }}>
         <Box sx={{ position: 'relative', pt: '60%', bgcolor: '#F8FAFC' }}>
             {resource.previewImageUrl ? (
@@ -113,7 +114,7 @@ const ResourceCard = ({ resource }: { resource: Resource }) => (
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center">
                 <Avatar sx={{ width: 22, height: 22, fontSize: '0.75rem', bgcolor: '#E2E8F0', color: '#64748B' }}>
-                    {resource.teacherName[0]}
+                    {resource.teacherName?.[0]}
                 </Avatar>
                 <Typography variant="body2" sx={{ color: '#64748B', fontWeight: 500 }}>{resource.teacherName}</Typography>
             </Stack>
@@ -127,7 +128,15 @@ const ResourceCard = ({ resource }: { resource: Resource }) => (
                 href={`${BACKEND_URL}/api/student/download/${resource.id}`}
                 sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, borderColor: '#E2E8F0', color: '#475569', '&:hover': { borderColor: '#94A3B8', bgcolor: '#F8FAFC' } }}
             >
-                Download File
+                Download
+            </Button>
+            <Button 
+                size="small" 
+                startIcon={<RateReviewOutlinedIcon />}
+                onClick={() => onReview(resource)}
+                sx={{ ml: 1, minWidth: 'auto', borderRadius: 2, color: 'text.secondary' }}
+            >
+                Review
             </Button>
         </CardActions>
     </Card>
@@ -135,13 +144,14 @@ const ResourceCard = ({ resource }: { resource: Resource }) => (
 
 // --- SECTIONS ---
 
-function LibrarySection() {
+function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
     const [resources, setResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         axios.get(`${BACKEND_URL}/api/student/purchases`, { withCredentials: true })
             .then(res => setResources(res.data.resources || []))
+            .catch(() => {})
             .finally(() => setLoading(false));
     }, []);
 
@@ -162,7 +172,7 @@ function LibrarySection() {
                 <Grid container spacing={3}>
                     {resources.map((res) => (
                         <Grid item xs={12} sm={6} md={4} key={res.id}>
-                            <ResourceCard resource={res} />
+                            <ResourceCard resource={res} onReview={onReview} />
                         </Grid>
                     ))}
                 </Grid>
@@ -173,10 +183,8 @@ function LibrarySection() {
 
 function HistorySection() {
     const [orders, setOrders] = useState<any[]>([]);
-    
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/student/order-history`, { withCredentials: true })
-            .then(res => setOrders(res.data.orders || []));
+        axios.get(`${BACKEND_URL}/api/student/order-history`, { withCredentials: true }).then(res => setOrders(res.data.orders || []));
     }, []);
 
     return (
@@ -198,9 +206,7 @@ function HistorySection() {
                                 <TableCell sx={{ color: '#334155', fontWeight: 500 }}>{new Date(order.purchasedAt).toLocaleDateString()}</TableCell>
                                 <TableCell sx={{ color: '#0F172A', fontWeight: 600 }}>{order.resource?.title}</TableCell>
                                 <TableCell sx={{ color: '#334155' }}>KES {order.price || 0}</TableCell>
-                                <TableCell>
-                                    <Chip icon={<CheckCircleIcon sx={{ fontSize: '14px !important' }}/>} label="Paid" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700, border: 'none' }} />
-                                </TableCell>
+                                <TableCell><Chip icon={<CheckCircleIcon sx={{ fontSize: '14px !important' }}/>} label="Paid" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700, border: 'none' }} /></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -210,19 +216,56 @@ function HistorySection() {
     );
 }
 
-// --- MAIN DASHBOARD COMPONENT ---
+function AccountSettingsSection() {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${BACKEND_URL}/api/student/account-settings`, { withCredentials: true })
+            .then(res => { setName(res.data.name || ''); setEmail(res.data.email || ''); });
+    }, []);
+
+    const handleSave = () => {
+        setSaving(true);
+        const params = new URLSearchParams();
+        params.append('name', name);
+        axios.post(`${BACKEND_URL}/api/student/account-settings`, params, { withCredentials: true })
+            .then(() => alert('Saved!')).finally(() => setSaving(false));
+    };
+
+    return (
+        <Box>
+            <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Account Settings</Typography>
+            <Paper elevation={0} sx={{ p: 5, borderRadius: 4, maxWidth: 600, border: '1px solid #F1F5F9' }}>
+                <Stack spacing={3}>
+                    <TextField label="Full Name" value={name} onChange={e => setName(e.target.value)} fullWidth />
+                    <TextField label="Email Address" value={email} disabled fullWidth />
+                    <Button variant="contained" onClick={handleSave} disabled={saving} size="large" sx={{ alignSelf: 'flex-start', borderRadius: 50, textTransform: 'none', fontWeight: 700, px: 4 }}>
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                </Stack>
+            </Paper>
+        </Box>
+    );
+}
+
+// --- MAIN DASHBOARD ---
 
 const StudentDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
 
-  // State
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // Review State
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedReviewResource, setSelectedReviewResource] = useState<{id: number, title: string} | null>(null);
 
   useEffect(() => {
     axios.get(`${BACKEND_URL}/api/student/dashboard`, { withCredentials: true })
@@ -231,9 +274,10 @@ const StudentDashboard = () => {
         .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = () => {
-      localStorage.clear();
-      window.location.href = '/';
+  const handleLogout = () => { localStorage.clear(); window.location.href = '/'; };
+  const handleOpenReview = (res: Resource) => {
+      setSelectedReviewResource({ id: res.id, title: res.title });
+      setReviewModalOpen(true);
   };
 
   const navLinks = [
@@ -246,40 +290,20 @@ const StudentDashboard = () => {
 
   const Sidebar = (
       <Box sx={{ height: '100%', bgcolor: 'white', borderRight: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column' }}>
-          {/* Logo */}
           <Box sx={{ p: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{ width: 36, height: 36, bgcolor: theme.palette.primary.main, borderRadius: 2 }} />
               <Typography variant="h6" fontWeight={800} color="#0F172A" sx={{ letterSpacing: -0.5 }}>EduHub</Typography>
           </Box>
-
           <List sx={{ px: 2, flexGrow: 1 }}>
               {navLinks.map((item) => (
-                  <ListItemButton 
-                      key={item.id}
-                      selected={activeTab === item.id}
-                      onClick={() => { setActiveTab(item.id); setMobileOpen(false); }}
-                      sx={{ 
-                          borderRadius: 3, mb: 0.5, py: 1.5,
-                          color: activeTab === item.id ? 'primary.main' : '#64748B',
-                          bgcolor: activeTab === item.id ? '#EFF6FF' : 'transparent',
-                          '&:hover': { bgcolor: '#F8FAFC', color: '#334155' }
-                      }}
-                  >
+                  <ListItemButton key={item.id} selected={activeTab === item.id} onClick={() => { setActiveTab(item.id); setMobileOpen(false); }} sx={{ borderRadius: 3, mb: 0.5, py: 1.5, color: activeTab === item.id ? 'primary.main' : '#64748B', bgcolor: activeTab === item.id ? '#EFF6FF' : 'transparent', '&:hover': { bgcolor: '#F8FAFC', color: '#334155' } }}>
                       <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>{item.icon}</ListItemIcon>
                       <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: activeTab === item.id ? 700 : 600, fontSize: '0.95rem' }} />
                   </ListItemButton>
               ))}
           </List>
-
           <Box sx={{ p: 2, borderTop: '1px solid #F1F5F9' }}>
-              <Button 
-                  fullWidth 
-                  startIcon={<LogoutOutlinedIcon />} 
-                  onClick={handleLogout}
-                  sx={{ justifyContent: 'flex-start', color: '#EF4444', textTransform: 'none', fontWeight: 600, px: 2 }}
-              >
-                  Log Out
-              </Button>
+              <Button fullWidth startIcon={<LogoutOutlinedIcon />} onClick={handleLogout} sx={{ justifyContent: 'flex-start', color: '#EF4444', textTransform: 'none', fontWeight: 600, px: 2 }}>Log Out</Button>
           </Box>
       </Box>
   );
@@ -288,53 +312,21 @@ const StudentDashboard = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
-      
-      {/* 1. SIDEBAR NAVIGATION */}
       <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, display: { xs: 'none', md: 'block' } }}>
-          <Box sx={{ position: 'fixed', width: drawerWidth, height: '100%', zIndex: 1200 }}>
-             {Sidebar}
-          </Box>
+          <Box sx={{ position: 'fixed', width: drawerWidth, height: '100%', zIndex: 1200 }}>{Sidebar}</Box>
       </Box>
+      <Menu open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { md: 'none' } }}>{/* Simplified */}</Menu>
 
-      {/* Mobile Drawer */}
-      <Menu open={mobileOpen} onClose={() => setMobileOpen(false)} sx={{ display: { md: 'none' } }}>{/* Simplified for brevity */}</Menu>
-
-      {/* 2. MAIN CONTENT AREA */}
       <Box component="main" sx={{ flexGrow: 1, width: { md: `calc(100% - ${drawerWidth}px)` }, display: 'flex', flexDirection: 'column' }}>
-          
-          {/* --- TOP HEADER (Like Teacher Dashboard) --- */}
-          <Paper elevation={0} sx={{ 
-              py: 2, px: { xs: 2, md: 5 }, 
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, zIndex: 1100, borderRadius: 0
-          }}>
+          <Paper elevation={0} sx={{ py: 2, px: { xs: 2, md: 5 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, zIndex: 1100, borderRadius: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {isMobile && <IconButton onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></IconButton>}
-                  <Typography variant="h6" fontWeight={800} color="#0F172A">
-                      {navLinks.find(n => n.id === activeTab)?.label}
-                  </Typography>
+                  <Typography variant="h6" fontWeight={800} color="#0F172A">{navLinks.find(n => n.id === activeTab)?.label}</Typography>
               </Box>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  {/* Search Bar (Optional Visual) */}
-                  <TextField 
-                      placeholder="Search..." 
-                      size="small" 
-                      InputProps={{ startAdornment: <SearchIcon sx={{ color: '#CBD5E1', mr: 1 }} />, sx: { borderRadius: 50, bgcolor: '#F8FAFC', border: 'none', '& fieldset': { border: 'none' } } }} 
-                      sx={{ display: { xs: 'none', md: 'block' }, width: 250 }}
-                  />
-                  
-                  <IconButton>
-                      <Badge variant="dot" color="error">
-                          <NotificationsNoneOutlinedIcon sx={{ color: '#64748B' }} />
-                      </Badge>
-                  </IconButton>
-                  
-                  {/* Profile Dropdown */}
+                  <IconButton><Badge variant="dot" color="error"><NotificationsNoneOutlinedIcon sx={{ color: '#64748B' }} /></Badge></IconButton>
                   <Stack direction="row" alignItems="center" spacing={1.5} onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ cursor: 'pointer', p: 0.5, pr: 1.5, borderRadius: 50, border: '1px solid #F1F5F9', '&:hover': { bgcolor: '#F8FAFC' } }}>
-                      <Avatar src={data?.student.avatar} sx={{ width: 36, height: 36, bgcolor: theme.palette.primary.main, fontSize: '0.9rem', fontWeight: 700 }}>
-                          {data?.student.name[0]}
-                      </Avatar>
+                      <Avatar src={data?.student.avatar} sx={{ width: 36, height: 36, bgcolor: theme.palette.primary.main, fontSize: '0.9rem', fontWeight: 700 }}>{data?.student.name[0]}</Avatar>
                       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                           <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} color="#0F172A">{data?.student.name}</Typography>
                           <Typography variant="caption" color="#94A3B8" fontWeight={600}>Student</Typography>
@@ -347,38 +339,21 @@ const StudentDashboard = () => {
               </Box>
           </Paper>
 
-          {/* --- CONTENT BODY --- */}
           <Container maxWidth="xl" sx={{ p: { xs: 3, md: 5 } }}>
-              
-              {/* OVERVIEW VIEW */}
               {activeTab === 'overview' && data && (
                   <>
-                      <ContinueLearning 
-                          recent={data.recentPurchase} 
-                          onResume={() => setActiveTab('library')} 
-                      />
-                      
+                      <ContinueLearning recent={data.recentPurchase} onResume={() => setActiveTab('library')} />
                       <Grid container spacing={3} sx={{ mb: 5 }}>
-                          <Grid item xs={12} sm={6} md={4}>
-                              <StatCard title="Resources Owned" value={data.stats.downloads} icon={<LocalLibraryOutlinedIcon />} color="#3B82F6" />
-                          </Grid>
-                          <Grid item xs={12} sm={6} md={4}>
-                              <StatCard title="Active Sessions" value={data.stats.sessions} icon={<CalendarTodayOutlinedIcon />} color="#8B5CF6" />
-                          </Grid>
-                          <Grid item xs={12} sm={6} md={4}>
-                              <StatCard title="Total Spent" value="KES 4,200" icon={<ReceiptLongOutlinedIcon />} color="#10B981" />
-                          </Grid>
+                          <Grid item xs={12} sm={6} md={4}><StatCard title="Resources Owned" value={data.stats.downloads} icon={<LocalLibraryOutlinedIcon />} color="#3B82F6" /></Grid>
+                          <Grid item xs={12} sm={6} md={4}><StatCard title="Active Sessions" value={data.stats.sessions} icon={<CalendarTodayOutlinedIcon />} color="#8B5CF6" /></Grid>
+                          <Grid item xs={12} sm={6} md={4}><StatCard title="Total Spent" value="KES 4,200" icon={<ReceiptLongOutlinedIcon />} color="#10B981" /></Grid>
                       </Grid>
-
                       <Typography variant="h5" fontWeight={800} color="#0F172A" sx={{ mb: 3 }}>Recent Resources</Typography>
-                      <LibrarySection />
+                      <LibrarySection onReview={handleOpenReview} />
                   </>
               )}
-
-              {activeTab === 'library' && <LibrarySection />}
-              
+              {activeTab === 'library' && <LibrarySection onReview={handleOpenReview} />}
               {activeTab === 'history' && <HistorySection />}
-              
               {activeTab === 'coaching' && (
                   <Box sx={{ textAlign: 'center', py: 15, bgcolor: 'white', borderRadius: 4, border: '1px dashed #E2E8F0' }}>
                       <CalendarTodayOutlinedIcon sx={{ fontSize: 60, color: '#E2E8F0', mb: 2 }} />
@@ -386,23 +361,18 @@ const StudentDashboard = () => {
                       <Button sx={{ mt: 2 }} href="/browse">Find a Tutor</Button>
                   </Box>
               )}
-
-              {activeTab === 'settings' && (
-                  <Paper elevation={0} sx={{ p: 5, borderRadius: 4, maxWidth: 600, border: '1px solid #F1F5F9' }}>
-                      <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>Account Settings</Typography>
-                      <Typography color="text.secondary" sx={{ mb: 4 }}>Manage your profile information.</Typography>
-                      <Stack spacing={3}>
-                          <TextField label="Full Name" defaultValue={data?.student.name} fullWidth />
-                          <TextField label="Email Address" defaultValue={data?.student.email} disabled fullWidth />
-                          <Button variant="contained" size="large" sx={{ alignSelf: 'flex-start', borderRadius: 50, textTransform: 'none', fontWeight: 700, px: 4 }}>
-                              Save Changes
-                          </Button>
-                      </Stack>
-                  </Paper>
-              )}
-
+              {activeTab === 'settings' && <AccountSettingsSection />}
           </Container>
       </Box>
+
+      {/* Review Modal */}
+      <ReviewModal 
+          open={reviewModalOpen} 
+          onClose={() => setReviewModalOpen(false)} 
+          resourceId={selectedReviewResource?.id || null} 
+          resourceTitle={selectedReviewResource?.title || ''}
+          onSuccess={() => alert("Thanks for your review!")}
+      />
     </Box>
   );
 };

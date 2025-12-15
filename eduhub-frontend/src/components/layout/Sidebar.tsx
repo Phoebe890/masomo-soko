@@ -6,7 +6,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
-
+import StarOutlineIcon from '@mui/icons-material/StarOutline';
 interface SidebarProps {
   mobileOpen?: boolean;
   onClose?: () => void;
@@ -24,6 +24,7 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose, s
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard/teacher' },
     { text: 'My Resources', icon: <SchoolIcon />, path: '/dashboard/teacher/resources' },
     { text: 'Earnings', icon: <MonetizationOnIcon />, path: '/teacher/earnings' },
+    { text: 'Reviews', icon: <StarOutlineIcon />, path: '/teacher/reviews' },
     { text: 'Profile', icon: <PersonIcon />, path: '/teacher/profile' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/teacher/settings' },
   ];
