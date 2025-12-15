@@ -1,25 +1,40 @@
 package com.eduhub.eduhub_backend.controller;
 
+import com.eduhub.eduhub_backend.dto.TeacherResourceDTO;
 import com.eduhub.eduhub_backend.entity.Purchase;
 import com.eduhub.eduhub_backend.entity.TeacherResource;
 import com.eduhub.eduhub_backend.entity.User;
+import com.eduhub.eduhub_backend.entity.Review;
+import com.eduhub.eduhub_backend.entity.Notification;
 import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.repository.ReviewRepository;
-import com.eduhub.eduhub_backend.entity.Review;
-import com.eduhub.eduhub_backend.entity.Notification;
 import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/student")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+    origins = { "http://localhost:5173", "http://localhost:3000" }, 
+    allowCredentials = "true",
+    allowedHeaders = "*"
+)
 public class StudentController {
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -31,198 +46,194 @@ public class StudentController {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    // --- HELPER TO GET CURRENT USER ---
+    private User getAuthenticatedStudent(UserDetails userDetails) {
+        if (userDetails == null) return null;
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        // Optional: Enforce role check if needed, though SecurityConfig handles this
+        return user;
+    }
+
+    // --- 1. DASHBOARD ---
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getStudentDashboard(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User student = getAuthenticatedStudent(userDetails);
+            if (student == null) return ResponseEntity.status(401).body("User not found");
+
+            List<Purchase> purchases = purchaseRepository.findByStudent(student);
+            
+            // Calculate Stats
+            int downloads = purchases.size();
+            int sessions = 0; // Placeholder
+            int wishlist = 0; // Placeholder
+
+            // Get Recent Purchase
+            TeacherResourceDTO recentPurchaseDTO = null;
+            if (!purchases.isEmpty()) {
+                // Get the last purchase
+                Purchase lastPurchase = purchases.get(purchases.size() - 1);
+                recentPurchaseDTO = new TeacherResourceDTO(lastPurchase.getResource());
+            }
+            
+            // Construct Response
+            Map<String, Object> response = new HashMap<>();
+            
+            Map<String, String> studentInfo = new HashMap<>();
+            studentInfo.put("name", student.getName());
+            studentInfo.put("email", student.getEmail());
+            // studentInfo.put("avatar", student.getProfilePic()); // If you have this field
+            
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("downloads", downloads);
+            stats.put("sessions", sessions);
+            stats.put("wishlist", wishlist);
+
+            response.put("student", studentInfo);
+            response.put("stats", stats);
+            response.put("recentPurchase", recentPurchaseDTO);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error loading dashboard");
+        }
+    }
+
+    // --- 2. PURCHASES / LIBRARY ---
+    @GetMapping("/purchases")
+    public ResponseEntity<?> getStudentPurchases(@AuthenticationPrincipal UserDetails userDetails) {
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
+        List<Purchase> purchases = purchaseRepository.findByStudent(student);
+        
+        List<TeacherResourceDTO> resources = purchases.stream()
+                .map(p -> new TeacherResourceDTO(p.getResource(), reviewRepository.findByResource(p.getResource())))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of("resources", resources));
+    }
+
+    // --- 3. PURCHASE ACTION ---
     @PostMapping("/purchase")
-    public ResponseEntity<?> purchaseResource(@RequestParam("email") String email,
+    public ResponseEntity<?> purchaseResource(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("resourceId") Long resourceId) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
+        
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
         TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
-        // Check if already purchased
+        if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+
+        // Check duplicates
         boolean alreadyPurchased = purchaseRepository.findByStudent(student).stream()
                 .anyMatch(p -> p.getResource().getId().equals(resourceId));
-        if (alreadyPurchased) {
-            return ResponseEntity.badRequest().body("Resource already purchased");
-        }
+        if (alreadyPurchased) return ResponseEntity.badRequest().body("Resource already purchased");
+
+        // Create Purchase
         Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
+        // If your Purchase entity has a price field, set it here:
+        purchase.setPrice(resource.getPrice()); 
         purchaseRepository.save(purchase);
-        // Create notification for teacher
+
+        // Notify Teacher
         Notification notification = new Notification(
                 resource.getUser(),
-                "Student " + student.getName() + " purchased your resource '" + resource.getTitle() + "'",
+                "Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
                 LocalDateTime.now(),
                 false);
         notificationRepository.save(notification);
+
         return ResponseEntity.ok("Purchase successful");
     }
 
+    // --- 4. DOWNLOAD (Fixed for Cloudinary URLs) ---
+    @GetMapping("/download/{resourceId}")
+    public ResponseEntity<?> downloadResource(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long resourceId) {
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
+        // Verify Purchase
+        List<Purchase> purchases = purchaseRepository.findByStudent(student);
+        boolean hasPurchased = purchases.stream().anyMatch(p -> p.getResource().getId().equals(resourceId));
+        
+        if (!hasPurchased) return ResponseEntity.status(403).body("You have not purchased this resource");
+
+        TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
+        if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+
+        // Handle URL Redirect (Since you use Cloudinary)
+        try {
+            String fileUrl = resource.getFilePath();
+            // Redirect the user to the Cloudinary URL to start download
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(fileUrl)).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to retrieve file URL");
+        }
+    }
+
+    // --- 5. ORDER HISTORY ---
+    @GetMapping("/order-history")
+    public ResponseEntity<?> getOrderHistory(@AuthenticationPrincipal UserDetails userDetails) {
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
+        List<Purchase> purchases = purchaseRepository.findByStudent(student);
+        
+        List<Map<String, Object>> orders = purchases.stream().map(p -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", p.getId());
+            map.put("purchasedAt", p.getPurchasedAt());
+            map.put("price", p.getResource().getPrice()); // Ensure Purchase entity has price or get from resource
+            map.put("resource", new TeacherResourceDTO(p.getResource()));
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of("orders", orders));
+    }
+
+    // --- 6. REVIEWS ---
     @PostMapping("/review")
-    public ResponseEntity<?> submitReview(@RequestParam("email") String email,
+    public ResponseEntity<?> submitReview(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("resourceId") Long resourceId,
             @RequestParam("rating") int rating,
             @RequestParam("comment") String comment) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
+        
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
         TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
+        if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+
         if (reviewRepository.existsByResourceAndStudent(resource, student)) {
-            return ResponseEntity.badRequest().body("You have already reviewed this resource");
+            return ResponseEntity.badRequest().body("Already reviewed");
         }
-        Review review = new Review(resource, student, rating, comment, java.time.LocalDateTime.now());
+
+        Review review = new Review(resource, student, rating, comment, LocalDateTime.now());
         reviewRepository.save(review);
         return ResponseEntity.ok("Review submitted");
     }
 
-    @GetMapping("/review/check")
-    public ResponseEntity<?> hasReviewed(@RequestParam("email") String email,
-            @RequestParam("resourceId") Long resourceId) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
-        boolean exists = reviewRepository.existsByResourceAndStudent(resource, student);
-        return ResponseEntity.ok(java.util.Map.of("reviewed", exists));
-    }
-
-    @GetMapping("/purchases")
-    public ResponseEntity<?> getStudentPurchases(@RequestParam("email") String email) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        var purchases = purchaseRepository.findByStudent(student);
-        var resources = purchases.stream()
-                .map(p -> new com.eduhub.eduhub_backend.dto.TeacherResourceDTO(p.getResource(),
-                        reviewRepository.findByResource(p.getResource())))
-                .toList();
-        return ResponseEntity.ok(new java.util.HashMap<>() {
-            {
-                put("resources", resources);
-            }
-        });
-    }
-
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getStudentDashboard(@RequestParam("email") String email) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        var purchases = purchaseRepository.findByStudent(student);
-        var resources = purchases.stream()
-                .map(p -> new com.eduhub.eduhub_backend.dto.TeacherResourceDTO(p.getResource())).toList();
-        com.eduhub.eduhub_backend.dto.TeacherResourceDTO recentPurchase = resources.isEmpty() ? null
-                : resources.get(resources.size() - 1);
-        return ResponseEntity.ok(new java.util.HashMap<>() {
-            {
-                put("student", new java.util.HashMap<>() {
-                    {
-                        put("name", student.getName());
-                        put("firstName", student.getName()); // or split if needed
-                        put("avatar", null); // Add avatar if available
-                    }
-                });
-                put("stats", new java.util.HashMap<>() {
-                    {
-                        put("downloads", resources.size());
-                        put("sessions", 0); // Placeholder
-                        put("wishlist", 0); // Placeholder
-                    }
-                });
-                put("recentPurchase", recentPurchase);
-                // Optionally add orderHistory: put("orderHistory", ...)
-            }
-        });
-    }
-
-    @GetMapping("/download/{resourceId}")
-    public ResponseEntity<?> downloadResource(@RequestParam("email") String email, @PathVariable Long resourceId) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        var purchases = purchaseRepository.findByStudent(student);
-        boolean hasPurchased = purchases.stream().anyMatch(p -> p.getResource().getId().equals(resourceId));
-        if (!hasPurchased) {
-            return ResponseEntity.status(403).body("You have not purchased this resource");
-        }
-        TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
-        if (resource == null) {
-            return ResponseEntity.status(404).body("Resource not found");
-        }
-        java.nio.file.Path filePath = java.nio.file.Paths.get(resource.getFilePath());
-        if (!java.nio.file.Files.exists(filePath)) {
-            return ResponseEntity.status(404).body("File not found");
-        }
-        try {
-            org.springframework.core.io.Resource fileResource = new org.springframework.core.io.UrlResource(
-                    filePath.toUri());
-            return org.springframework.http.ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
-                    .body(fileResource);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to download file");
-        }
-    }
-
-    @GetMapping("/order-history")
-    public ResponseEntity<?> getOrderHistory(@RequestParam("email") String email) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        var purchases = purchaseRepository.findByStudent(student);
-        var orders = purchases.stream().map(p -> new java.util.HashMap<String, Object>() {
-            {
-                put("id", p.getId());
-                put("purchasedAt", p.getPurchasedAt());
-                put("resource", new com.eduhub.eduhub_backend.dto.TeacherResourceDTO(p.getResource()));
-                put("price", p.getResource().getPrice());
-            }
-        }).toList();
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {
-            {
-                put("orders", orders);
-            }
-        });
-    }
-
+    // --- 7. SETTINGS ---
     @GetMapping("/account-settings")
-    public ResponseEntity<?> getAccountSettings(@RequestParam("email") String email) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {
-            {
-                put("name", student.getName());
-                put("email", student.getEmail());
-                // Add more fields as needed
-            }
-        });
+    public ResponseEntity<?> getAccountSettings(@AuthenticationPrincipal UserDetails userDetails) {
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+        return ResponseEntity.ok(Map.of("name", student.getName(), "email", student.getEmail()));
     }
 
     @PostMapping("/account-settings")
-    public ResponseEntity<?> updateAccountSettings(@RequestParam("email") String email,
+    public ResponseEntity<?> updateAccountSettings(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("name") String name) {
-        User student = userRepository.findByEmail(email).orElse(null);
-        if (student == null || !"STUDENT".equalsIgnoreCase(student.getRole())) {
-            return ResponseEntity.status(404).body("Student not found");
-        }
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+        
         student.setName(name);
         userRepository.save(student);
-        return ResponseEntity.ok("Account settings updated");
+        return ResponseEntity.ok("Settings updated");
     }
 }

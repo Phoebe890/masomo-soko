@@ -23,7 +23,7 @@ import UploadFirstResource from './pages/dashboard/UploadFirstResource';
 import ResourceManagement from './pages/dashboard/ResourceManagement';
 
 // Teacher Settings & Coaching
-import TeacherSettings from './pages/teacher/TeacherSettings';
+import TeacherSettings from './pages/dashboard/TeacherSettings';
 import CoachingServiceManager from './pages/teacher/CoachingServiceManager';
 import AvailabilityCalendar from './pages/teacher/AvailabilityCalendar';
 

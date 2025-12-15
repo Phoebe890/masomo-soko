@@ -1,411 +1,439 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Drawer, List, ListItem, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton, Divider, Button, Avatar, Grid, useTheme, useMediaQuery, Container, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField
+  Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, 
+  Typography, IconButton, Button, Avatar, Grid, 
+  useTheme, useMediaQuery, Container, Paper, Table, TableBody, 
+  TableCell, TableContainer, TableHead, TableRow, TextField, 
+  Chip, Card, CardContent, CardMedia, Stack, CircularProgress,
+  LinearProgress, Divider
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+// Outline Icons (Cleaner look)
+import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined';
+import BookOutlinedIcon from '@mui/icons-material/BookOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
-import HomeIcon from '@mui/icons-material/Home';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import SchoolIcon from '@mui/icons-material/School';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import SettingsIcon from '@mui/icons-material/Settings';
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 import DownloadIcon from '@mui/icons-material/Download';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+
+// Shared Header (Assuming you have this)
 import Header from '../../components/layout/Header';
 
-const drawerWidth = 240;
+const drawerWidth = 260;
+const BACKEND_URL = "http://localhost:8081";
 
-const sections = [
-  { label: 'Overview', icon: <HomeIcon /> },
-  { label: 'My Purchased Resources', icon: <LibraryBooksIcon /> },
-  { label: 'My Online Coaching Sessions', icon: <SchoolIcon /> },
-  { label: 'Order History', icon: <ReceiptIcon /> },
-  { label: 'Account Settings', icon: <SettingsIcon /> },
-];
-
-interface OverviewSectionProps {
-  student: {
-    avatar?: string;
-    firstName?: string;
-    name?: string;
-    [key: string]: any;
-  };
-  stats: {
-    downloads: number;
-    sessions: number;
-    wishlist?: number;
-    [key: string]: any;
-  };
-  recentPurchase?: {
+// --- TYPES ---
+interface Resource {
+    id: number;
     title: string;
-    teacher: string;
-    downloadUrl: string;
-    [key: string]: any;
-  } | null;
+    teacherName: string;
+    subject: string;
+    grade?: string;
+    previewImageUrl?: string;
+    hasPreview: boolean;
 }
 
-function OverviewSection({ student, stats, recentPurchase }: OverviewSectionProps) {
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Avatar src={student.avatar} sx={{ width: 56, height: 56, mr: 2 }} />
-        <Typography variant="h4" fontWeight={700}>
-          Karibu, {student.firstName || student.name || 'Student'}!
-        </Typography>
-      </Box>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 2 }}>
-            <Typography variant="h6">My Purchased Resources</Typography>
-            <Typography variant="h4" color="primary">{stats.downloads}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 2 }}>
-            <Typography variant="h6">Upcoming Coaching Sessions</Typography>
-            <Typography variant="h4" color="primary">{stats.sessions}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 2 }}>
-            <Typography variant="h6">My Wishlist</Typography>
-            <Typography variant="h4" color="primary">{stats.wishlist || 0}</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-      {recentPurchase ? (
-        <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2, mb: 4 }}>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            Most Recent Purchase
-          </Typography>
-          <Typography variant="body1" fontWeight={500}>{recentPurchase.title}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            By {recentPurchase.teacher}
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            href={recentPurchase.downloadUrl}
-            sx={{ mt: 1 }}
-            aria-label={`Download ${recentPurchase.title}`}
-          >
-            Download Now
-          </Button>
-        </Paper>
-      ) : null}
-    </Box>
-  );
+interface DashboardData {
+    student: { name: string; email: string; avatar?: string };
+    stats: { downloads: number; sessions: number; wishlist: number };
+    recentPurchase?: { title: string; teacher: string; id: number } | null;
 }
+
+// --- MODERN SUB-COMPONENTS ---
+
+// 1. WELCOME HERO (Replaces generic stats)
+const WelcomeHero = ({ studentName, recentPurchase, onViewLibrary }: any) => (
+    <Box sx={{ 
+        position: 'relative', 
+        bgcolor: '#1E293B', 
+        color: 'white', 
+        p: { xs: 3, md: 5 }, 
+        borderRadius: 4, 
+        mb: 5,
+        overflow: 'hidden',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    }}>
+        {/* Background Gradient Decoration */}
+        <Box sx={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', background: 'linear-gradient(90deg, rgba(30,41,59,0) 0%, rgba(59,130,246,0.2) 100%)' }} />
+        
+        <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 600 }}>
+            <Typography variant="h4" fontWeight={800} gutterBottom sx={{ letterSpacing: '-0.5px' }}>
+                Welcome back, {studentName.split(' ')[0]}!
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.8, mb: 3, fontSize: '1.1rem' }}>
+                You've got some great resources waiting. Ready to continue learning?
+            </Typography>
+
+            {recentPurchase ? (
+                <Paper sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', borderRadius: 2, display: 'flex', alignItems: 'center', gap: 2, maxWidth: 450 }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <PlayCircleFilledWhiteIcon />
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Pick up where you left off</Typography>
+                        <Typography variant="subtitle1" fontWeight={700} noWrap>{recentPurchase.title}</Typography>
+                    </Box>
+                    <Button variant="contained" size="small" onClick={onViewLibrary} sx={{ bgcolor: 'white', color: '#0F172A', '&:hover': { bgcolor: '#F1F5F9' } }}>
+                        Open
+                    </Button>
+                </Paper>
+            ) : (
+                <Button variant="outlined" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }} href="/browse">
+                    Browse Marketplace
+                </Button>
+            )}
+        </Box>
+    </Box>
+);
+
+// 2. RESOURCE CARD (Cleaner, image-focused)
+const ResourceCard = ({ resource }: { resource: Resource }) => (
+    <Card 
+        elevation={0} 
+        sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            bgcolor: 'white',
+            borderRadius: 3,
+            border: '1px solid #F1F5F9',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
+        }}
+    >
+        <Box sx={{ position: 'relative', paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
+            {resource.previewImageUrl ? (
+                <CardMedia 
+                    component="img" 
+                    image={resource.previewImageUrl} 
+                    sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+            ) : (
+                // Modern Gradient Placeholder if no image
+                <Box sx={{ 
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <BookOutlinedIcon sx={{ color: 'white', opacity: 0.5, fontSize: 40 }} />
+                </Box>
+            )}
+            <Chip 
+                label={resource.subject} 
+                size="small" 
+                sx={{ 
+                    position: 'absolute', top: 12, right: 12, 
+                    bgcolor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)', 
+                    fontWeight: 700, fontSize: '0.7rem' 
+                }} 
+            />
+        </Box>
+        
+        <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+            <Typography variant="caption" color="primary.main" fontWeight={700} sx={{ letterSpacing: 0.5 }}>
+                {resource.grade || 'GENERAL'}
+            </Typography>
+            <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5, mb: 1, lineHeight: 1.3, fontSize: '1rem' }}>
+                {resource.title}
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1}>
+                <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem', bgcolor: '#F1F5F9', color: '#64748B' }}>
+                    {resource.teacherName?.[0]}
+                </Avatar>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                    {resource.teacherName}
+                </Typography>
+            </Stack>
+        </CardContent>
+        
+        <Divider />
+        
+        <Box sx={{ p: 2 }}>
+            <Button 
+                fullWidth 
+                variant="outlined" 
+                startIcon={<DownloadIcon />} 
+                href={`${BACKEND_URL}/api/student/download/${resource.id}`}
+                sx={{ 
+                    borderRadius: 2, 
+                    textTransform: 'none', 
+                    fontWeight: 600, 
+                    borderColor: '#E2E8F0', 
+                    color: '#475569',
+                    '&:hover': { borderColor: '#94A3B8', bgcolor: '#F8FAFC' }
+                }}
+            >
+                Download
+            </Button>
+        </Box>
+    </Card>
+);
+
+// --- SECTIONS ---
 
 function PurchasedResourcesSection() {
-  const [resources, setResources] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const email = localStorage.getItem('email') || '';
+    const [resources, setResources] = useState<Resource[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/student/purchases?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log('PURCHASES DATA:', data);
-        setResources(data.resources || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [email]);
+    useEffect(() => {
+        axios.get(`${BACKEND_URL}/api/student/purchases`, { withCredentials: true })
+            .then(res => setResources(res.data.resources || []))
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, []);
 
-  if (loading) return <Typography>Loading...</Typography>;
-  if (resources.length === 0) return <Typography>No purchased resources yet.</Typography>;
+    if (loading) return <LinearProgress sx={{ mt: 5, borderRadius: 5 }} />;
 
-  return (
-    <Box>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>My Purchased Resources</Typography>
-      <Grid container spacing={2}>
-        {resources.map((res: any) => (
-          <Grid item xs={12} md={6} key={res.id}>
-            <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="subtitle1" fontWeight={600}>{res.title}</Typography>
-                <Typography variant="body2" color="text.secondary">By {res.teacherName}</Typography>
-                <Typography variant="body2" color="text.secondary">Subject: {res.subject} | Grade: {res.grade}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-                {res.hasPreview && res.previewImageUrl && (
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<VisibilityIcon />}
-                    href={res.previewImageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`View preview for ${res.title}`}
-                  >
-                    Preview
-                  </Button>
-                )}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<DownloadIcon />}
-                  href={`/api/student/download/${res.id}?email=${encodeURIComponent(email)}`}
-                  aria-label={`Download ${res.title}`}
-                >
-                  Download
-                </Button>
-              </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
-}
-
-function CoachingSessionsSection() {
-  return (
-    <Box>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>My Online Coaching Sessions</Typography>
-      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2 }}>
-        <Typography color="text.secondary">You have no upcoming coaching sessions.</Typography>
-      </Paper>
-    </Box>
-  );
+    return (
+        <Box>
+            <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>My Library</Typography>
+            {resources.length === 0 ? (
+                <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 4, bgcolor: '#F8FAFC', border: '1px dashed #CBD5E1' }} elevation={0}>
+                    <Typography color="text.secondary" sx={{ mb: 2 }}>Your library is empty.</Typography>
+                    <Button variant="contained" href="/browse" sx={{ borderRadius: 50, textTransform: 'none' }}>Browse Marketplace</Button>
+                </Paper>
+            ) : (
+                <Grid container spacing={3}>
+                    {resources.map((res) => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={res.id}>
+                            <ResourceCard resource={res} />
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
+        </Box>
+    );
 }
 
 function OrderHistorySection() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const email = localStorage.getItem('email') || '';
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/student/order-history?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        setOrders(data.orders || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [email]);
+    useEffect(() => {
+        axios.get(`${BACKEND_URL}/api/student/order-history`, { withCredentials: true })
+            .then(res => setOrders(res.data.orders || []))
+            .finally(() => setLoading(false));
+    }, []);
 
-  if (loading) return <Typography>Loading...</Typography>;
-  if (orders.length === 0) return <Typography>No orders yet.</Typography>;
+    if (loading) return <LinearProgress />;
 
-  return (
-    <Box>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>Order History</Typography>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Resource</TableCell>
-              <TableCell>Price</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders.map((order: any) => (
-              <TableRow key={order.id}>
-                <TableCell>{order.purchasedAt ? new Date(order.purchasedAt).toLocaleString() : ''}</TableCell>
-                <TableCell>{order.resource?.title}</TableCell>
-                <TableCell>{order.price != null ? `KES ${order.price}` : 'Free'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
+    return (
+        <Box>
+            <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Transaction History</Typography>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #F1F5F9', borderRadius: 4, overflow: 'hidden' }}>
+                <Table>
+                    <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                        <TableRow>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>Date</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>Resource</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>Instructor</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>Amount</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#64748B' }}>Status</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {orders.map((order) => (
+                            <TableRow key={order.id} sx={{ '&:last-child td': { border: 0 } }}>
+                                <TableCell sx={{ color: '#334155' }}>{new Date(order.purchasedAt).toLocaleDateString()}</TableCell>
+                                <TableCell sx={{ fontWeight: 600, color: '#0F172A' }}>{order.resource?.title}</TableCell>
+                                <TableCell sx={{ color: '#334155' }}>{order.resource?.teacherName}</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>{order.price != null ? `KES ${order.price}` : 'Free'}</TableCell>
+                                <TableCell>
+                                    <Chip label="Completed" size="small" sx={{ bgcolor: '#DCFCE7', color: '#166534', fontWeight: 700 }} />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
+    );
 }
 
 function AccountSettingsSection() {
-  const [settings, setSettings] = useState<any>({ name: '', email: '' });
-  const [loading, setLoading] = useState(true);
-  const [editName, setEditName] = useState('');
-  const [saving, setSaving] = useState(false);
-  const email = localStorage.getItem('email') || '';
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/student/account-settings?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
-        setEditName(data.name || '');
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [email]);
+    useEffect(() => {
+        axios.get(`${BACKEND_URL}/api/student/account-settings`, { withCredentials: true })
+            .then(res => {
+                setName(res.data.name || '');
+                setEmail(res.data.email || '');
+            });
+    }, []);
 
-  const handleSave = () => {
-    setSaving(true);
-    fetch(`/api/student/account-settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `email=${encodeURIComponent(email)}&name=${encodeURIComponent(editName)}`
-    })
-      .then(res => res.text())
-      .then(() => {
-        setSettings((prev: any) => ({ ...prev, name: editName }));
-        setSaving(false);
-      })
-      .catch(() => setSaving(false));
-  };
+    const handleSave = () => {
+        setSaving(true);
+        const params = new URLSearchParams();
+        params.append('name', name);
+        axios.post(`${BACKEND_URL}/api/student/account-settings`, params, { withCredentials: true })
+            .then(() => alert('Saved!'))
+            .finally(() => setSaving(false));
+    };
 
-  if (loading) return <Typography>Loading...</Typography>;
-
-  return (
-    <Box>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>Account Settings</Typography>
-      <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2, maxWidth: 400 }}>
-        <TextField
-          label="Name"
-          value={editName}
-          onChange={e => setEditName(e.target.value)}
-          fullWidth
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          label="Email"
-          value={settings.email}
-          fullWidth
-          disabled
-          sx={{ mb: 2 }}
-        />
-        <Button variant="contained" color="primary" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </Paper>
-    </Box>
-  );
+    return (
+        <Box>
+            <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Account Settings</Typography>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #F1F5F9', maxWidth: 600 }}>
+                <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 1, display: 'block' }}>FULL NAME</Typography>
+                        <TextField fullWidth value={name} onChange={e => setName(e.target.value)} size="small" />
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 1, display: 'block' }}>EMAIL ADDRESS</Typography>
+                        <TextField fullWidth value={email} disabled size="small" sx={{ bgcolor: '#F8FAFC' }} />
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Button 
+                            variant="contained" 
+                            onClick={handleSave} 
+                            disabled={saving}
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 4, boxShadow: 'none' }}
+                        >
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Paper>
+        </Box>
+    );
 }
+
+// --- MAIN LAYOUT ---
 
 const StudentDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedSection, setSelectedSection] = useState(0);
-  const [student, setStudent] = useState({ name: 'Student', firstName: '', avatar: '' });
-  const [stats, setStats] = useState({ downloads: 0, sessions: 0, wishlist: 0 });
-  const [recentPurchase, setRecentPurchase] = useState(null);
-  const email = localStorage.getItem('email') || '';
+  const [selectedSection, setSelectedSection] = useState('overview');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/student/dashboard?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log('DASHBOARD DATA:', data);
-        if (data.student) setStudent(data.student);
-        if (data.stats) setStats(data.stats);
-        if (data.recentPurchase) setRecentPurchase(data.recentPurchase);
-      })
-      .catch(() => {});
-  }, [email]);
+    axios.get(`${BACKEND_URL}/api/student/dashboard`, { withCredentials: true })
+        .then(res => setDashboardData(res.data))
+        .catch(() => {}) // Handle errors silently or redirect
+        .finally(() => setLoading(false));
+  }, []);
 
-  const renderSection = () => {
-    switch (selectedSection) {
-      case 0:
-        return <OverviewSection student={student} stats={stats} recentPurchase={recentPurchase} />;
-      case 1:
-        return <PurchasedResourcesSection />;
-      case 2:
-        return <CoachingSessionsSection />;
-      case 3:
-        return <OrderHistorySection />;
-      case 4:
-        return <AccountSettingsSection />;
-      default:
-        return null;
-    }
+  const handleLogout = () => {
+      localStorage.clear();
+      window.location.href = '/';
   };
 
-  const drawer = (
-    <Box sx={{ width: drawerWidth, pt: 2 }} role="navigation" aria-label="Dashboard navigation">
-      <List>
-        {sections.map((section, idx) => (
-          <ListItem
-            button
-            key={section.label}
-            selected={selectedSection === idx}
-            onClick={() => {
-              setSelectedSection(idx);
-              if (isMobile) setMobileOpen(false);
-            }}
-            sx={{
-              '&.Mui-selected': {
-                bgcolor: theme.palette.action.selected,
-                color: theme.palette.primary.main,
-                fontWeight: 700,
-              },
-              '&:hover': {
-                bgcolor: theme.palette.action.hover,
-              },
-              minHeight: 56,
-            }}
-            aria-current={selectedSection === idx ? 'page' : undefined}
-          >
-            <ListItemIcon sx={{ color: selectedSection === idx ? theme.palette.primary.main : 'inherit' }}>
-              {section.icon}
-            </ListItemIcon>
-            <ListItemText primary={section.label} />
-          </ListItem>
-        ))}
-      </List>
+  const navItems = [
+      { id: 'overview', label: 'Dashboard', icon: <GridViewOutlinedIcon /> },
+      { id: 'library', label: 'My Library', icon: <BookOutlinedIcon /> },
+      { id: 'coaching', label: 'Coaching', icon: <CalendarMonthOutlinedIcon /> },
+      { id: 'orders', label: 'History', icon: <ReceiptLongOutlinedIcon /> },
+      { id: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon /> },
+  ];
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
+
+  const drawerContent = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'white' }}>
+        <Box sx={{ p: 4 }}>
+            <Typography variant="h6" fontWeight={800} color="primary" sx={{ letterSpacing: -0.5 }}>EduHub Student</Typography>
+        </Box>
+        <List sx={{ px: 2, flexGrow: 1 }}>
+            {navItems.map((item) => (
+                <ListItemButton
+                    key={item.id}
+                    selected={selectedSection === item.id}
+                    onClick={() => { setSelectedSection(item.id); setMobileOpen(false); }}
+                    sx={{
+                        borderRadius: 3,
+                        mb: 1,
+                        py: 1.5,
+                        color: selectedSection === item.id ? 'primary.main' : '#64748B',
+                        bgcolor: selectedSection === item.id ? '#F0F9FF' : 'transparent',
+                        '&:hover': { bgcolor: '#F8FAFC', color: '#334155' }
+                    }}
+                >
+                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                        {item.icon}
+                    </ListItemIcon>
+                    <ListItemText 
+                        primary={item.label} 
+                        primaryTypographyProps={{ fontWeight: selectedSection === item.id ? 700 : 500, fontSize: '0.95rem' }} 
+                    />
+                </ListItemButton>
+            ))}
+        </List>
+        <Box sx={{ p: 2, borderTop: '1px solid #F1F5F9' }}>
+            <Button 
+                fullWidth 
+                startIcon={<LogoutOutlinedIcon />} 
+                onClick={handleLogout}
+                sx={{ justifyContent: 'flex-start', color: '#EF4444', textTransform: 'none', fontWeight: 600, px: 2 }}
+            >
+                Log Out
+            </Button>
+        </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.50' }}>
-      <Header />
-      <Box sx={{ display: 'flex', flex: 1 }}>
-        <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="Dashboard navigation">
-          {isMobile ? (
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={() => setMobileOpen(false)}
-              ModalProps={{ keepMounted: true }}
-              sx={{
-                display: { xs: 'block', md: 'none' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-              }}
-            >
-              {drawer}
-            </Drawer>
-          ) : (
-            <Drawer
-              variant="permanent"
-              open
-              sx={{
-                display: { xs: 'none', md: 'block' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-              }}
-            >
-              {drawer}
-            </Drawer>
-          )}
-        </Box>
-        <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 }, width: '100%', maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#FFFFFF' }}>
+      
+      {/* Sidebar Desktop */}
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, display: { xs: 'none', md: 'block' }, borderRight: '1px solid #F1F5F9' }}>
+          <Box sx={{ position: 'fixed', width: drawerWidth, height: '100%' }}>
+             {drawerContent}
+          </Box>
+      </Box>
+
+      {/* Drawer Mobile */}
+      <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}
+      >
+          {drawerContent}
+      </Drawer>
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 }, width: '100%', maxWidth: 1600 }}>
           {isMobile && (
-            <AppBar position="static" color="default" elevation={0} sx={{ mb: 2 }}>
-              <Toolbar>
-                <IconButton
-                  color="inherit"
-                  aria-label="Open dashboard navigation"
-                  edge="start"
-                  onClick={() => setMobileOpen(true)}
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
-                  Student Dashboard
-                </Typography>
-              </Toolbar>
-            </AppBar>
+              <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
+                  <IconButton onClick={() => setMobileOpen(true)} sx={{ mr: 2 }}><MenuIcon /></IconButton>
+                  <Typography variant="h6" fontWeight={800}>Dashboard</Typography>
+              </Box>
           )}
-          {renderSection()}
-        </Box>
+
+          {selectedSection === 'overview' && dashboardData && (
+              <>
+                <WelcomeHero 
+                    studentName={dashboardData.student.name} 
+                    recentPurchase={dashboardData.recentPurchase} 
+                    onViewLibrary={() => setSelectedSection('library')}
+                />
+                <PurchasedResourcesSection />
+              </>
+          )}
+
+          {selectedSection === 'library' && <PurchasedResourcesSection />}
+          
+          {selectedSection === 'coaching' && (
+              <Box sx={{ textAlign: 'center', py: 10 }}>
+                  <CalendarMonthOutlinedIcon sx={{ fontSize: 60, color: '#CBD5E1', mb: 2 }} />
+                  <Typography variant="h5" fontWeight={700} color="text.secondary">Upcoming Sessions</Typography>
+                  <Typography color="text.secondary">You have no scheduled coaching sessions.</Typography>
+              </Box>
+          )}
+          
+          {selectedSection === 'orders' && <OrderHistorySection />}
+          {selectedSection === 'settings' && <AccountSettingsSection />}
+          
       </Box>
     </Box>
   );
