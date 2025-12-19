@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
@@ -92,70 +91,43 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
-            .sessionManagement(session -> session
-                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
-            .securityContext(securityContext -> securityContext
-                    .securityContextRepository(securityContextRepository()))
-            .authenticationProvider(authenticationProvider())
-            .httpBasic(httpBasic -> httpBasic.disable())
-            .authorizeHttpRequests(auth -> auth
-                // 1. Allow OPTIONS (CORS Preflight)
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // 2. Public Endpoints (Auth, View Resources)
-                .requestMatchers(
-                        "/api/auth/**",
-                        "/api/teacher/onboarding",
-                        "/api/teacher/resources", 
-                        "/api/teacher/resources/**",
-                        "/api/teacher/top-contributors"
-                ).permitAll()
-                
-                // 3. TEACHER ENDPOINTS (Accepts "TEACHER" OR "ROLE_TEACHER")
-                .requestMatchers(
-                        "/api/teacher/dashboard",
-                        "/api/teacher/payout",
-                        "/api/teacher/settings",
-                        "/api/coaching/create-meeting"
-                ).access((authentication, context) -> 
-                    new AuthorizationDecision(
-                        authentication.get().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("TEACHER") || a.getAuthority().equals("ROLE_TEACHER"))
-                    ))
-                
-                // 3b. Teacher POST/PUT/DELETE
-                .requestMatchers(HttpMethod.POST, "/api/teacher/resources").access((authentication, context) -> 
-                    new AuthorizationDecision(
-                        authentication.get().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("TEACHER") || a.getAuthority().equals("ROLE_TEACHER"))
-                    ))
-                .requestMatchers(HttpMethod.PUT, "/api/teacher/resources/**").access((authentication, context) -> 
-                    new AuthorizationDecision(
-                        authentication.get().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("TEACHER") || a.getAuthority().equals("ROLE_TEACHER"))
-                    ))
-                .requestMatchers(HttpMethod.DELETE, "/api/teacher/resources/**").access((authentication, context) -> 
-                    new AuthorizationDecision(
-                        authentication.get().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("TEACHER") || a.getAuthority().equals("ROLE_TEACHER"))
-                    ))
-
-                // 4. STUDENT ENDPOINTS (Accepts "STUDENT" OR "ROLE_STUDENT")
-                .requestMatchers(
-                        "/api/student/**" // Covers dashboard, purchases, download, etc.
-                ).access((authentication, context) -> 
-                    new AuthorizationDecision(
-                        authentication.get().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("STUDENT") || a.getAuthority().equals("ROLE_STUDENT"))
-                    ))
-                
-                // 5. Default Rule
-                .anyRequest().authenticated()
-            );
-            
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for external API calls like M-Pesa
+                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
+                .securityContext(securityContext -> securityContext
+                        .securityContextRepository(securityContextRepository()))
+                .authenticationProvider(authenticationProvider())
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .authorizeHttpRequests(auth -> auth
+                        // 1. PUBLIC ENDPOINTS (No Login Required)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/teacher/onboarding",
+                                "/api/teacher/resources", 
+                                "/api/teacher/resources/**",
+                                "/api/teacher/top-contributors",
+                                "/api/payment/callback" // <--- M-Pesa Callback MUST be public
+                        ).permitAll()
+                        
+                        // 2. TEACHER ENDPOINTS
+                        .requestMatchers(
+                                "/api/teacher/**",
+                                "/api/coaching/**"
+                        ).hasAnyAuthority("TEACHER", "ROLE_TEACHER") // Allows either
+                        
+                        // 3. STUDENT ENDPOINTS (Including Payment)
+                        .requestMatchers(
+                                "/api/student/**",
+                                "/api/payment/pay",        // <--- Explicitly allowed for Students
+                                "/api/payment/status/**"   // <--- Explicitly allowed for Students
+                        ).hasAnyAuthority("STUDENT", "ROLE_STUDENT") // Allows either
+                        
+                        // 4. Default: Require Login
+                        .anyRequest().authenticated()
+                );
         return http.build();
     }
 }
