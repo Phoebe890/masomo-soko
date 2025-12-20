@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-
+import TeacherEarnings from './pages/dashboard/TeacherEarnings';
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
@@ -89,7 +89,7 @@ function App() {
       {/* 3. Resource Management */}
       <Route path="/dashboard/teacher/resources" element={<ResourceManagement />} />
       <Route path="/dashboard/teacher/upload-first-resource" element={<UploadFirstResource />} />
-      
+      <Route path="/teacher/earnings" element={<TeacherEarnings />} />
       {/* 4. Coaching & Settings */}
       <Route path="/teacher/settings" element={<TeacherSettings />} />
       <Route path="/teacher/coaching-services" element={<CoachingServiceManager />} />

@@ -120,7 +120,7 @@ public class SecurityConfig {
                         // 3. TEACHER SPECIFIC
                         .requestMatchers("/api/teacher/**", "/api/coaching/**")
                             .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
-                        
+                        .requestMatchers("/api/wallet/**").hasAuthority("TEACHER") // Allow Teacher Wallet
                         // 4. STUDENT SPECIFIC
                         .requestMatchers("/api/student/**")
                             .hasAnyAuthority("STUDENT", "ROLE_STUDENT")

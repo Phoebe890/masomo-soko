@@ -14,28 +14,29 @@ public class Withdrawal {
     private User teacher;
 
     private Double amount;
-    private String phoneNumber; // Where the money was sent
-    private String status; // PENDING, COMPLETED
+    private String mpesaNumber;
+    private String status; // PENDING, APPROVED, REJECTED
+    
     private LocalDateTime requestedAt = LocalDateTime.now();
 
+    // Constructors, Getters, Setters
     public Withdrawal() {}
 
-    public Withdrawal(User teacher, Double amount, String phoneNumber, String status) {
+    public Withdrawal(User teacher, Double amount, String mpesaNumber) {
         this.teacher = teacher;
         this.amount = amount;
-        this.phoneNumber = phoneNumber;
-        this.status = status;
+        this.mpesaNumber = mpesaNumber;
+        this.status = "PENDING";
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public User getTeacher() { return teacher; }
     public void setTeacher(User teacher) { this.teacher = teacher; }
     public Double getAmount() { return amount; }
     public void setAmount(Double amount) { this.amount = amount; }
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getMpesaNumber() { return mpesaNumber; }
+    public void setMpesaNumber(String mpesaNumber) { this.mpesaNumber = mpesaNumber; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getRequestedAt() { return requestedAt; }

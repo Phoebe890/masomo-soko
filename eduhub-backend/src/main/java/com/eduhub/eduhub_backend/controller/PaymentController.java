@@ -2,7 +2,7 @@ package com.eduhub.eduhub_backend.controller;
 
 import com.eduhub.eduhub_backend.entity.*;
 import com.eduhub.eduhub_backend.repository.*;
-import com.eduhub.eduhub_backend.service.EmailProducer; // Import Email Service
+import com.eduhub.eduhub_backend.service.EmailProducer;
 import com.eduhub.eduhub_backend.service.MpesaService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,8 +26,7 @@ public class PaymentController {
     @Autowired private PaymentTransactionRepository transactionRepository;
     @Autowired private PurchaseRepository purchaseRepository;
     @Autowired private NotificationRepository notificationRepository;
-    
-    // Inject Email Producer
+    @Autowired private TeacherProfileRepository teacherProfileRepository; // ADDED THIS
     @Autowired private EmailProducer emailProducer;
 
     // 1. INITIATE PAYMENT
@@ -40,21 +39,18 @@ public class PaymentController {
             User student = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherResource resource = resourceRepository.findById(resourceId).orElseThrow();
             
-            // Check if already bought
+            // Check Duplicate
             boolean alreadyOwned = purchaseRepository.findByStudent(student).stream()
                     .anyMatch(p -> p.getResource().getId().equals(resourceId));
             if(alreadyOwned) return ResponseEntity.badRequest().body("You already own this resource.");
 
             Double amount = resource.getPrice();
 
-            // Format Phone
             if (phone.startsWith("0")) phone = "254" + phone.substring(1);
             if (phone.startsWith("+")) phone = phone.substring(1);
 
-            // Call M-Pesa
             String checkoutRequestId = mpesaService.sendStkPush(phone, amount, "EduHub");
 
-            // Save Transaction (PENDING)
             PaymentTransaction transaction = new PaymentTransaction();
             transaction.setStudent(student);
             transaction.setResource(resource);
@@ -64,7 +60,6 @@ public class PaymentController {
             transaction.setStatus("PENDING");
             transactionRepository.save(transaction);
 
-            // RETURN JSON WITH ID (Important for polling)
             return ResponseEntity.ok(Map.of(
                 "message", "STK Push Sent",
                 "checkoutRequestId", checkoutRequestId
@@ -76,19 +71,15 @@ public class PaymentController {
         }
     }
 
-    // 2. CHECK STATUS ENDPOINT
+    // 2. CHECK STATUS
     @GetMapping("/status/{checkoutRequestId}")
     public ResponseEntity<?> checkStatus(@PathVariable String checkoutRequestId) {
         PaymentTransaction transaction = transactionRepository.findByCheckoutRequestId(checkoutRequestId).orElse(null);
-        
-        if (transaction == null) {
-            return ResponseEntity.status(404).body(Map.of("status", "NOT_FOUND"));
-        }
-
+        if (transaction == null) return ResponseEntity.status(404).body(Map.of("status", "NOT_FOUND"));
         return ResponseEntity.ok(Map.of("status", transaction.getStatus()));
     }
 
-    // 3. CALLBACK (UPDATED WITH EMAIL LOGIC)
+    // 3. CALLBACK
     @PostMapping("/callback")
     public void mpesaCallback(@RequestBody String callbackJson) {
         System.out.println("M-Pesa Callback: " + callbackJson);
@@ -103,57 +94,54 @@ public class PaymentController {
             if (transaction == null) return;
 
             if (resultCode == 0) {
-                // --- SUCCESS CASE ---
+                // SUCCESS
                 transaction.setStatus("COMPLETED");
                 transactionRepository.save(transaction);
 
-                // 1. Create Purchase
+                // A. Create Purchase Record
                 Purchase purchase = new Purchase(transaction.getStudent(), transaction.getResource(), LocalDateTime.now());
                 purchase.setPrice(transaction.getAmount());
                 purchaseRepository.save(purchase);
+
+                // B. Credit Teacher Wallet (90% Split)
+                User teacherUser = transaction.getResource().getUser();
+                TeacherProfile profile = teacherProfileRepository.findByUserId(teacherUser.getId()).orElse(null);
                 
-                // 2. Notify Teacher (In-App)
+                if (profile != null) {
+                    Double amountPaid = transaction.getAmount();
+                    Double teacherShare = amountPaid * 0.90; // 90%
+                    
+                    Double currentBalance = profile.getAccountBalance() != null ? profile.getAccountBalance() : 0.0;
+                    profile.setAccountBalance(currentBalance + teacherShare);
+                    teacherProfileRepository.save(profile);
+                    System.out.println("Wallet Credited: " + teacherShare);
+                }
+                
+                // C. Notify Teacher
                 Notification notif = new Notification(
                     transaction.getResource().getUser(),
-                    "New Sale! " + transaction.getStudent().getName() + " bought " + transaction.getResource().getTitle(),
+                    "New Sale! + KES " + (transaction.getAmount() * 0.90) + " added to wallet.",
                     LocalDateTime.now(), false
                 );
                 notificationRepository.save(notif);
 
-                // 3. SEND EMAILS (RabbitMQ)
+                // D. Send Emails
                 try {
-                    // Send Receipt to Student
                     emailProducer.sendEmail(
                         transaction.getStudent().getEmail(),
                         "EduHub Receipt: " + transaction.getResource().getTitle(),
-                        "Hello " + transaction.getStudent().getName() + ",\n\n" +
-                        "Thank you for your purchase!\n" +
-                        "Item: " + transaction.getResource().getTitle() + "\n" +
-                        "Amount: KES " + transaction.getAmount() + "\n\n" +
-                        "You can download your resource from your Student Dashboard."
+                        "Thank you for your purchase of " + transaction.getResource().getTitle() + "."
                     );
-
-                    // Send Alert to Teacher
                     emailProducer.sendEmail(
                         transaction.getResource().getUser().getEmail(),
                         "New Sale Alert! 💰",
-                        "Great news!\n\n" +
-                        "A student (" + transaction.getStudent().getName() + ") just purchased your resource: " + 
-                        transaction.getResource().getTitle() + ".\n\n" +
-                        "Earnings have been credited to your account."
+                        "You just earned money from a new sale!"
                     );
-                } catch (Exception emailEx) {
-                    System.err.println("Email Error: " + emailEx.getMessage());
-                    // Don't fail the transaction just because email failed
-                }
-
-                System.out.println("Payment SUCCESS. Resource Unlocked & Emails Queued.");
+                } catch (Exception emailEx) { System.err.println("Email Error: " + emailEx.getMessage()); }
 
             } else {
-                // --- FAILED CASE ---
                 transaction.setStatus("FAILED");
                 transactionRepository.save(transaction);
-                System.out.println("Payment FAILED.");
             }
         } catch (Exception e) { e.printStackTrace(); }
     }
