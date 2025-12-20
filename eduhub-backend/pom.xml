@@ -58,7 +58,17 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- RabbitMQ Support -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
 
+<!-- Email Support -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
         <!-- The Cloudinary dependency is now correctly placed inside this block -->
         <dependency>
             <groupId>com.cloudinary</groupId>

@@ -47,6 +47,15 @@ public class TeacherProfile {
         return bio;
     }
 
+     private Double accountBalance = 0.0;
+     public Double getAccountBalance() {
+        return accountBalance;
+    }
+
+    public void setAccountBalance(Double accountBalance) {
+        this.accountBalance = accountBalance;
+    }
+
     public void setBio(String bio) {
         this.bio = bio;
     }

@@ -40,14 +40,12 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173", 
-            "http://localhost:3000", 
-            "http://127.0.0.1:5173", 
-            "http://127.0.0.1:3000"
+            "http://localhost:3000"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -60,7 +58,7 @@ public class SecurityConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/api/**")
+                registry.addMapping("/**")
                         .allowedOrigins("http://localhost:5173", "http://localhost:3000")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
@@ -92,7 +90,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for external API calls like M-Pesa
+                .csrf(csrf -> csrf.disable()) 
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
@@ -101,7 +99,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // 1. PUBLIC ENDPOINTS (No Login Required)
+                        // 1. PUBLIC ENDPOINTS (No Login)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
@@ -109,23 +107,24 @@ public class SecurityConfig {
                                 "/api/teacher/resources", 
                                 "/api/teacher/resources/**",
                                 "/api/teacher/top-contributors",
-                                "/api/payment/callback" // <--- M-Pesa Callback MUST be public
+                                "/api/payment/callback" // M-Pesa Callback
                         ).permitAll()
                         
-                        // 2. TEACHER ENDPOINTS
+                        // 2. PAYMENT ENDPOINTS (Allow ANY Logged-in User)
+                        // This ensures Teachers testing payments don't get 403
                         .requestMatchers(
-                                "/api/teacher/**",
-                                "/api/coaching/**"
-                        ).hasAnyAuthority("TEACHER", "ROLE_TEACHER") // Allows either
+                                "/api/payment/pay",
+                                "/api/payment/status/**"
+                        ).authenticated() 
                         
-                        // 3. STUDENT ENDPOINTS (Including Payment)
-                        .requestMatchers(
-                                "/api/student/**",
-                                "/api/payment/pay",        // <--- Explicitly allowed for Students
-                                "/api/payment/status/**"   // <--- Explicitly allowed for Students
-                        ).hasAnyAuthority("STUDENT", "ROLE_STUDENT") // Allows either
+                        // 3. TEACHER SPECIFIC
+                        .requestMatchers("/api/teacher/**", "/api/coaching/**")
+                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
                         
-                        // 4. Default: Require Login
+                        // 4. STUDENT SPECIFIC
+                        .requestMatchers("/api/student/**")
+                            .hasAnyAuthority("STUDENT", "ROLE_STUDENT")
+                        
                         .anyRequest().authenticated()
                 );
         return http.build();
