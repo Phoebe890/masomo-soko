@@ -63,7 +63,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [heroSlides.length]);
 
@@ -86,30 +86,145 @@ const Home: React.FC = () => {
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
       
-      {/* --- HERO SECTION --- */}
-      <Box component="section" sx={{ position: 'relative', width: '100%', height: { xs: '60vh', md: '500px' }, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+     {/* --- MODERN HERO SECTION --- */}
+      <Box 
+        component="section" 
+        sx={{ 
+          position: 'relative', 
+          width: '100%', 
+          height: { xs: '85vh', md: '75vh' }, // Taller, more immersive
+          minHeight: '600px',
+          overflow: 'hidden', 
+          display: 'flex', 
+          alignItems: 'center' 
+        }}
+      >
+        {/* CSS Animation Keyframes for text entry */}
+        <style>
+          {`
+            @keyframes slideUpFade {
+              0% { opacity: 0; transform: translateY(30px); }
+              100% { opacity: 1; transform: translateY(0); }
+            }
+          `}
+        </style>
+
+        {/* Background Carousel */}
         {heroSlides.map((slide, index) => (
           <Box
             key={index}
             sx={{
               position: 'absolute', inset: 0,
-              backgroundImage: `url(${slide.image})`, backgroundSize: 'cover', backgroundPosition: 'center',
-              opacity: currentSlide === index ? 1 : 0, transition: 'opacity 1s ease-in-out', zIndex: 0,
+              backgroundImage: `url(${slide.image})`, 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center',
+              // Zoom effect on active slide
+              transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
+              opacity: currentSlide === index ? 1 : 0, 
+              transition: 'opacity 1.5s ease-in-out, transform 6s linear', 
+              zIndex: 0,
             }}
           />
         ))}
-        <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1 }} />
+
+        {/* Modern Gradient Overlay (Left-focused for text readability) */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            inset: 0, 
+            background: 'linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.2) 100%)', 
+            zIndex: 1 
+          }} 
+        />
+
+        {/* Content Container */}
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2, color: 'white' }}>
           {heroSlides.map((slide, index) => (
-            <Box key={index} sx={{ display: currentSlide === index ? 'block' : 'none', animation: 'fadeIn 0.5s' }}>
-              <Typography variant="h2" fontWeight={800} sx={{ fontSize: { xs: '2rem', md: '3.5rem' }, mb: 2, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
-                {slide.title}
-              </Typography>
-              <Typography variant="h5" sx={{ mb: 4, maxWidth: '600px', fontWeight: 400 }}>{slide.subtitle}</Typography>
-              <Button variant="contained" size="large" component={RouterLink} to="/browse" sx={{ bgcolor: 'white', color: 'black', fontWeight: 'bold', px: 4, py: 1.5, '&:hover': { bgcolor: '#f5f5f5' } }}>
-                Get Started
-              </Button>
-            </Box>
+            currentSlide === index && (
+              <Box 
+                key={index} 
+                sx={{ 
+                  maxWidth: '800px',
+                  animation: 'slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards'
+                }}
+              >
+               
+                <Typography 
+                  variant="h1" 
+                  fontWeight={800} 
+                  sx={{ 
+                    fontSize: { xs: '2.5rem', md: '4.5rem' }, 
+                    lineHeight: 1.1,
+                    mb: 3, 
+                    letterSpacing: '-1px',
+                    textShadow: '0 4px 20px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  {slide.title}
+                </Typography>
+
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    mb: 5, 
+                    maxWidth: '650px', 
+                    fontWeight: 400, 
+                    color: 'rgba(255,255,255,0.9)', 
+                    lineHeight: 1.6 
+                  }}
+                >
+                  {slide.subtitle}
+                </Typography>
+
+                {/* Button Group */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <Button 
+                    variant="contained" 
+                    size="large" 
+                    component={RouterLink} 
+                    to="/browse" 
+                    endIcon={<ArrowForwardIcon />}
+                    sx={{ 
+                      bgcolor: 'primary.main', // Uses theme primary or default blue
+                      color: 'white', 
+                      fontWeight: 700, 
+                      fontSize: '1.1rem',
+                      px: 5, 
+                      py: 1.8, 
+                      borderRadius: '50px', // Pill shape
+                      textTransform: 'none',
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 25px rgba(0,0,0,0.4)' },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                  
+                  <Button 
+                    variant="outlined" 
+                    size="large" 
+                    component={RouterLink} 
+                    to="/about" 
+                    startIcon={<PlayCircleFilledWhiteIcon />}
+                    sx={{ 
+                      color: 'white', 
+                      borderColor: 'rgba(255,255,255,0.5)',
+                      fontWeight: 600, 
+                      fontSize: '1.1rem',
+                      px: 4, 
+                      py: 1.8, 
+                      borderRadius: '50px',
+                      textTransform: 'none',
+                      backdropFilter: 'blur(5px)',
+                      '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                    }}
+                  >
+                    How it works
+                  </Button>
+                </Stack>
+              </Box>
+            )
           ))}
         </Container>
       </Box>

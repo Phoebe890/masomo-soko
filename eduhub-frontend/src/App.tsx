@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import TeacherEarnings from './pages/dashboard/TeacherEarnings';
+import TeacherEarnings from './pages/dashboard/TeacherEarnings'
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';

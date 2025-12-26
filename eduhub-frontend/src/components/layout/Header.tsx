@@ -13,14 +13,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'; 
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
-import HomeIcon from '@mui/icons-material/Home';
 import StorefrontIcon from '@mui/icons-material/Storefront';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DashboardIcon from '@mui/icons-material/Dashboard'; // Filled Icon for Menu
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'; // Outlined for Mobile
+import DashboardIcon from '@mui/icons-material/Dashboard'; 
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LoginIcon from '@mui/icons-material/Login';
-import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SchoolIcon from '@mui/icons-material/School'; 
@@ -49,7 +44,7 @@ const Header: React.FC = () => {
   const handleMenuClose = () => setAnchorEl(null);
   
   const handleLogout = () => {
-    localStorage.clear(); // Clear all auth data
+    localStorage.clear(); 
     window.location.href = '/';
   };
 
@@ -60,10 +55,6 @@ const Header: React.FC = () => {
       setSearchOpen(false); 
     }
   };
-
-  const navLinks = [
-    { label: 'Browse', to: '/browse', icon: <StorefrontIcon /> },
-  ];
 
   // --- STYLES ---
   const styles = {
@@ -80,20 +71,36 @@ const Header: React.FC = () => {
       mx: 0.5,
       '&:hover': { color: theme.palette.primary.main, bgcolor: 'transparent' },
     },
+    // --- IMPROVED SEARCH BAR STYLING ---
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
-        backgroundColor: '#f3f4f6', 
-        height: 44,
+        backgroundColor: '#f8f9fa', // Very light grey
+        height: 48, // Slightly taller for better click area
         paddingRight: 1,
-        transition: 'all 0.2s ease',
-        '& fieldset': { borderWidth: '1px', borderColor: 'transparent' },
-        '&:hover': { backgroundColor: '#e5e7eb' },
+        border: '1px solid transparent',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth animation
+        
+        // Target the fieldset (the default border) and remove it so we can use our own custom border logic
+        '& fieldset': { border: 'none' },
+
+        // Hover State
+        '&:hover': { 
+            backgroundColor: '#fff',
+            border: '1px solid #d1d7dc', // Subtle border appears
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // Tiny lift effect
+        },
+
+        // Focused State (Clicking inside)
         '&.Mui-focused': {
           backgroundColor: '#fff',
-          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
-          '& fieldset': { borderColor: theme.palette.primary.main },
+          border: `1px solid ${theme.palette.primary.main}`, // Primary color border
+          boxShadow: `0 0 0 4px ${theme.palette.primary.main}15`, // Soft glow ring
         },
+      },
+      '& input': {
+          fontSize: '0.95rem',
+          color: '#333'
       }
     },
     menuPaper: {
@@ -102,7 +109,7 @@ const Header: React.FC = () => {
       borderRadius: 3, 
       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
       overflow: 'visible',
-      '&:before': { // The little triangle arrow
+      '&:before': { 
         content: '""',
         display: 'block',
         position: 'absolute',
@@ -119,7 +126,19 @@ const Header: React.FC = () => {
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
-      <AppBar position="sticky" elevation={0} sx={styles.appBar}>
+      {/* 
+         CHANGE 1: Position Fixed 
+         This keeps the navbar pinned to the top.
+         zIndex guarantees it stays above other content.
+      */}
+      <AppBar 
+        position="fixed" 
+        elevation={0} 
+        sx={{ 
+            ...styles.appBar,
+            zIndex: (theme) => theme.zIndex.drawer + 1
+        }}
+      >
         <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
           {/* 1. BRANDING */}
@@ -130,7 +149,7 @@ const Header: React.FC = () => {
               </Typography>
           </Box>
 
-          {/* 2. DESKTOP SEARCH */}
+          {/* 2. DESKTOP SEARCH (Improved Layout) */}
           {!isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 6, maxWidth: 500 }}>
               <TextField
@@ -141,8 +160,8 @@ const Header: React.FC = () => {
                 sx={styles.searchField}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start" sx={{ pl: 1 }}>
-                      <SearchIcon color="disabled" fontSize="small" />
+                    <InputAdornment position="start" sx={{ pl: 1.5, mr: -0.5 }}>
+                      <SearchIcon sx={{ color: '#666' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -172,7 +191,6 @@ const Header: React.FC = () => {
               <>
                 {!isMobile && (
                   <>
-                     {/* "Teach" Link - Only if they are a teacher (Pattern from Airbnb/Udemy) */}
                      {isTeacher && (
                         <Button component={RouterLink} to="/dashboard/teacher/upload-first-resource" sx={styles.navLink}>
                            Teach
@@ -195,7 +213,7 @@ const Header: React.FC = () => {
                   </>
                 )}
                 
-                {/* USER AVATAR (The Main Dashboard Entry) */}
+                {/* USER AVATAR */}
                 <IconButton 
                     onClick={handleAvatarClick} 
                     size="small"
@@ -212,7 +230,7 @@ const Header: React.FC = () => {
                   </Avatar>
                 </IconButton>
 
-                {/* --- MODERN DROPDOWN MENU --- */}
+                {/* --- MENU --- */}
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
@@ -222,7 +240,6 @@ const Header: React.FC = () => {
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  {/* Top Section: Dashboard Link */}
                   <MenuItem component={RouterLink} to={dashboardRoute} sx={{ py: 1.5, px: 2.5 }}>
                       <ListItemIcon>
                           <DashboardIcon color="primary" />
@@ -302,7 +319,6 @@ const Header: React.FC = () => {
             <List>
                {isLoggedIn ? (
                  <>
-                    {/* Highlighted Dashboard Link for Mobile */}
                     <ListItemButton 
                         component={RouterLink} 
                         to={dashboardRoute} 
@@ -319,7 +335,6 @@ const Header: React.FC = () => {
                     </ListItemButton>
                  </>
                ) : (
-                 // Mobile Login/Signup
                  <Stack spacing={2} sx={{ mb: 3 }}>
                     <Button variant="contained" fullWidth component={RouterLink} to="/register" size="large" onClick={() => setDrawerOpen(false)}>
                         Sign up
@@ -364,6 +379,13 @@ const Header: React.FC = () => {
         </Drawer>
 
       </AppBar>
+
+      {/* 
+          CHANGE 2: The Spacer Toolbar 
+          This is an invisible element that takes up the exact height of the AppBar.
+          It forces the page content to start BELOW the fixed navbar.
+      */}
+      <Toolbar sx={{ minHeight: 70 }} />
     </Box>
   );
 };
