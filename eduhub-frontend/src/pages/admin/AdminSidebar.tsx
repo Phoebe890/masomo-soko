@@ -7,6 +7,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 
 const AdminSidebar = ({ selected }: { selected: string }) => {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ const AdminSidebar = ({ selected }: { selected: string }) => {
         { text: 'Overview', icon: <DashboardIcon />, path: '/admin/dashboard' },
         { text: 'Payouts', icon: <PaymentsIcon />, path: '/admin/payouts' },
         { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
+        { text: 'Content', icon: <LibraryBooksIcon />, path: '/admin/resources' },
     ];
 
     return (

@@ -4,6 +4,7 @@ import TeacherEarnings from './pages/dashboard/TeacherEarnings'
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPayouts from './pages/admin/AdminPayouts';
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminResources from './pages/admin/AdminResources';
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
@@ -100,6 +101,7 @@ function App() {
 <Route path="/admin/dashboard" element={<AdminDashboard />} />
 <Route path="/admin/payouts" element={<AdminPayouts />} />
   <Route path="/admin/users" element={<AdminUsers />} />
+  <Route path="/admin/resources" element={<AdminResources />} />
       {/* 5. Teacher Reviews from Students */}
       <Route path="/teacher/reviews" element={<TeacherReviews />} />
     </Routes>
