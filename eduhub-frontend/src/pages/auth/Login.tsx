@@ -71,12 +71,14 @@ const Login: React.FC = () => {
         
         // Delay slightly for animation
         setTimeout(() => {
-          const userRole = data.role?.toLowerCase();
+          const userRole = data.role?.toUpperCase();
           
-          if (userRole === 'teacher') {
+          if (userRole === 'TEACHER') {
             navigate('/dashboard/teacher');
-          } else if (userRole === 'student') {
+          } else if (userRole === 'STUDENT') {
             navigate('/dashboard/student');
+          } else if (userRole === 'ADMIN' || userRole === 'ROLE_ADMIN') {
+            navigate('/admin/dashboard');
           } else {
             navigate('/');
           }

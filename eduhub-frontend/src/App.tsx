@@ -1,6 +1,9 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import TeacherEarnings from './pages/dashboard/TeacherEarnings'
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminPayouts from './pages/admin/AdminPayouts';
+import AdminUsers from './pages/admin/AdminUsers';
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
@@ -94,7 +97,9 @@ function App() {
       <Route path="/teacher/settings" element={<TeacherSettings />} />
       <Route path="/teacher/coaching-services" element={<CoachingServiceManager />} />
       <Route path="/teacher/availability" element={<AvailabilityCalendar />} />
-
+<Route path="/admin/dashboard" element={<AdminDashboard />} />
+<Route path="/admin/payouts" element={<AdminPayouts />} />
+  <Route path="/admin/users" element={<AdminUsers />} />
       {/* 5. Teacher Reviews from Students */}
       <Route path="/teacher/reviews" element={<TeacherReviews />} />
     </Routes>

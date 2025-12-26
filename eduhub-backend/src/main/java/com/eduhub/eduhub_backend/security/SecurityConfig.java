@@ -40,31 +40,19 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173", 
-            "http://localhost:3000"
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173", "http://localhost:3000")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
-            }
-        };
     }
 
     @Bean
@@ -98,33 +86,38 @@ public class SecurityConfig {
                         .securityContextRepository(securityContextRepository()))
                 .authenticationProvider(authenticationProvider())
                 .httpBasic(httpBasic -> httpBasic.disable())
+                
                 .authorizeHttpRequests(auth -> auth
-                        // 1. PUBLIC ENDPOINTS (No Login)
+                        // 1. PUBLIC ENDPOINTS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/teacher/onboarding",
-                                "/api/teacher/resources", 
-                                "/api/teacher/resources/**",
+                                "/api/teacher/resources",       // Browse (Public)
+                                "/api/teacher/resources/**",    // Details (Public)
                                 "/api/teacher/top-contributors",
-                                "/api/payment/callback" // M-Pesa Callback
+                                "/api/payment/callback"
                         ).permitAll()
                         
-                        // 2. PAYMENT ENDPOINTS (Allow ANY Logged-in User)
-                        // This ensures Teachers testing payments don't get 403
+                        // 2. PAYMENT
                         .requestMatchers(
                                 "/api/payment/pay",
                                 "/api/payment/status/**"
                         ).authenticated() 
                         
-                        // 3. TEACHER SPECIFIC
-                        .requestMatchers("/api/teacher/**", "/api/coaching/**")
+                        // 3. ADMIN (Super User)
+                        .requestMatchers("/api/admin/**")
+                            .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+
+                        // 4. TEACHER
+                        .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**")
                             .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
-                        .requestMatchers("/api/wallet/**").hasAuthority("TEACHER") // Allow Teacher Wallet
-                        // 4. STUDENT SPECIFIC
+                        
+                        // 5. STUDENT
                         .requestMatchers("/api/student/**")
                             .hasAnyAuthority("STUDENT", "ROLE_STUDENT")
                         
+                        // 6. CATCH-ALL
                         .anyRequest().authenticated()
                 );
         return http.build();
