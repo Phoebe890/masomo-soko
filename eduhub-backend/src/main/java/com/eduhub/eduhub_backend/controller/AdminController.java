@@ -120,18 +120,32 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
-    // 4. USER MANAGEMENT (BAN/UNBAN)
+   // 4. USER MANAGEMENT (BAN/UNBAN WITH EMAIL)
     @PostMapping("/users/{id}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
         User user = userRepository.findById(id).orElse(null);
         if (user == null) return ResponseEntity.notFound().build();
 
-        user.setEnabled(!user.isEnabled());
+        boolean newStatus = !user.isEnabled();
+        user.setEnabled(newStatus);
         userRepository.save(user);
 
-        return ResponseEntity.ok(Map.of("message", "Status updated", "enabled", user.isEnabled()));
-    }
+        // --- SEND EMAIL NOTIFICATION ---
+        try {
+            String subject = newStatus ? "Account Activated - EduHub" : "Account Suspended - EduHub";
+            String body = newStatus 
+                ? "Hello " + user.getName() + ",\n\nYour account has been reactivated. You can now log in."
+                : "Hello " + user.getName() + ",\n\nYour account has been suspended by the administrator due to a violation of our terms. Please contact support for more information.";
+            
+            emailProducer.sendEmail(user.getEmail(), subject, body);
+        } catch (Exception e) {
+            System.err.println("Failed to send ban/unban email: " + e.getMessage());
+        }
 
+        return ResponseEntity.ok(Map.of(
+                "message", "User status updated",
+                "enabled", user.isEnabled()));
+    }
     // 5. USER MANAGEMENT (CHANGE ROLE)
     @PostMapping("/users/{id}/role")
     public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
