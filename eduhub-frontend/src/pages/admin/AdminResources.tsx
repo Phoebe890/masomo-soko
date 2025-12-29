@@ -32,7 +32,11 @@ const AdminResources: React.FC = () => {
     const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Delete State
     const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [takedownReason, setTakedownReason] = useState('');
+    
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
     // File Viewer State
@@ -74,25 +78,36 @@ const AdminResources: React.FC = () => {
         ));
     }, [searchTerm, resources]);
 
-    // Handle Delete
-    const confirmDelete = async () => {
-        if (!deleteId) return;
-        try {
-            await axios.delete(`${BACKEND_URL}/api/admin/resources/${deleteId}`, { withCredentials: true });
-            setResources(resources.filter(r => r.id !== deleteId));
-            setFilteredResources(filteredResources.filter(r => r.id !== deleteId));
-            setToast({ open: true, msg: "Resource taken down successfully", type: 'success' });
-        } catch (e) {
-            setToast({ open: true, msg: "Failed to delete resource", type: 'error' });
-        } finally {
-            setDeleteId(null);
-        }
-    };
-
     // Handle View File
     const handleViewFile = (url: string, title: string) => {
         setSelectedFile({ url, title });
         setViewerOpen(true);
+    };
+
+    // Open Delete Dialog
+    const handleDeleteClick = (id: number) => {
+        setDeleteId(id);
+        setTakedownReason(''); // Reset reason
+    };
+
+    // Confirm Takedown
+    const confirmTakedown = async () => {
+        if (!deleteId) return;
+        try {
+            // Updated Endpoint: POST with reason
+            await axios.post(`${BACKEND_URL}/api/admin/resources/${deleteId}/takedown`, 
+                { reason: takedownReason || "Violation of terms" }, 
+                { withCredentials: true }
+            );
+            
+            setResources(resources.filter(r => r.id !== deleteId));
+            setFilteredResources(filteredResources.filter(r => r.id !== deleteId));
+            setToast({ open: true, msg: "Resource removed & teacher notified", type: 'success' });
+        } catch (e) {
+            setToast({ open: true, msg: "Failed to takedown resource", type: 'error' });
+        } finally {
+            setDeleteId(null);
+        }
     };
 
     return (
@@ -159,7 +174,7 @@ const AdminResources: React.FC = () => {
                                             <Tooltip title="Delete Resource">
                                                 <IconButton 
                                                     color="error" 
-                                                    onClick={() => setDeleteId(row.id)}
+                                                    onClick={() => handleDeleteClick(row.id)} // Use new handler
                                                     sx={{ ml: 1 }}
                                                 >
                                                     <DeleteOutlineIcon />
@@ -181,21 +196,37 @@ const AdminResources: React.FC = () => {
                 </Paper>
             </Box>
 
-            {/* DELETE CONFIRMATION DIALOG */}
+            {/* DELETE / TAKEDOWN DIALOG */}
             <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <WarningAmberIcon color="error" />
+                <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1, color: '#DC2626' }}>
+                    <WarningAmberIcon />
                     Confirm Takedown
                 </DialogTitle>
                 <DialogContent>
-                    <Typography>
-                        Are you sure you want to permanently delete this resource? This will remove it from the marketplace and all student libraries.
+                    <Typography sx={{ mb: 2 }}>
+                        You are about to remove this resource. The teacher will be notified immediately.
                     </Typography>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Reason for removal"
+                        fullWidth
+                        variant="outlined"
+                        value={takedownReason}
+                        onChange={(e) => setTakedownReason(e.target.value)}
+                        placeholder="e.g. Copyright violation, Low quality content..."
+                    />
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
                     <Button onClick={() => setDeleteId(null)} color="inherit">Cancel</Button>
-                    <Button onClick={confirmDelete} variant="contained" color="error" disableElevation>
-                        Delete Permanently
+                    <Button 
+                        onClick={confirmTakedown} 
+                        variant="contained" 
+                        color="error" 
+                        disableElevation
+                        disabled={!takedownReason.trim()} // Require reason
+                    >
+                        Remove & Notify
                     </Button>
                 </DialogActions>
             </Dialog>

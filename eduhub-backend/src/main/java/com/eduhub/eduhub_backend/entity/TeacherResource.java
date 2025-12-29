@@ -1,7 +1,7 @@
 package com.eduhub.eduhub_backend.entity;
 
 import jakarta.persistence.*;
-
+import java.util.List;
 @Entity
 public class TeacherResource {
     @Id
@@ -24,7 +24,12 @@ public class TeacherResource {
     private boolean hasPreview;
 
     private boolean previewEnabled;
-
+ @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews;
+ @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaymentTransaction> transactions;
+    @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Purchase> purchases;
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;

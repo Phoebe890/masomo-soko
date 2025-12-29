@@ -2,6 +2,7 @@ package com.eduhub.eduhub_backend.controller;
 
 import com.eduhub.eduhub_backend.entity.*;
 import com.eduhub.eduhub_backend.repository.*;
+import com.eduhub.eduhub_backend.service.EmailProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -18,18 +19,15 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AdminController {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private TeacherResourceRepository resourceRepository;
-    @Autowired
-    private PurchaseRepository purchaseRepository;
-    @Autowired
-    private WithdrawalRepository withdrawalRepository;
-    @Autowired
-    private NotificationRepository notificationRepository;
-    @Autowired
-    private TeacherProfileRepository teacherProfileRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private TeacherResourceRepository resourceRepository;
+    @Autowired private PurchaseRepository purchaseRepository;
+    @Autowired private WithdrawalRepository withdrawalRepository;
+    @Autowired private NotificationRepository notificationRepository;
+    @Autowired private TeacherProfileRepository teacherProfileRepository;
+    @Autowired private ReviewRepository reviewRepository;
+    @Autowired private PaymentTransactionRepository transactionRepository; // Added this
+    @Autowired private EmailProducer emailProducer;
 
     // 1. DASHBOARD STATS
     @GetMapping("/stats")
@@ -38,7 +36,6 @@ public class AdminController {
             long totalUsers = userRepository.count();
             long totalResources = resourceRepository.count();
 
-            // Fix NPE by checking for null price
             double totalVolume = purchaseRepository.findAll().stream()
                     .mapToDouble(p -> p.getPrice() != null ? p.getPrice() : 0.0)
                     .sum();
@@ -59,7 +56,7 @@ public class AdminController {
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error calculating stats: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error calculating stats");
         }
     }
 
@@ -83,8 +80,7 @@ public class AdminController {
     @PostMapping("/payouts/{id}/{action}")
     public ResponseEntity<?> processPayout(@PathVariable Long id, @PathVariable String action) {
         Withdrawal withdrawal = withdrawalRepository.findById(id).orElse(null);
-        if (withdrawal == null)
-            return ResponseEntity.notFound().build();
+        if (withdrawal == null) return ResponseEntity.notFound().build();
 
         if ("approve".equals(action)) {
             withdrawal.setStatus("PAID");
@@ -92,88 +88,166 @@ public class AdminController {
                     withdrawal.getTeacher(),
                     "Withdrawal of KES " + withdrawal.getAmount() + " sent successfully.",
                     LocalDateTime.now(), false));
+            try {
+                emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), "Payout Processed", "Your withdrawal has been processed.");
+            } catch (Exception e) {}
+            
         } else if ("reject".equals(action)) {
             withdrawal.setStatus("REJECTED");
-            // Ideally refund the balance here
+            TeacherProfile profile = teacherProfileRepository.findByUserId(withdrawal.getTeacher().getId()).orElse(null);
+            if (profile != null) {
+                profile.setAccountBalance(profile.getAccountBalance() + withdrawal.getAmount());
+                teacherProfileRepository.save(profile);
+            }
         }
         withdrawalRepository.save(withdrawal);
         return ResponseEntity.ok("Updated");
     }
 
-    // 3. USER MANAGEMENT
+    // 3. USER MANAGEMENT (LIST)
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+        List<User> users = userRepository.findAll();
+        List<Map<String, Object>> result = users.stream().map(u -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", u.getId());
+            map.put("name", u.getName());
+            map.put("email", u.getEmail());
+            map.put("role", u.getRole());
+            map.put("enabled", u.isEnabled());
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
+    // 4. USER MANAGEMENT (BAN/UNBAN)
     @PostMapping("/users/{id}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
         User user = userRepository.findById(id).orElse(null);
-        if (user == null)
-            return ResponseEntity.notFound().build();
+        if (user == null) return ResponseEntity.notFound().build();
 
         user.setEnabled(!user.isEnabled());
         userRepository.save(user);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "User status updated",
-                "enabled", user.isEnabled()));
+        return ResponseEntity.ok(Map.of("message", "Status updated", "enabled", user.isEnabled()));
     }
 
-    // 6. DELETE USER (Hard Delete)
+    // 5. USER MANAGEMENT (CHANGE ROLE)
+    @PostMapping("/users/{id}/role")
+    public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
+
+        String newRole = body.get("role").toUpperCase();
+        if (!List.of("STUDENT", "TEACHER", "ADMIN").contains(newRole)) return ResponseEntity.badRequest().body("Invalid Role");
+
+        user.setRole(newRole);
+        userRepository.save(user);
+        return ResponseEntity.ok("Role updated");
+    }
+
+    // 6. DELETE USER (CLEANUP ALL DEPENDENCIES)
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             User user = userRepository.findById(id).orElse(null);
-            if (user == null)
-                return ResponseEntity.notFound().build();
+            if (user == null) return ResponseEntity.notFound().build();
 
-            // Delete Profile if Teacher
+            // A. Clean up TEACHER Data
             TeacherProfile profile = teacherProfileRepository.findByUserId(id).orElse(null);
-            if (profile != null)
-                teacherProfileRepository.delete(profile);
+            if (profile != null) teacherProfileRepository.delete(profile);
 
-            // Delete User
+            List<TeacherResource> resources = resourceRepository.findByUserId(id);
+            if (resources != null && !resources.isEmpty()) {
+                resourceRepository.deleteAll(resources);
+            }
+            
+            // B. Clean up STUDENT Data (Purchases & Reviews)
+            List<Purchase> purchases = purchaseRepository.findByStudent(user);
+            if (purchases != null && !purchases.isEmpty()) purchaseRepository.deleteAll(purchases);
+            
+            List<Review> reviews = reviewRepository.findByStudent(user);
+            if (reviews != null && !reviews.isEmpty()) reviewRepository.deleteAll(reviews);
+            
+            // C. Clean up WITHDRAWALS
+            List<Withdrawal> withdrawals = withdrawalRepository.findByTeacherOrderByRequestedAtDesc(user);
+            if (withdrawals != null && !withdrawals.isEmpty()) withdrawalRepository.deleteAll(withdrawals);
+
+            // D. Clean up PAYMENT TRANSACTIONS (As Student)
+            List<PaymentTransaction> studentTxns = transactionRepository.findByStudent(user);
+            if (studentTxns != null && !studentTxns.isEmpty()) transactionRepository.deleteAll(studentTxns);
+
+            // E. Finally Delete User
             userRepository.delete(user);
+            
             return ResponseEntity.ok("User deleted successfully");
         } catch (Exception e) {
+            e.printStackTrace(); 
             return ResponseEntity.status(500).body("Failed to delete user: " + e.getMessage());
         }
     }
 
-    // 4. CHANGE ROLE
-    @PostMapping("/users/{id}/role")
-    public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null)
-            return ResponseEntity.notFound().build();
-
-        String newRole = body.get("role").toUpperCase(); // Ensure uppercase (STUDENT, TEACHER)
-
-        // Validation
-        if (!List.of("STUDENT", "TEACHER", "ADMIN").contains(newRole)) {
-            return ResponseEntity.badRequest().body("Invalid Role");
-        }
-
-        // Prevent banning yourself or demoting the last Admin (Optional safety)
-        if ("ADMIN".equals(user.getRole()) && "STUDENT".equals(newRole)) {
-            // Logic to prevent removing the main admin could go here
-        }
-
-        user.setRole(newRole);
-        userRepository.save(user);
-        return ResponseEntity.ok("Role updated to " + newRole);
-    }
-
-    // 5. CONTENT MODERATION
+    // 7. CONTENT MODERATION (LIST)
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources() {
-        return ResponseEntity.ok(resourceRepository.findAll());
+        List<TeacherResource> resources = resourceRepository.findAll();
+        List<Map<String, Object>> result = resources.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("title", r.getTitle());
+            map.put("subject", r.getSubject());
+            map.put("price", r.getPrice());
+            map.put("filePath", r.getFilePath());
+            map.put("previewImageUrl", r.getPreviewImageUrl());
+            
+            if (r.getUser() != null) {
+                Map<String, String> userMap = new HashMap<>();
+                userMap.put("name", r.getUser().getName());
+                map.put("user", userMap);
+            } else {
+                map.put("user", Map.of("name", "Unknown"));
+            }
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
+    // 8. CONTENT MODERATION (TAKEDOWN)
+    @PostMapping("/resources/{id}/takedown")
+    public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            TeacherResource resource = resourceRepository.findById(id).orElse(null);
+            if (resource == null) return ResponseEntity.notFound().build();
+
+            String reason = body.getOrDefault("reason", "Violation of terms");
+            User teacher = resource.getUser();
+
+            Notification notif = new Notification(
+                teacher,
+                "URGENT: Your resource '" + resource.getTitle() + "' was removed. Reason: " + reason,
+                LocalDateTime.now(),
+                false
+            );
+            notificationRepository.save(notif);
+
+            try {
+                emailProducer.sendEmail(
+                    teacher.getEmail(),
+                    "Resource Removed",
+                    "Your resource '" + resource.getTitle() + "' was removed. Reason: " + reason
+                );
+            } catch (Exception e) {}
+
+            resourceRepository.delete(resource);
+            return ResponseEntity.ok("Removed");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+    
     @DeleteMapping("/resources/{id}")
     public ResponseEntity<?> deleteResource(@PathVariable Long id) {
         resourceRepository.deleteById(id);
-        return ResponseEntity.ok("Resource deleted");
+        return ResponseEntity.ok("Deleted");
     }
 }
