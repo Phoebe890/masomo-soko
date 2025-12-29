@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, 
-    IconButton, CircularProgress, Link, Avatar, Chip, Tooltip,
+    IconButton, CircularProgress, Avatar, Chip, Tooltip,
     Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert, TextField, InputAdornment
 } from '@mui/material';
 import axios from 'axios';
 import AdminSidebar from './AdminSidebar';
+import FileViewerModal from '../../components/FileViewerModal';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -19,7 +20,7 @@ const BACKEND_URL = "http://localhost:8081";
 interface Resource {
     id: number;
     title: string;
-    teacherName: string; // Ensure backend sends this, or map it
+    teacherName: string;
     subject: string;
     price: number;
     filePath: string;
@@ -34,12 +35,14 @@ const AdminResources: React.FC = () => {
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
+    // File Viewer State
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<{ url: string; title: string } | null>(null);
+
     // Fetch Data
     const fetchResources = async () => {
         try {
             const res = await axios.get(`${BACKEND_URL}/api/admin/resources`, { withCredentials: true });
-            // The backend returns raw entities, we might need to map user to teacherName if not present
-            // Assuming your backend returns a list of entities where `user` object exists
             const mapped = res.data.map((r: any) => ({
                 id: r.id,
                 title: r.title,
@@ -47,7 +50,7 @@ const AdminResources: React.FC = () => {
                 subject: r.subject,
                 price: r.price,
                 filePath: r.filePath,
-                previewImageUrl: r.previewImageUrl // If available
+                previewImageUrl: r.previewImageUrl
             }));
             setResources(mapped);
             setFilteredResources(mapped);
@@ -86,6 +89,12 @@ const AdminResources: React.FC = () => {
         }
     };
 
+    // Handle View File
+    const handleViewFile = (url: string, title: string) => {
+        setSelectedFile({ url, title });
+        setViewerOpen(true);
+    };
+
     return (
         <Box sx={{ display: 'flex' }}>
             <AdminSidebar selected="/admin/resources" />
@@ -117,10 +126,10 @@ const AdminResources: React.FC = () => {
                         <Table>
                             <TableHead sx={{ bgcolor: '#F9FAFB' }}>
                                 <TableRow>
-                                     <TableCell sx={{ fontWeight: 700 }}>Resource</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Resource</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Teacher</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Subject</TableCell>
-                                     <TableCell sx={{ fontWeight: 700 }}>Price</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Price</TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                                 </TableRow>
                             </TableHead>
@@ -141,10 +150,7 @@ const AdminResources: React.FC = () => {
                                         <TableCell align="right">
                                             <Tooltip title="View File">
                                                 <IconButton 
-                                                    component={Link} 
-                                                    href={row.filePath} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
+                                                    onClick={() => handleViewFile(row.filePath, row.title)}
                                                     color="primary"
                                                 >
                                                     <VisibilityOutlinedIcon />
@@ -193,6 +199,16 @@ const AdminResources: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* FILE VIEWER MODAL */}
+            {selectedFile && (
+                <FileViewerModal 
+                    open={viewerOpen} 
+                    onClose={() => setViewerOpen(false)} 
+                    fileUrl={selectedFile.url}
+                    title={selectedFile.title}
+                />
+            )}
 
             {/* TOAST NOTIFICATION */}
             <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
