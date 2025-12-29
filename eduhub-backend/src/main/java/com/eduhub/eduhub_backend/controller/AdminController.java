@@ -84,26 +84,47 @@ public class AdminController {
 
         if ("approve".equals(action)) {
             withdrawal.setStatus("PAID");
+            
+            // 1. Notify Teacher
             notificationRepository.save(new Notification(
                     withdrawal.getTeacher(),
-                    "Withdrawal of KES " + withdrawal.getAmount() + " sent successfully.",
+                    "Withdrawal of KES " + withdrawal.getAmount() + " has been processed.",
                     LocalDateTime.now(), false));
+            
+            // 2. Email Teacher
             try {
-                emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), "Payout Processed", "Your withdrawal has been processed.");
-            } catch (Exception e) {}
+                emailProducer.sendEmail(
+                    withdrawal.getTeacher().getEmail(), 
+                    "Payout Processed - EduHub", 
+                    "Hello " + withdrawal.getTeacher().getName() + ",\n\n" +
+                    "Your withdrawal request of KES " + withdrawal.getAmount() + " has been processed successfully.\n" +
+                    "The funds have been sent to your M-Pesa number: " + withdrawal.getMpesaNumber()
+                );
+            } catch (Exception e) { System.err.println("Email failed: " + e.getMessage()); }
             
         } else if ("reject".equals(action)) {
             withdrawal.setStatus("REJECTED");
+            
+            // Refund Teacher Wallet
             TeacherProfile profile = teacherProfileRepository.findByUserId(withdrawal.getTeacher().getId()).orElse(null);
             if (profile != null) {
                 profile.setAccountBalance(profile.getAccountBalance() + withdrawal.getAmount());
                 teacherProfileRepository.save(profile);
             }
+            
+            // Notify Rejection
+             try {
+                emailProducer.sendEmail(
+                    withdrawal.getTeacher().getEmail(), 
+                    "Withdrawal Rejected - EduHub", 
+                    "Your withdrawal request was rejected. The funds have been returned to your wallet."
+                );
+            } catch (Exception e) {}
         }
+        
         withdrawalRepository.save(withdrawal);
         return ResponseEntity.ok("Updated");
     }
-
     // 3. USER MANAGEMENT (LIST)
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers() {

@@ -24,9 +24,9 @@ public class EmailConsumer {
             message.setFrom("EduHub <noreply@eduhub.com>");
 
             mailSender.send(message);
-            System.out.println("✅ Email Sent to: " + emailRequest.getTo());
+            System.out.println("Email Sent to: " + emailRequest.getTo());
         } catch (Exception e) {
-            System.err.println("❌ Failed to send email: " + e.getMessage());
+            System.err.println("Failed to send email: " + e.getMessage());
         }
     }
 }

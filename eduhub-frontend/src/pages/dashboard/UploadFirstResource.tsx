@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { 
     Box, Typography, Paper, TextField, Button, Grid, 
-    MenuItem, InputAdornment, Container, Card, CardMedia, 
-    CardContent, Chip, IconButton, Stack, useTheme, Divider, 
-    FormControl, FormLabel, OutlinedInput, CircularProgress
+    MenuItem, InputAdornment, Container, Stack, IconButton, 
+    useTheme, FormControl, FormLabel, OutlinedInput, 
+    CircularProgress, Snackbar, Alert, Backdrop
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Import Axios
+import axios from 'axios';
 
 // Icons
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -23,15 +23,23 @@ const UploadFirstResource = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // Snackbar State (Replaces alert)
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success' as 'success' | 'error'
+    });
+
     // Form State
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         price: '',
         subject: '',
-        grade: '',        // ADDED: Required by backend
-        curriculum: '',   // ADDED: Required by backend
+        grade: '',        
+        curriculum: '',   
         thumbnailPreview: '',
+        thumbnailFile: null as File | null, // Store the actual image file here
         resourceFile: null as File | null
     });
 
@@ -45,9 +53,8 @@ const UploadFirstResource = () => {
             const file = e.target.files[0];
             setFormData({ 
                 ...formData, 
-                // Note: Your backend currently generates previews automatically from the resource file
-                // so we only use this for local preview in the UI
-                thumbnailPreview: URL.createObjectURL(file) 
+                thumbnailPreview: URL.createObjectURL(file), // For UI display
+                thumbnailFile: file // For sending to backend
             });
         }
     };
@@ -58,49 +65,80 @@ const UploadFirstResource = () => {
         }
     };
 
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if(!formData.resourceFile || !formData.title || !formData.subject || !formData.grade || !formData.curriculum) {
-            alert("Please fill in all required fields and upload a resource file.");
+            setSnackbar({
+                open: true,
+                message: "Please fill in all required fields and upload a resource file.",
+                severity: 'error'
+            });
             return;
         }
 
         setLoading(true);
 
         const uploadData = new FormData();
-        // Backend expects 'file' for the resource
-        uploadData.append('file', formData.resourceFile); 
+        
+        // 1. Append Text Data
         uploadData.append('title', formData.title);
         uploadData.append('description', formData.description);
         uploadData.append('subject', formData.subject);
         uploadData.append('grade', formData.grade);
         uploadData.append('curriculum', formData.curriculum);
         
-        // Logic for Pricing
+        // 2. Append Pricing
         const priceValue = parseFloat(formData.price);
         uploadData.append('pricing', priceValue > 0 ? "Paid" : "Free");
         if(priceValue > 0) {
             uploadData.append('price', formData.price);
         }
 
+        // 3. Append Files
+        // The main resource file
+        uploadData.append('file', formData.resourceFile); 
+
+        // The Cover Image
+        // CRITICAL: Ensure your backend Controller accepts a @RequestParam("thumbnail") or similar
+        if (formData.thumbnailFile) {
+            uploadData.append('thumbnail', formData.thumbnailFile); 
+        }
+
         try {
-            // REPLACE WITH YOUR BACKEND URL
             const API_URL = "http://localhost:8081/api/teacher/resources"; 
             
             await axios.post(API_URL, uploadData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                withCredentials: true // IMPORTANT: Sends cookies for @AuthenticationPrincipal
+                withCredentials: true 
             });
 
-            alert("Resource Published Successfully!"); 
-            navigate('/dashboard/teacher');
+            // Success feedback
+            setSnackbar({
+                open: true,
+                message: "Resource Published Successfully!",
+                severity: 'success'
+            });
+
+            // Wait 1.5 seconds so user can read the success message, then redirect
+            setTimeout(() => {
+                navigate('/dashboard/teacher');
+            }, 1500);
+
         } catch (error: any) {
             console.error("Upload Error:", error);
-            const errorMsg = error.response?.data || "Failed to upload resource.";
-            alert(typeof errorMsg === 'string' ? errorMsg : "Error uploading resource");
-        } finally {
-            setLoading(false);
+            const errorMsg = error.response?.data?.message || error.response?.data || "Failed to upload resource.";
+            
+            setSnackbar({
+                open: true,
+                message: typeof errorMsg === 'string' ? errorMsg : "Error uploading resource",
+                severity: 'error'
+            });
+            setLoading(false); // Stop loading only on error (on success we wait for redirect)
         }
     };
 
@@ -111,6 +149,29 @@ const UploadFirstResource = () => {
                 onClose={() => setSidebarOpen(false)} 
                 selectedRoute="/dashboard/teacher/upload-first-resource"
             />
+
+            {/* FULL SCREEN LOADING INDICATOR */}
+            <Backdrop
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={loading}
+            >
+                <Stack alignItems="center" spacing={2}>
+                    <CircularProgress color="inherit" size={60} />
+                    <Typography variant="h6">Publishing your resource...</Typography>
+                </Stack>
+            </Backdrop>
+
+            {/* NOTIFICATION TOAST (Replaces Alert) */}
+            <Snackbar 
+                open={snackbar.open} 
+                autoHideDuration={6000} 
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
 
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` } }}>
                 {/* --- TOP BAR --- */}
@@ -134,7 +195,7 @@ const UploadFirstResource = () => {
                             disabled={loading}
                             sx={{ px: 4, fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
                         >
-                            {loading ? <CircularProgress size={24} color="inherit" /> : "Publish"}
+                            Publish
                         </Button>
                     </Stack>
                 </Box>
@@ -158,7 +219,6 @@ const UploadFirstResource = () => {
                                             </FormControl>
                                         </Grid>
 
-                                        {/* ADDED: Grade & Curriculum Inputs (Required by Backend) */}
                                         <Grid item xs={12} md={6}>
                                             <FormControl fullWidth>
                                                 <FormLabel sx={{ mb: 1, fontWeight: 600 }}>Subject</FormLabel>
@@ -223,11 +283,11 @@ const UploadFirstResource = () => {
                                     </Grid>
                                 </Paper>
 
-                                {/* Cover Image - Optional in UI, not sent to backend in this specific setup */}
+                                {/* Cover Image - NOW SENT TO BACKEND */}
                                 <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #eee' }}>
-                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Cover Image (Optional)</Typography>
+                                    <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Cover Image</Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                        For preview purposes only. The system will auto-generate a preview from your file.
+                                        Upload a clear image to be displayed on the homepage and search results.
                                     </Typography>
                                     <Box sx={{ border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, textAlign: 'center' }}>
                                         <input accept="image/*" style={{ display: 'none' }} id="thumbnail-upload" type="file" onChange={handleThumbnailChange} />
@@ -244,7 +304,7 @@ const UploadFirstResource = () => {
                                     </Box>
                                 </Paper>
 
-                                {/* Resource File - MANDATORY */}
+                                {/* Resource File */}
                                 <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #eee' }}>
                                     <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>Resource File</Typography>
                                     <Box sx={{ border: '2px dashed #e0e0e0', borderRadius: 3, p: 4, bgcolor: '#fafafa' }}>
@@ -270,9 +330,9 @@ const UploadFirstResource = () => {
                             </Stack>
                         </Grid>
                         
-                        {/* RIGHT COLUMN (Preview) - Same as before... */}
+                        {/* RIGHT COLUMN (Preview) */}
                         <Grid item xs={12} lg={5}>
-                             {/* ... (Keep your existing Preview Card code here) ... */}
+                             {/* Your Preview Card code goes here... */}
                         </Grid>
                     </Grid>
                 </Container>

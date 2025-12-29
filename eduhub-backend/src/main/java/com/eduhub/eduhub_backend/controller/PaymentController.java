@@ -134,7 +134,7 @@ public class PaymentController {
                     );
                     emailProducer.sendEmail(
                         transaction.getResource().getUser().getEmail(),
-                        "New Sale Alert! 💰",
+                        "New Sale Alert! ",
                         "You just earned money from a new sale!"
                     );
                 } catch (Exception emailEx) { System.err.println("Email Error: " + emailEx.getMessage()); }

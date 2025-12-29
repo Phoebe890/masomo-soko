@@ -1,33 +1,55 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
     Box, Typography, Button, Avatar, 
     Grid, IconButton, Menu, MenuItem, 
     useTheme, useMediaQuery, Chip, Container, Paper, 
     Divider, List, ListItem, ListItemAvatar, ListItemText, 
-    CircularProgress, Badge
+    CircularProgress, Badge, Popover, Tooltip
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
+} from 'recharts';
 
-// Icons
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import MenuIcon from '@mui/icons-material/Menu';
 import AddIcon from '@mui/icons-material/Add';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import PeopleIcon from '@mui/icons-material/People';
-import LogoutIcon from '@mui/icons-material/Logout';
-import HomeIcon from '@mui/icons-material/Home';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import StarIcon from '@mui/icons-material/Star'; // Added Star Icon
+import StarIcon from '@mui/icons-material/Star';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
-// Import Sidebar
 import TeacherSidebar from './TeacherSidebar';
 
 const BACKEND_URL = "http://localhost:8081";
+
+const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hrs ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " mins ago";
+    return "Just now";
+};
+
+interface Review {
+    rating: number;
+    comment: string;
+}
 
 interface TeacherResourceDTO {
     id: number;
@@ -35,6 +57,7 @@ interface TeacherResourceDTO {
     subject: string;
     price: number;
     pricing: string;
+    reviews?: Review[];
 }
 
 interface Notification {
@@ -57,9 +80,9 @@ const TeacherDashboard: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // State
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -69,20 +92,28 @@ const TeacherDashboard: React.FC = () => {
         currentBalance: 0.0,
         profile: null
     });
-    
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [analyticsData, setAnalyticsData] = useState<{date: string, sales: number}[]>([]);
 
-    // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Get Stats
                 const dashRes = await axios.get(`${BACKEND_URL}/api/teacher/dashboard`, { withCredentials: true });
                 setData(dashRes.data);
 
-                // 2. Get Notifications
                 const notifRes = await axios.get(`${BACKEND_URL}/api/teacher/notifications`, { withCredentials: true });
                 setNotifications(notifRes.data);
+
+                const analyticsRes = await axios.get(`${BACKEND_URL}/api/teacher/analytics`, { withCredentials: true });
+                const rawSales = analyticsRes.data.salesLast30Days || {};
+                const chartData = Object.keys(rawSales).sort().map(dateKey => {
+                    const date = new Date(dateKey);
+                    return {
+                        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        sales: rawSales[dateKey]
+                    };
+                });
+                setAnalyticsData(chartData);
 
             } catch (error) {
                 console.error("Error fetching dashboard:", error);
@@ -93,23 +124,65 @@ const TeacherDashboard: React.FC = () => {
         fetchData();
     }, []);
 
-    // --- HANDLERS ---
+    const averageRating = useMemo(() => {
+        let totalRating = 0;
+        let count = 0;
+        data.resources.forEach(res => {
+            if (res.reviews && res.reviews.length > 0) {
+                res.reviews.forEach(r => {
+                    totalRating += r.rating;
+                    count++;
+                });
+            }
+        });
+        return count === 0 ? 0 : (totalRating / count).toFixed(1);
+    }, [data.resources]);
+
+    const getUserInitial = () => {
+        const name = data.profile?.user?.name;
+        if (name && typeof name === 'string' && name.length > 0) {
+            return name.charAt(0).toUpperCase();
+        }
+        return 'T';
+    };
+
     const handleLogout = () => {
         localStorage.clear();
         navigate('/');
     };
 
-    const handleClearNotifications = async () => {
+    const handleMarkAllRead = async () => {
         try {
             await axios.post(`${BACKEND_URL}/api/teacher/notifications/clear`, {}, { withCredentials: true });
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (e) { console.error(e); }
     };
 
-    // --- SUB-COMPONENTS ---
+    const handleDeleteNotification = async (e: React.MouseEvent, id: number) => {
+        e.stopPropagation();
+        const previousNotifications = [...notifications];
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        try {
+            await axios.delete(`${BACKEND_URL}/api/teacher/notifications/${id}`, { 
+                withCredentials: true 
+            });
+        } catch (e) { 
+            console.error("Failed to delete notification", e);
+            setNotifications(previousNotifications);
+        }
+    };
+
+    const handleNotificationClick = (id: number) => {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    };
 
     const StatWidget = ({ title, value, icon, color }: any) => (
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <Paper elevation={0} sx={{ 
+            p: 3, borderRadius: 3, border: '1px solid #eee', 
+            height: '100%', display: 'flex', flexDirection: 'column', 
+            justifyContent: 'space-between', transition: 'transform 0.2s',
+            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
+        }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: `${color}15`, color: color }}>{icon}</Box>
             </Box>
@@ -120,37 +193,105 @@ const TeacherDashboard: React.FC = () => {
         </Paper>
     );
 
-    const NotificationsMenu = () => (
-        <Menu
-            anchorEl={notifAnchorEl}
+    const NotificationsPopover = () => (
+        <Popover
             open={Boolean(notifAnchorEl)}
+            anchorEl={notifAnchorEl}
             onClose={() => setNotifAnchorEl(null)}
-            PaperProps={{ sx: { width: 320, maxHeight: 400, borderRadius: 3, mt: 1 } }}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            PaperProps={{ sx: { width: 380, maxHeight: 500, borderRadius: 3, mt: 1.5, boxShadow: '0 8px 40px rgba(0,0,0,0.12)' } }}
         >
-            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
                 <Typography variant="subtitle1" fontWeight={700}>Notifications</Typography>
-                <Button size="small" onClick={handleClearNotifications}>Mark all read</Button>
+                {notifications.some(n => !n.read) && (
+                    <Button 
+                        size="small" 
+                        onClick={handleMarkAllRead} 
+                        startIcon={<CheckCircleIcon fontSize="inherit" />}
+                        sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                    >
+                        Mark all read
+                    </Button>
+                )}
             </Box>
             <List sx={{ p: 0 }}>
                 {notifications.length === 0 ? (
-                    <Box sx={{ p: 3, textAlign: 'center' }}>
-                        <Typography color="text.secondary">No notifications yet.</Typography>
+                    <Box sx={{ p: 4, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: '50%', mb: 2 }}>
+                            <NotificationsNoneIcon sx={{ fontSize: 32, color: '#bdbdbd' }} />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">You're all caught up!</Typography>
                     </Box>
                 ) : (
-                    notifications.slice(0, 5).map((notif) => (
-                        <ListItem key={notif.id} sx={{ bgcolor: notif.read ? 'white' : '#F0F9FF', borderBottom: '1px solid #f5f5f5' }}>
-                            <ListItemText 
-                                primary={notif.message} 
-                                primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: notif.read ? 400 : 600 }}
-                                secondary={new Date(notif.createdAt).toLocaleDateString()}
-                            />
-                        </ListItem>
-                    ))
+                    notifications.map((notif) => {
+                        const isSale = notif.message.toLowerCase().includes('purchased') || notif.message.toLowerCase().includes('sold');
+                        const isReview = notif.message.toLowerCase().includes('review') || notif.message.toLowerCase().includes('rated');
+                        
+                        return (
+                            <ListItem 
+                                key={notif.id} 
+                                button
+                                onClick={() => handleNotificationClick(notif.id)}
+                                sx={{ 
+                                    borderBottom: '1px solid #f9f9f9',
+                                    bgcolor: notif.read ? 'white' : '#F0F7FF',
+                                    transition: 'all 0.2s',
+                                    pr: 5, 
+                                    '&:hover': { 
+                                        bgcolor: '#fafafa',
+                                        '& .delete-btn': { opacity: 1 } 
+                                    }
+                                }}
+                            >
+                                <ListItemAvatar>
+                                    <Avatar sx={{ 
+                                        width: 40, height: 40,
+                                        bgcolor: isSale ? '#DCFCE7' : isReview ? '#FEF3C7' : '#E0F2FE',
+                                        color: isSale ? '#166534' : isReview ? '#B45309' : '#0284C7'
+                                    }}>
+                                        {isSale ? <AttachMoneyIcon fontSize="small" /> : 
+                                         isReview ? <StarIcon fontSize="small" /> : 
+                                         <NotificationsActiveIcon fontSize="small" />}
+                                    </Avatar>
+                                </ListItemAvatar>
+                                
+                                <ListItemText 
+                                    primary={
+                                        <Box display="flex" alignItems="center" gap={1}>
+                                            <Typography variant="body2" fontWeight={notif.read ? 400 : 600} color="#333" sx={{ lineHeight: 1.3 }}>
+                                                {notif.message}
+                                            </Typography>
+                                            {!notif.read && <FiberManualRecordIcon sx={{ fontSize: 10, color: theme.palette.primary.main }} />}
+                                        </Box>
+                                    }
+                                    secondary={
+                                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                            {getTimeAgo(notif.createdAt)}
+                                        </Typography>
+                                    }
+                                />
+
+                                <Tooltip title="Remove">
+                                    <IconButton 
+                                        className="delete-btn"
+                                        size="small" 
+                                        onClick={(e) => handleDeleteNotification(e, notif.id)}
+                                        sx={{ 
+                                            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                                            opacity: 0, transition: 'opacity 0.2s', color: '#999',
+                                            '&:hover': { color: 'error.main', bgcolor: '#fee2e2' }
+                                        }}
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </ListItem>
+                        );
+                    })
                 )}
             </List>
-        </Menu>
+        </Popover>
     );
 
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
@@ -164,7 +305,6 @@ const TeacherDashboard: React.FC = () => {
 
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` } }}>
                 
-                {/* HEADER */}
                 <Box sx={{ bgcolor: 'white', px: { xs: 2, md: 4 }, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E0E0E0', position: 'sticky', top: 0, zIndex: 100 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         {isMobile && <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>}
@@ -176,43 +316,45 @@ const TeacherDashboard: React.FC = () => {
                             variant="contained" 
                             startIcon={<AddIcon />} 
                             onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
-                            sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', display: { xs: 'none', sm: 'flex' } }}
+                            sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', display: { xs: 'none', sm: 'flex' }, boxShadow: 'none' }}
                         >
                             Upload
                         </Button>
                         
-                        {/* NOTIFICATIONS BELL */}
                         <IconButton onClick={(e) => setNotifAnchorEl(e.currentTarget)}>
                             <Badge badgeContent={unreadCount} color="error">
-                                <NotificationsNoneIcon />
+                                <NotificationsNoneIcon color="action" />
                             </Badge>
                         </IconButton>
-                        <NotificationsMenu />
+                        <NotificationsPopover />
 
                         <Avatar 
                             src={data.profile?.profilePicPath} 
                             onClick={(e) => setAnchorEl(e.currentTarget)} 
-                            sx={{ cursor: 'pointer', bgcolor: theme.palette.primary.main, width: 36, height: 36, fontSize: '0.9rem' }}
+                            sx={{ cursor: 'pointer', bgcolor: theme.palette.primary.main, width: 40, height: 40, fontSize: '1.1rem', fontWeight: 600 }}
                         >
-                            {data.profile?.user?.name?.[0] || 'T'}
+                            {getUserInitial()}
                         </Avatar>
                         
                         <Menu 
                             anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}
-                            PaperProps={{ sx: { minWidth: 200, mt: 1 } }}
+                            PaperProps={{ sx: { minWidth: 200, mt: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
                             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                         >
-                            <MenuItem onClick={() => navigate('/teacher/settings')}>Settings</MenuItem>
+                            <Box sx={{ px: 2, py: 1.5 }}>
+                                <Typography variant="subtitle2" fontWeight={700}>{data.profile?.user?.name || 'Teacher'}</Typography>
+                                <Typography variant="caption" color="text.secondary">{data.profile?.user?.email}</Typography>
+                            </Box>
+                            <Divider />
+                            <MenuItem onClick={() => navigate('/dashboard/teacher/settings')}>Settings</MenuItem>
                             <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>Logout</MenuItem>
                         </Menu>
                     </Box>
                 </Box>
 
-                {/* CONTENT */}
                 <Container maxWidth="xl" sx={{ p: { xs: 2, md: 4 } }}>
                     
-                    {/* STATS */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget title="Total Earnings" value={`KES ${data.currentBalance.toLocaleString()}`} icon={<AttachMoneyIcon />} color={theme.palette.success.main} />
@@ -224,66 +366,92 @@ const TeacherDashboard: React.FC = () => {
                             <StatWidget title="Total Resources" value={data.resources.length} icon={<PeopleIcon />} color="#8B5CF6" />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget title="Avg. Rating" value="4.8" icon={<TrendingUpIcon />} color="#F59E0B" />
+                            <StatWidget title="Avg. Rating" value={averageRating} icon={<StarIcon />} color="#F59E0B" />
                         </Grid>
                     </Grid>
 
-                    {/* ACTIVITY FEED */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12} md={8}>
-                            {/* Simple Chart Placeholder */}
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F8FAFC' }}>
-                                <Typography color="text.secondary">Revenue Analytics Chart</Typography>
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: 400 }}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="h6" fontWeight={700}>Revenue Analytics</Typography>
+                                    <Typography variant="caption" color="text.secondary">Sales performance over last 30 days</Typography>
+                                </Box>
+                                <ResponsiveContainer width="100%" height="85%">
+                                    <AreaChart data={analyticsData}>
+                                        <defs>
+                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.1}/>
+                                                <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                        <XAxis dataKey="date" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                        <YAxis tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                        <RechartsTooltip 
+                                            contentStyle={{ backgroundColor: '#fff', borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                            itemStyle={{ color: theme.palette.primary.main, fontWeight: 600 }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="sales" 
+                                            stroke={theme.palette.primary.main} 
+                                            strokeWidth={3}
+                                            fillOpacity={1} 
+                                            fill="url(#colorSales)" 
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </Paper>
                         </Grid>
                         
                         <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%', minHeight: 300 }}>
+                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%', minHeight: 400, overflow: 'hidden' }}>
                                 <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Activity</Typography>
                                 {notifications.length === 0 ? (
-                                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                                        <NotificationsNoneIcon sx={{ fontSize: 40, color: '#eee', mb: 1 }} />
                                         <Typography color="text.secondary">No recent activity.</Typography>
                                     </Box>
                                 ) : (
                                     <List disablePadding>
-                                        {notifications.slice(0, 4).map((notif, i) => (
-                                            <React.Fragment key={notif.id}>
-                                                <ListItem alignItems="flex-start" sx={{ px: 0 }}>
-                                                    <ListItemAvatar>
-                                                        <Avatar sx={{ 
-                                                            bgcolor: notif.message.toLowerCase().includes('purchased') ? '#DCFCE7' : 
-                                                                     notif.message.toLowerCase().includes('review') ? '#FEF3C7' : '#E0F2FE',
-                                                            color: notif.message.toLowerCase().includes('purchased') ? '#166534' : 
-                                                                   notif.message.toLowerCase().includes('review') ? '#B45309' : '#0284C7'
-                                                        }}>
-                                                            {notif.message.toLowerCase().includes('purchased') ? <AttachMoneyIcon fontSize="small" /> : 
-                                                             notif.message.toLowerCase().includes('review') ? <StarIcon fontSize="small" /> : 
-                                                             <NotificationsActiveIcon fontSize="small" />}
-                                                        </Avatar>
-                                                    </ListItemAvatar>
-                                                    <ListItemText
-                                                        primary={<Typography variant="body2" fontWeight={600}>{notif.message}</Typography>}
-                                                        secondary={
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                {new Date(notif.createdAt).toLocaleDateString()}
-                                                            </Typography>
-                                                        }
-                                                    />
-                                                </ListItem>
-                                                {i < 3 && <Divider variant="inset" component="li" sx={{ ml: 7 }} />}
-                                            </React.Fragment>
-                                        ))}
+                                        {notifications.slice(0, 5).map((notif, i) => {
+                                             const isSale = notif.message.toLowerCase().includes('purchased');
+                                             return (
+                                                <React.Fragment key={notif.id}>
+                                                    <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+                                                        <ListItemAvatar>
+                                                            <Avatar sx={{ 
+                                                                bgcolor: isSale ? '#DCFCE7' : '#E0F2FE',
+                                                                color: isSale ? '#166534' : '#0284C7',
+                                                                width: 36, height: 36
+                                                            }}>
+                                                                {isSale ? <AttachMoneyIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
+                                                            </Avatar>
+                                                        </ListItemAvatar>
+                                                        <ListItemText
+                                                            primary={<Typography variant="body2" fontWeight={600}>{notif.message}</Typography>}
+                                                            secondary={
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {getTimeAgo(notif.createdAt)}
+                                                                </Typography>
+                                                            }
+                                                        />
+                                                    </ListItem>
+                                                    {i < 4 && <Divider variant="inset" component="li" sx={{ ml: 7, borderColor: '#f5f5f5' }} />}
+                                                </React.Fragment>
+                                             );
+                                        })}
                                     </List>
                                 )}
                             </Paper>
                         </Grid>
                     </Grid>
 
-                    {/* TOP RESOURCES TABLE */}
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={12}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6" fontWeight={700}>Your Resources</Typography>
+                                <Typography variant="h6" fontWeight={700}>Your Top Resources</Typography>
                                 <Button onClick={() => navigate('/dashboard/teacher/resources')}>View All</Button>
                             </Box>
                             
@@ -299,17 +467,23 @@ const TeacherDashboard: React.FC = () => {
                                     data.resources.slice(0, 5).map((resource) => (
                                         <Box key={resource.id} sx={{ 
                                             display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, 
-                                            borderBottom: '1px solid #f0f0f0', alignItems: 'center'
+                                            borderBottom: '1px solid #f0f0f0', alignItems: 'center',
+                                            transition: 'background-color 0.2s',
+                                            '&:hover': { bgcolor: '#fafafa' }
                                         }}>
-                                            <Typography variant="body2" fontWeight={600}>{resource.title}</Typography>
-                                            <Typography variant="body2">{resource.subject}</Typography>
+                                            <Box>
+                                                <Typography variant="body2" fontWeight={600}>{resource.title}</Typography>
+                                                <Typography variant="caption" color="text.secondary">{resource.reviews?.length || 0} reviews</Typography>
+                                            </Box>
+                                            <Typography variant="body2" color="text.secondary">{resource.subject}</Typography>
                                             <Typography variant="body2" fontWeight={600}>{resource.pricing === "Free" ? "Free" : `KES ${resource.price}`}</Typography>
-                                            <Chip label="Active" size="small" sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, width: 'fit-content' }} />
+                                            <Chip label="Active" size="small" sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, width: 'fit-content', borderRadius: 1 }} />
                                         </Box>
                                     ))
                                 ) : (
                                     <Box sx={{ p: 4, textAlign: 'center' }}>
                                         <Typography color="text.secondary">No resources uploaded yet.</Typography>
+                                        <Button sx={{ mt: 1 }} onClick={() => navigate('/dashboard/teacher/upload-first-resource')}>Upload Now</Button>
                                     </Box>
                                 )}
                             </Paper>

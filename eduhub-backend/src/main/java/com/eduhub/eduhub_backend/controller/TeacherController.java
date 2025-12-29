@@ -1,17 +1,8 @@
 package com.eduhub.eduhub_backend.controller;
 
 import com.eduhub.eduhub_backend.dto.TeacherResourceDTO;
-import com.eduhub.eduhub_backend.entity.Purchase;
-import com.eduhub.eduhub_backend.entity.Review;
-import com.eduhub.eduhub_backend.entity.TeacherProfile;
-import com.eduhub.eduhub_backend.entity.TeacherResource;
-import com.eduhub.eduhub_backend.entity.User;
-import com.eduhub.eduhub_backend.repository.PurchaseRepository;
-import com.eduhub.eduhub_backend.repository.ReviewRepository;
-import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
-import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
-import com.eduhub.eduhub_backend.repository.UserRepository;
-import com.eduhub.eduhub_backend.repository.NotificationRepository;
+import com.eduhub.eduhub_backend.entity.*;
+import com.eduhub.eduhub_backend.repository.*;
 import com.eduhub.eduhub_backend.service.FileUploadService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime; // Required import
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,22 +32,14 @@ import java.util.stream.Collectors;
 )
 public class TeacherController {
 
-    @Autowired
-    private FileUploadService fileUploadService;
-    @Autowired
-    private TeacherProfileRepository teacherProfileRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private TeacherResourceRepository teacherResourceRepository;
-    @Autowired
-    private PurchaseRepository purchaseRepository;
-    @Autowired
-    private ReviewRepository reviewRepository;
-    @Autowired
-    private NotificationRepository notificationRepository;
+    @Autowired private FileUploadService fileUploadService;
+    @Autowired private TeacherProfileRepository teacherProfileRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private TeacherResourceRepository teacherResourceRepository;
+    @Autowired private PurchaseRepository purchaseRepository;
+    @Autowired private ReviewRepository reviewRepository;
+    @Autowired private NotificationRepository notificationRepository;
 
-    // --- 1. SETTINGS / PROFILE ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -88,7 +71,6 @@ public class TeacherController {
         }
     }
 
-    // --- 2. REVIEWS (THIS WAS MISSING) ---
     @GetMapping("/reviews")
     public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -118,7 +100,6 @@ public class TeacherController {
         }
     }
 
-    // --- 3. ONBOARDING / UPDATE PROFILE ---
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
@@ -157,10 +138,10 @@ public class TeacherController {
         }
     }
 
-    // --- 4. UPLOAD RESOURCE ---
     @PostMapping("/resources")
     public ResponseEntity<?> uploadResource(
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             @RequestParam("title") String title,
             @RequestParam("description") String description,
             @RequestParam("subject") String subject,
@@ -173,8 +154,6 @@ public class TeacherController {
             if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             
-            Map uploadResult = fileUploadService.uploadFile(file);
-            
             TeacherResource resource = new TeacherResource();
             resource.setTitle(title);
             resource.setDescription(description);
@@ -184,17 +163,97 @@ public class TeacherController {
             resource.setPricing(pricing);
             resource.setPrice(price);
             resource.setUser(user);
+            resource.setPreviewEnabled(true);
+
+            Map uploadResult = fileUploadService.uploadFile(file);
             resource.setFilePath((String) uploadResult.get("secure_url"));
-            resource.setHasPreview(fileUploadService.generatePreviewImageUrl(uploadResult) != null);
+            
+            if (thumbnail != null && !thumbnail.isEmpty()) {
+                Map thumbResult = fileUploadService.uploadFile(thumbnail);
+                resource.setCoverImageUrl((String) thumbResult.get("secure_url"));
+                resource.setHasPreview(true);
+            } else {
+                resource.setHasPreview(fileUploadService.generatePreviewImageUrl(uploadResult) != null);
+            }
 
             teacherResourceRepository.save(resource);
-            return ResponseEntity.ok("Uploaded");
+            return ResponseEntity.ok("Uploaded successfully");
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
-    // --- 5. PAYOUT SETUP ---
+    @PutMapping("/resources/{id}")
+    public ResponseEntity<?> updateResource(
+            @PathVariable Long id,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("subject") String subject,
+            @RequestParam("grade") String grade,
+            @RequestParam("curriculum") String curriculum,
+            @RequestParam("pricing") String pricing,
+            @RequestParam(value = "price", required = false) Double price,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
+
+            if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+            if (!resource.getUser().getId().equals(user.getId())) return ResponseEntity.status(403).body("Not authorized to edit this resource");
+
+            resource.setTitle(title);
+            resource.setDescription(description);
+            resource.setSubject(subject);
+            resource.setGrade(grade);
+            resource.setCurriculum(curriculum);
+            resource.setPricing(pricing);
+            resource.setPrice(price);
+
+            if (file != null && !file.isEmpty()) {
+                Map uploadResult = fileUploadService.uploadFile(file);
+                resource.setFilePath((String) uploadResult.get("secure_url"));
+                if (thumbnail == null || thumbnail.isEmpty()) {
+                     resource.setHasPreview(fileUploadService.generatePreviewImageUrl(uploadResult) != null);
+                }
+            }
+
+            if (thumbnail != null && !thumbnail.isEmpty()) {
+                Map thumbResult = fileUploadService.uploadFile(thumbnail);
+                resource.setCoverImageUrl((String) thumbResult.get("secure_url"));
+                resource.setHasPreview(true);
+            }
+
+            teacherResourceRepository.save(resource);
+            return ResponseEntity.ok("Updated successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error updating resource: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/resources/{id}")
+    public ResponseEntity<?> deleteResource(
+            @PathVariable Long id, 
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
+
+            if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+            
+            if (!resource.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body("Not authorized to delete this resource");
+            }
+
+            teacherResourceRepository.delete(resource);
+            return ResponseEntity.ok("Deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error deleting resource");
+        }
+    }
+
     @PostMapping("/payout")
     public ResponseEntity<?> setupPayout(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -216,7 +275,6 @@ public class TeacherController {
         }
     }
 
-    // --- 6. DASHBOARD ---
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -239,9 +297,7 @@ public class TeacherController {
                 } catch (Exception e) { e.printStackTrace(); }
             }
 
-            // Map resources to DTOs
             List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
-                // Calculate rating for dashboard table
                 List<Review> reviews = reviewRepository.findByResource(res);
                 return new TeacherResourceDTO(res, reviews);
             }).collect(Collectors.toList());
@@ -258,12 +314,12 @@ public class TeacherController {
         }
     }
 
-    // --- 7. PUBLIC RESOURCES ---
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "grade", required = false) String grade,
             @RequestParam(value = "curriculum", required = false) String curriculum) {
+        
         List<TeacherResource> resources;
         if (subject != null && grade != null && curriculum != null) {
             resources = teacherResourceRepository.findBySubjectAndGradeAndCurriculum(subject, grade, curriculum);
@@ -278,11 +334,12 @@ public class TeacherController {
         } else {
             resources = teacherResourceRepository.findAll();
         }
+
         List<TeacherResourceDTO> dtos = resources.stream().map(r -> {
-            // Also include reviews here for public browsing stats
             List<Review> reviews = reviewRepository.findByResource(r);
             return new TeacherResourceDTO(r, reviews);
         }).toList();
+        
         return ResponseEntity.ok(Map.of("resources", dtos));
     }
 
@@ -304,7 +361,6 @@ public class TeacherController {
         return ResponseEntity.ok(Map.of("averageRating", avg, "reviews", dtos));
     }
 
-    // --- 8. ANALYTICS ---
     @GetMapping("/analytics")
     public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
@@ -344,7 +400,6 @@ public class TeacherController {
                 "totalSales", purchases.size()));
     }
 
-    // --- 9. TOP CONTRIBUTORS ---
     @GetMapping("/top-contributors")
     public ResponseEntity<?> getTopContributors() {
         try {
@@ -371,7 +426,6 @@ public class TeacherController {
         } catch(Exception e) { return ResponseEntity.ok(List.of()); }
     }
 
-    // --- 10. NOTIFICATIONS ---
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
@@ -395,7 +449,27 @@ public class TeacherController {
         return ResponseEntity.ok("Deleted");
     }
 
-    // --- 11. ZOOM DISCONNECT ---
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            var notification = notificationRepository.findById(id).orElse(null);
+            
+            if (notification == null) {
+                return ResponseEntity.status(404).body("Notification not found");
+            }
+            
+            if (!notification.getTeacher().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body("You are not authorized to delete this notification");
+            }
+
+            notificationRepository.delete(notification);
+            return ResponseEntity.ok("Deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error deleting notification: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/zoom/disconnect")
     public ResponseEntity<?> disconnectZoom(@AuthenticationPrincipal UserDetails userDetails) {
         try {
