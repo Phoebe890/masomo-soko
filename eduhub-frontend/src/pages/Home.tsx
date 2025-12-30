@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Box, Container, Typography, Button, Card, CardContent, 
+  Box, Container, Typography, Button, Card, CardContent, CardMedia,
   useTheme, Grid, CircularProgress, Avatar, Divider, Chip, Stack, Rating 
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
+
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -14,14 +15,13 @@ import LanguageIcon from '@mui/icons-material/Language';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import SearchIcon from '@mui/icons-material/Search';
 import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
 
-// Assets (Keep your local imports if they exist, otherwise these are just types)
+// Assets
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg';
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg';
 
-// Helper for random gradient placeholders
+// Helper for random gradient placeholders (fallback only)
 const getRandomColor = (id: number) => {
   const colors = ['#2D2F31', '#1C1D1F', '#5022c3', '#0056D2', '#1aa0db'];
   return colors[id % colors.length];
@@ -69,7 +69,8 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    // Simulating fetch for display purposes if API fails
+    
+    // Fetch Resources
     fetch('/api/teacher/resources')
       .then(res => res.json())
       .then(data => {
@@ -78,10 +79,19 @@ const Home: React.FC = () => {
       })
       .catch(() => setLoading(false));
 
+    // Fetch Contributors
     fetch('/api/teacher/top-contributors')
       .then(res => res.json())
       .then(data => setContributors(data));
   }, []);
+
+  // Scroll Handler
+  const scrollToHowItWorks = () => {
+    const element = document.getElementById('how-it-works');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
@@ -92,14 +102,13 @@ const Home: React.FC = () => {
         sx={{ 
           position: 'relative', 
           width: '100%', 
-          height: { xs: '85vh', md: '75vh' }, // Taller, more immersive
+          height: { xs: '85vh', md: '75vh' },
           minHeight: '600px',
           overflow: 'hidden', 
           display: 'flex', 
           alignItems: 'center' 
         }}
       >
-        {/* CSS Animation Keyframes for text entry */}
         <style>
           {`
             @keyframes slideUpFade {
@@ -109,7 +118,6 @@ const Home: React.FC = () => {
           `}
         </style>
 
-        {/* Background Carousel */}
         {heroSlides.map((slide, index) => (
           <Box
             key={index}
@@ -118,7 +126,6 @@ const Home: React.FC = () => {
               backgroundImage: `url(${slide.image})`, 
               backgroundSize: 'cover', 
               backgroundPosition: 'center',
-              // Zoom effect on active slide
               transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
               opacity: currentSlide === index ? 1 : 0, 
               transition: 'opacity 1.5s ease-in-out, transform 6s linear', 
@@ -127,7 +134,6 @@ const Home: React.FC = () => {
           />
         ))}
 
-        {/* Modern Gradient Overlay (Left-focused for text readability) */}
         <Box 
           sx={{ 
             position: 'absolute', 
@@ -137,7 +143,6 @@ const Home: React.FC = () => {
           }} 
         />
 
-        {/* Content Container */}
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2, color: 'white' }}>
           {heroSlides.map((slide, index) => (
             currentSlide === index && (
@@ -176,7 +181,6 @@ const Home: React.FC = () => {
                   {slide.subtitle}
                 </Typography>
 
-                {/* Button Group */}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Button 
                     variant="contained" 
@@ -185,13 +189,13 @@ const Home: React.FC = () => {
                     to="/browse" 
                     endIcon={<ArrowForwardIcon />}
                     sx={{ 
-                      bgcolor: 'primary.main', // Uses theme primary or default blue
+                      bgcolor: 'primary.main',
                       color: 'white', 
                       fontWeight: 700, 
                       fontSize: '1.1rem',
                       px: 5, 
                       py: 1.8, 
-                      borderRadius: '50px', // Pill shape
+                      borderRadius: '50px',
                       textTransform: 'none',
                       boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
                       '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 25px rgba(0,0,0,0.4)' },
@@ -204,8 +208,7 @@ const Home: React.FC = () => {
                   <Button 
                     variant="outlined" 
                     size="large" 
-                    component={RouterLink} 
-                    to="/about" 
+                    onClick={scrollToHowItWorks}
                     startIcon={<PlayCircleFilledWhiteIcon />}
                     sx={{ 
                       color: 'white', 
@@ -229,7 +232,7 @@ const Home: React.FC = () => {
         </Container>
       </Box>
 
-      {/* --- TRUST BAR (Updated with Real M-Pesa Logo) --- */}
+      {/* --- TRUST BAR --- */}
       <Box sx={{ bgcolor: '#F7F9FA', borderBottom: '1px solid #d1d7dc', py: 4 }}>
         <Container maxWidth="xl">
           <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 4, md: 8 }} sx={{ opacity: 0.8 }}>
@@ -238,7 +241,6 @@ const Home: React.FC = () => {
              </Grid>
              <Grid item>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                 {/* OFFICIAL COLORED M-PESA LOGO */}
                  <img 
                     src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" 
                     alt="M-PESA Verified" 
@@ -294,39 +296,67 @@ const Home: React.FC = () => {
             {resources.length === 0 ? (
                <Typography sx={{ mx: 3 }}>No resources found. Check back later.</Typography>
             ) : (
-              resources.map((res: any, index: number) => (
-                <Grid item xs={12} sm={6} md={3} key={res.id}>
-                  <Card 
-                    sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent', cursor: 'pointer', '&:hover .title': { textDecoration: 'underline' }, '&:hover': { '& img': { filter: 'brightness(0.9)' } } }}
-                    component={RouterLink}
-                    to={`/resource/${res.id}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Box sx={{ position: 'relative', pt: '56.25%', bgcolor: getRandomColor(index), mb: 1.5, border: '1px solid #d1d7dc' }}>
-                       <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                          <SchoolIcon sx={{ fontSize: 40, opacity: 0.5 }} />
-                       </Box>
-                    </Box>
-                    <CardContent sx={{ p: 0, pb: '0 !important' }}>
-                      <Typography className="title" variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.4, mb: 0.5, color: '#2d2f31', height: '2.8rem', overflow: 'hidden' }}>{res.title}</Typography>
-                      <Typography variant="body2" sx={{ color: '#6a6f73', fontSize: '0.8rem', mb: 0.5 }}>{res.teacherName || 'Unknown Teacher'}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                        <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>4.5</Typography>
-                        <Rating value={4.5} precision={0.5} size="small" readOnly sx={{ color: '#e59819', fontSize: '1rem' }} />
-                        <Typography variant="caption" sx={{ color: '#6a6f73', ml: 0.5 }}>({Math.floor(Math.random() * 500) + 10})</Typography>
+              resources.map((res: any, index: number) => {
+                
+                // DATA PREP
+                const ratingValue = res.averageRating || 0;
+                const reviewCount = res.reviews ? res.reviews.length : 0;
+                const displayImage = res.coverImageUrl || res.previewImageUrl;
+
+                return (
+                  <Grid item xs={12} sm={6} md={3} key={res.id}>
+                    <Card 
+                      sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent', cursor: 'pointer', '&:hover .title': { textDecoration: 'underline' }, '&:hover': { '& img': { filter: 'brightness(0.9)' } } }}
+                      component={RouterLink}
+                      to={`/resource/${res.id}`}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      {/* IMAGE SECTION */}
+                      <Box sx={{ position: 'relative', pt: '56.25%', mb: 1.5, border: '1px solid #d1d7dc', overflow: 'hidden' }}>
+                         {displayImage ? (
+                             <CardMedia 
+                                component="img"
+                                image={displayImage}
+                                alt={res.title}
+                                sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                             />
+                         ) : (
+                             <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', bgcolor: getRandomColor(index), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                <SchoolIcon sx={{ fontSize: 40, opacity: 0.5 }} />
+                             </Box>
+                         )}
                       </Box>
-                      <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', color: '#2d2f31' }}>KES {res.price}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))
+
+                      <CardContent sx={{ p: 0, pb: '0 !important' }}>
+                        <Typography className="title" variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.4, mb: 0.5, color: '#2d2f31', height: '2.8rem', overflow: 'hidden' }}>{res.title}</Typography>
+                        <Typography variant="body2" sx={{ color: '#6a6f73', fontSize: '0.8rem', mb: 0.5 }}>{res.teacherName || 'Unknown Teacher'}</Typography>
+                        
+                        {/* RATINGS */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>
+                              {ratingValue > 0 ? ratingValue.toFixed(1) : "New"}
+                          </Typography>
+                          <Rating value={ratingValue} precision={0.5} size="small" readOnly sx={{ color: '#e59819', fontSize: '1rem' }} />
+                          <Typography variant="caption" sx={{ color: '#6a6f73', ml: 0.5 }}>
+                              ({reviewCount})
+                          </Typography>
+                        </Box>
+
+                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', color: '#2d2f31' }}>
+                            {res.pricing === "Free" ? "Free" : `KES ${res.price}`}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })
             )}
           </Grid>
         )}
       </Container>
 
-      {/* --- NEW: HOW IT WORKS (Modern Visual Cards) --- */}
-      <Box sx={{ bgcolor: '#F7F9FA', py: 10 }}>
+      {/* --- HOW IT WORKS (TARGET SECTION) --- */}
+      <Box id="how-it-works" sx={{ bgcolor: '#F7F9FA', py: 10 }}>
         <Container maxWidth="xl">
            <Box sx={{ textAlign: 'center', mb: 8 }}>
              <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>
@@ -338,7 +368,6 @@ const Home: React.FC = () => {
            </Box>
 
            <Grid container spacing={4}>
-              {/* Step 1 */}
               <Grid item xs={12} md={4}>
                 <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
                   <Box 
@@ -359,13 +388,10 @@ const Home: React.FC = () => {
                 </Box>
               </Grid>
 
-              {/* Step 2 */}
-              {/* Step 2 */}
               <Grid item xs={12} md={4}>
                 <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
                   <Box 
                     component="img"
-                    // NEW LINK: Person holding a smartphone (Mobile Money context)
                     src="https://images.unsplash.com/photo-1512314889357-e157c22f938d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
                     alt="M-Pesa Payment"
                     sx={{ width: '100%', height: 200, objectFit: 'cover' }}
@@ -382,7 +408,6 @@ const Home: React.FC = () => {
                 </Box>
               </Grid>
 
-              {/* Step 3 */}
               <Grid item xs={12} md={4}>
                 <Box sx={{ bgcolor: '#fff', p: 0, height: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-5px)' } }}>
                   <Box 
@@ -435,6 +460,7 @@ const Home: React.FC = () => {
             </Grid>
          </Container>
       </Box>
+
       {/* --- TOP CONTRIBUTORS --- */}
       <Container maxWidth="xl" sx={{ py: 6, mb: 6 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#2d2f31' }}>Popular Teachers</Typography>
@@ -465,29 +491,6 @@ const Home: React.FC = () => {
         </Grid>
       </Container>
       <Footer />
-      {/* --- FOOTER --- */}
-     {/* <Box sx={{ bgcolor: '#1c1d1f', color: '#fff', py: 6 }} component="footer">
-        <Container maxWidth="xl">
-          <Grid container spacing={4} sx={{ borderBottom: '1px solid #3e4143', pb: 4, mb: 4 }}>
-             <Grid item xs={12} md={3}>
-                <Typography variant="h6" fontWeight={700} sx={{ mb: 2, color: 'white' }}>EduHub</Typography>
-             </Grid>
-             <Grid item xs={6} md={3}>
-                <Stack spacing={1}>
-                    <Typography variant="body2" component={RouterLink} to="/seller" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Teach on EduHub</Typography>
-                    <Typography variant="body2" component={RouterLink} to="/about" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>About us</Typography>
-                </Stack>
-             </Grid>
-             <Grid item xs={6} md={3}>
-                <Stack spacing={1}>
-                    <Typography variant="body2" component={RouterLink} to="/contact" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Contact us</Typography>
-                    <Typography variant="body2" component={RouterLink} to="/terms" sx={{ color: '#d1d7dc', textDecoration: 'none', '&:hover': { color: '#fff' } }}>Terms</Typography>
-                </Stack>
-             </Grid>
-          </Grid>
-          <Typography variant="body2" color="grey.500">© {new Date().getFullYear()} EduHub, Inc.</Typography>
-        </Container>
-      </Box> */}
     </Box>
   );
 }
