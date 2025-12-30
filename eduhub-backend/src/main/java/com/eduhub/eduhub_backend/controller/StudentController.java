@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,26 +34,17 @@ import java.util.stream.Collectors;
 )
 public class StudentController {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private TeacherResourceRepository teacherResourceRepository;
-    @Autowired
-    private PurchaseRepository purchaseRepository;
-    @Autowired
-    private ReviewRepository reviewRepository;
-    @Autowired
-    private NotificationRepository notificationRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private TeacherResourceRepository teacherResourceRepository;
+    @Autowired private PurchaseRepository purchaseRepository;
+    @Autowired private ReviewRepository reviewRepository;
+    @Autowired private NotificationRepository notificationRepository;
 
-    // --- HELPER TO GET CURRENT USER ---
     private User getAuthenticatedStudent(UserDetails userDetails) {
         if (userDetails == null) return null;
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        // Optional: Enforce role check if needed, though SecurityConfig handles this
-        return user;
+        return userRepository.findByEmail(userDetails.getUsername()).orElse(null);
     }
 
-    // --- 1. DASHBOARD ---
     @GetMapping("/dashboard")
     public ResponseEntity<?> getStudentDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -63,31 +53,31 @@ public class StudentController {
 
             List<Purchase> purchases = purchaseRepository.findByStudent(student);
             
-            // Calculate Stats
             int downloads = purchases.size();
-            int sessions = 0; // Placeholder
-            int wishlist = 0; // Placeholder
+            int sessions = 0; 
+            int wishlist = 0; 
 
-            // Get Recent Purchase
+            double totalSpent = purchases.stream()
+                    .mapToDouble(p -> p.getPrice() != null ? p.getPrice() : 0.0)
+                    .sum();
+
             TeacherResourceDTO recentPurchaseDTO = null;
             if (!purchases.isEmpty()) {
-                // Get the last purchase
                 Purchase lastPurchase = purchases.get(purchases.size() - 1);
                 recentPurchaseDTO = new TeacherResourceDTO(lastPurchase.getResource());
             }
             
-            // Construct Response
             Map<String, Object> response = new HashMap<>();
             
             Map<String, String> studentInfo = new HashMap<>();
             studentInfo.put("name", student.getName());
             studentInfo.put("email", student.getEmail());
-            // studentInfo.put("avatar", student.getProfilePic()); // If you have this field
             
             Map<String, Object> stats = new HashMap<>();
             stats.put("downloads", downloads);
             stats.put("sessions", sessions);
             stats.put("wishlist", wishlist);
+            stats.put("totalSpent", totalSpent);
 
             response.put("student", studentInfo);
             response.put("stats", stats);
@@ -95,12 +85,10 @@ public class StudentController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Error loading dashboard");
         }
     }
 
-    // --- 2. PURCHASES / LIBRARY ---
     @GetMapping("/purchases")
     public ResponseEntity<?> getStudentPurchases(@AuthenticationPrincipal UserDetails userDetails) {
         User student = getAuthenticatedStudent(userDetails);
@@ -115,7 +103,6 @@ public class StudentController {
         return ResponseEntity.ok(Map.of("resources", resources));
     }
 
-    // --- 3. PURCHASE ACTION ---
     @PostMapping("/purchase")
     public ResponseEntity<?> purchaseResource(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -127,18 +114,14 @@ public class StudentController {
         TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
         if (resource == null) return ResponseEntity.status(404).body("Resource not found");
 
-        // Check duplicates
         boolean alreadyPurchased = purchaseRepository.findByStudent(student).stream()
                 .anyMatch(p -> p.getResource().getId().equals(resourceId));
         if (alreadyPurchased) return ResponseEntity.badRequest().body("Resource already purchased");
 
-        // Create Purchase
         Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
-        // If your Purchase entity has a price field, set it here:
         purchase.setPrice(resource.getPrice()); 
         purchaseRepository.save(purchase);
 
-        // Notify Teacher
         Notification notification = new Notification(
                 resource.getUser(),
                 "Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
@@ -149,13 +132,11 @@ public class StudentController {
         return ResponseEntity.ok("Purchase successful");
     }
 
-    // --- 4. DOWNLOAD (Fixed for Cloudinary URLs) ---
     @GetMapping("/download/{resourceId}")
     public ResponseEntity<?> downloadResource(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long resourceId) {
         User student = getAuthenticatedStudent(userDetails);
         if (student == null) return ResponseEntity.status(401).body("Unauthorized");
 
-        // Verify Purchase
         List<Purchase> purchases = purchaseRepository.findByStudent(student);
         boolean hasPurchased = purchases.stream().anyMatch(p -> p.getResource().getId().equals(resourceId));
         
@@ -164,17 +145,14 @@ public class StudentController {
         TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
         if (resource == null) return ResponseEntity.status(404).body("Resource not found");
 
-        // Handle URL Redirect (Since you use Cloudinary)
         try {
             String fileUrl = resource.getFilePath();
-            // Redirect the user to the Cloudinary URL to start download
             return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(fileUrl)).build();
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Failed to retrieve file URL");
         }
     }
 
-    // --- 5. ORDER HISTORY ---
     @GetMapping("/order-history")
     public ResponseEntity<?> getOrderHistory(@AuthenticationPrincipal UserDetails userDetails) {
         User student = getAuthenticatedStudent(userDetails);
@@ -186,7 +164,7 @@ public class StudentController {
             Map<String, Object> map = new HashMap<>();
             map.put("id", p.getId());
             map.put("purchasedAt", p.getPurchasedAt());
-            map.put("price", p.getResource().getPrice()); // Ensure Purchase entity has price or get from resource
+            map.put("price", p.getPrice() != null ? p.getPrice() : p.getResource().getPrice());
             map.put("resource", new TeacherResourceDTO(p.getResource()));
             return map;
         }).collect(Collectors.toList());
@@ -194,7 +172,6 @@ public class StudentController {
         return ResponseEntity.ok(Map.of("orders", orders));
     }
 
-    // --- 6. REVIEWS ---
     @PostMapping("/review")
     public ResponseEntity<?> submitReview(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -217,7 +194,6 @@ public class StudentController {
         return ResponseEntity.ok("Review submitted");
     }
 
-    // --- 7. SETTINGS ---
     @GetMapping("/account-settings")
     public ResponseEntity<?> getAccountSettings(@AuthenticationPrincipal UserDetails userDetails) {
         User student = getAuthenticatedStudent(userDetails);

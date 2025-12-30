@@ -3,7 +3,7 @@ import {
     Box, Typography, Paper, Grid, TextField, Button, Avatar, 
     Divider, Alert, CircularProgress, Stack, 
     List, ListItemButton, ListItemIcon, ListItemText, useTheme, useMediaQuery,
-    Container
+    Container, InputAdornment, MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -14,7 +14,8 @@ import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalance
 import LanguageIcon from '@mui/icons-material/Language';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SaveIcon from '@mui/icons-material/Save';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 // Sidebar
 import TeacherSidebar from './TeacherSidebar';
@@ -33,111 +34,195 @@ const TeacherSettings: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
-    // Data State
-    const [formData, setFormData] = useState({
+    // --- FORM DATA STATE ---
+    
+    // 1. Profile Data
+    const [profileData, setProfileData] = useState({
         name: '',
         email: '',
         bio: '',
-        subjects: '',
-        paymentNumber: '',
-        isZoomConnected: false,
+        subjects: '', // Comma separated string for display
+        grades: [] as string[],
         profilePicPreview: '',
-        grades: [] as string[] // Needed for backend compatibility
     });
-
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    // --- 1. FETCH DATA ---
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const res = await axios.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
-                const { profile, isZoomConnected } = res.data;
+    // 2. Payout Data
+    const [payoutData, setPayoutData] = useState({
+        method: 'mpesa', // 'mpesa' or 'bank'
+        mpesaNumber: '',
+        bankName: '',
+        accountNumber: ''
+    });
 
-                // Handle case where profile might be null (new user)
-                setFormData({
-                    name: res.data.profile?.user?.name || 'Instructor',
-                    email: res.data.profile?.user?.email || '',
-                    bio: profile?.bio || '',
-                    subjects: profile?.subjects ? profile.subjects.join(', ') : '',
-                    paymentNumber: profile?.paymentNumber || '',
-                    isZoomConnected: isZoomConnected || false,
-                    profilePicPreview: profile?.profilePicPath || '',
-                    grades: profile?.grades || [] // Keep existing grades
-                });
-            } catch (err) {
-                console.error("Error loading settings:", err);
-                setStatus({ type: 'error', msg: 'Could not load profile data.' });
-            } finally {
-                setLoading(false);
-            }
-        };
+    // 3. Security Data
+    const [securityData, setSecurityData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+
+    // --- FETCH SETTINGS ---
+    useEffect(() => {
         fetchSettings();
     }, []);
 
-    // --- 2. HANDLERS ---
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
+            const { profile } = res.data;
+
+            // 1. Set Profile Data
+            setProfileData({
+                name: profile?.user?.name || 'Instructor',
+                email: profile?.user?.email || '',
+                bio: profile?.bio || '',
+                subjects: profile?.subjects ? profile.subjects.join(', ') : '',
+                grades: profile?.grades || [],
+                profilePicPreview: profile?.profilePicPath || '',
+            });
+
+            // 2. Parse Payout Data from the single 'paymentNumber' field
+            // Format assumed from backend: "BankName:Account" OR "07123..."
+            const paymentStr = profile?.paymentNumber || '';
+            if (paymentStr.includes(':')) {
+                const parts = paymentStr.split(':');
+                setPayoutData({
+                    method: 'bank',
+                    mpesaNumber: '',
+                    bankName: parts[0] || '',
+                    accountNumber: parts[1] || ''
+                });
+            } else {
+                setPayoutData({
+                    method: 'mpesa',
+                    mpesaNumber: paymentStr,
+                    bankName: '',
+                    accountNumber: ''
+                });
+            }
+
+        } catch (err) {
+            console.error("Error loading settings:", err);
+            // Don't show error to user immediately, just log it
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- HANDLERS ---
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setSelectedFile(file);
-            setFormData({ ...formData, profilePicPreview: URL.createObjectURL(file) });
+            setProfileData({ ...profileData, profilePicPreview: URL.createObjectURL(file) });
         }
     };
 
-    const handleSave = async () => {
+    // 1. SAVE PROFILE
+    const handleSaveProfile = async () => {
         setSaving(true);
         setStatus(null);
-
         try {
             const data = new FormData();
+            data.append('bio', profileData.bio);
             
-            // Append Fields
-            data.append('bio', formData.bio);
-            data.append('paymentNumber', formData.paymentNumber);
-            
-            // Format Subjects Array
-            const subjectsArray = formData.subjects.split(',').map(s => s.trim()).filter(s => s !== '');
+            // Convert "Math, Science" string -> JSON Array ["Math", "Science"]
+            const subjectsArray = profileData.subjects.split(',').map(s => s.trim()).filter(s => s !== '');
             data.append('subjects', JSON.stringify(subjectsArray));
             
-            // Send Grades (Required by Backend)
-            data.append('grades', JSON.stringify(formData.grades));
+            // Pass grades (required by backend)
+            data.append('grades', JSON.stringify(profileData.grades));
+            
+            // Pass existing payment number so it doesn't get wiped
+            // We reconstruct it based on current payout state
+            const paymentNum = payoutData.method === 'mpesa' 
+                ? payoutData.mpesaNumber 
+                : `${payoutData.bankName}:${payoutData.accountNumber}`;
+            data.append('paymentNumber', paymentNum);
 
-            // Append File if selected
             if (selectedFile) {
                 data.append('profilePic', selectedFile);
             }
 
-            // POST to Backend
+            // Using /onboarding endpoint as it acts as updateProfile in your controller
             await axios.post(`${BACKEND_URL}/api/teacher/onboarding`, data, { 
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            setStatus({ type: 'success', msg: 'Settings saved successfully.' });
+            setStatus({ type: 'success', msg: 'Profile updated successfully.' });
         } catch (e: any) {
-            console.error(e);
-            setStatus({ type: 'error', msg: e.response?.data || 'Failed to save settings.' });
+            setStatus({ type: 'error', msg: 'Failed to update profile.' });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleZoomAction = async () => {
-        if (formData.isZoomConnected) {
-            if(window.confirm("Disconnect Zoom?")) {
-                try {
-                    await axios.post(`${BACKEND_URL}/api/teacher/zoom/disconnect`, {}, { withCredentials: true });
-                    setFormData(prev => ({ ...prev, isZoomConnected: false }));
-                    setStatus({ type: 'success', msg: 'Zoom disconnected.' });
-                } catch(e) { console.error(e); }
+    // 2. SAVE PAYOUT
+    const handleSavePayout = async () => {
+        setSaving(true);
+        setStatus(null);
+        
+        // Basic Validation
+        if (payoutData.method === 'mpesa' && !payoutData.mpesaNumber) {
+            setStatus({ type: 'error', msg: 'Please enter M-Pesa number' });
+            setSaving(false);
+            return;
+        }
+        if (payoutData.method === 'bank' && (!payoutData.bankName || !payoutData.accountNumber)) {
+            setStatus({ type: 'error', msg: 'Please enter Bank details' });
+            setSaving(false);
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('method', payoutData.method);
+            if (payoutData.method === 'mpesa') {
+                formData.append('mpesa', payoutData.mpesaNumber);
+            } else {
+                formData.append('bank', payoutData.bankName);
+                formData.append('account', payoutData.accountNumber);
             }
-        } else {
-            // This is a redirect, not an AJAX call
-            window.location.href = `${BACKEND_URL}/api/auth/zoom/authorize`;
+
+            await axios.post(`${BACKEND_URL}/api/teacher/payout`, formData, { withCredentials: true });
+            setStatus({ type: 'success', msg: 'Payout details saved.' });
+        } catch (e) {
+            setStatus({ type: 'error', msg: 'Failed to save payout details.' });
+        } finally {
+            setSaving(false);
         }
     };
 
-    // --- RENDER ---
+    // 3. SAVE SECURITY (Password)
+    const handleSaveSecurity = async () => {
+        setSaving(true);
+        setStatus(null);
+
+        if (securityData.newPassword !== securityData.confirmPassword) {
+            setStatus({ type: 'error', msg: 'New passwords do not match.' });
+            setSaving(false);
+            return;
+        }
+
+        try {
+            // Note: This requires a /api/auth/change-password endpoint in your backend
+            await axios.post(`${BACKEND_URL}/api/auth/change-password`, {
+                currentPassword: securityData.currentPassword,
+                newPassword: securityData.newPassword
+            }, { withCredentials: true });
+
+            setStatus({ type: 'success', msg: 'Password changed successfully.' });
+            setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (e: any) {
+            setStatus({ type: 'error', msg: e.response?.data?.message || 'Failed to change password. Backend endpoint may be missing.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
 
     return (
@@ -145,38 +230,37 @@ const TeacherSettings: React.FC = () => {
             <TeacherSidebar 
                 mobileOpen={sidebarOpen} 
                 onClose={() => setSidebarOpen(false)} 
-                selectedRoute="/teacher/settings" 
+                selectedRoute="/dashboard/teacher/settings" 
             />
 
             <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 } }}>
                 <Container maxWidth="lg">
                     
-                    {/* Page Header */}
+                    {/* Header */}
                     <Box sx={{ mb: 4 }}>
                         <Typography variant="h4" fontWeight={800} sx={{ color: '#111827', mb: 1 }}>Settings</Typography>
-                        <Typography variant="body1" color="text.secondary">Manage your profile, payout methods, and integrations.</Typography>
+                        <Typography variant="body1" color="text.secondary">Manage your profile, payout methods, and security.</Typography>
                     </Box>
 
                     <Grid container spacing={4}>
                         
-                        {/* LEFT MENU (Desktop) */}
+                        {/* LEFT MENU */}
                         {!isMobile && (
                             <Grid item md={3}>
                                 <List sx={{ p: 0 }}>
                                     {[
                                         { id: 'profile', label: 'Public Profile', icon: <PersonOutlineIcon /> },
                                         { id: 'payout', label: 'Payouts', icon: <AccountBalanceWalletOutlinedIcon /> },
-                                        { id: 'integrations', label: 'Integrations', icon: <LanguageIcon /> },
                                         { id: 'security', label: 'Security', icon: <ShieldOutlinedIcon /> },
+                                        { id: 'integrations', label: 'Integrations', icon: <LanguageIcon /> }, // Visual Only
                                     ].map((item) => (
                                         <ListItemButton 
                                             key={item.id}
                                             selected={activeSection === item.id}
-                                            onClick={() => setActiveSection(item.id)}
+                                            onClick={() => { setActiveSection(item.id); setStatus(null); }}
                                             sx={{ 
-                                                borderRadius: 2, 
-                                                mb: 0.5,
-                                                '&.Mui-selected': { bgcolor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', color: 'primary.main' } 
+                                                borderRadius: 2, mb: 0.5,
+                                                '&.Mui-selected': { bgcolor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', color: 'primary.main', borderLeft: '4px solid', borderColor: 'primary.main' } 
                                             }}
                                         >
                                             <ListItemIcon sx={{ minWidth: 38, color: activeSection === item.id ? 'primary.main' : 'text.secondary' }}>
@@ -192,17 +276,17 @@ const TeacherSettings: React.FC = () => {
                             </Grid>
                         )}
 
-                        {/* RIGHT CONTENT AREA */}
+                        {/* RIGHT CONTENT */}
                         <Grid item xs={12} md={9}>
                             <Paper variant="outlined" sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, bgcolor: 'white', border: '1px solid #E5E7EB' }}>
                                 
                                 {status && (
-                                    <Alert severity={status.type} sx={{ mb: 3, borderRadius: 2 }}>
+                                    <Alert severity={status.type} sx={{ mb: 3, borderRadius: 2 }} onClose={() => setStatus(null)}>
                                         {status.msg}
                                     </Alert>
                                 )}
 
-                                {/* --- PROFILE SECTION --- */}
+                                {/* --- 1. PROFILE SECTION --- */}
                                 {activeSection === 'profile' && (
                                     <Stack spacing={4}>
                                         <Box>
@@ -212,85 +296,167 @@ const TeacherSettings: React.FC = () => {
                                         
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                             <Avatar 
-                                                src={formData.profilePicPreview} 
+                                                src={profileData.profilePicPreview} 
                                                 sx={{ width: 80, height: 80, border: '1px solid #eee' }} 
                                             />
-                                            <Button variant="outlined" component="label" sx={{ textTransform: 'none', borderRadius: 2 }}>
-                                                Change Photo
+                                            <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                                                Upload New Photo
                                                 <input type="file" hidden accept="image/*" onChange={handleFileChange} />
                                             </Button>
                                         </Box>
 
                                         <Grid container spacing={3}>
                                             <Grid item xs={12} md={6}>
-                                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Full Name</Typography>
-                                                <TextField fullWidth size="small" value={formData.name} disabled />
+                                                <TextField 
+                                                    fullWidth label="Full Name" size="small" 
+                                                    value={profileData.name} disabled 
+                                                    helperText="Managed by account settings"
+                                                />
                                             </Grid>
                                             <Grid item xs={12} md={6}>
-                                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Email</Typography>
-                                                <TextField fullWidth size="small" value={formData.email} disabled />
-                                            </Grid>
-                                            <Grid item xs={12}>
-                                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Bio / Headline</Typography>
                                                 <TextField 
-                                                    fullWidth multiline rows={4} 
-                                                    placeholder="e.g. Senior Math Teacher with 10 years experience..."
-                                                    value={formData.bio}
-                                                    onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                                                    fullWidth label="Email" size="small" 
+                                                    value={profileData.email} disabled 
                                                 />
                                             </Grid>
                                             <Grid item xs={12}>
-                                                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Subjects (Comma separated)</Typography>
                                                 <TextField 
-                                                    fullWidth size="small" 
-                                                    placeholder="Math, English, Science"
-                                                    value={formData.subjects}
-                                                    onChange={(e) => setFormData({...formData, subjects: e.target.value})}
+                                                    fullWidth label="Bio" multiline rows={4} 
+                                                    value={profileData.bio}
+                                                    onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                                                    helperText="Tell students about your experience."
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12}>
+                                                <TextField 
+                                                    fullWidth label="Subjects" size="small" 
+                                                    value={profileData.subjects}
+                                                    onChange={(e) => setProfileData({...profileData, subjects: e.target.value})}
+                                                    helperText="Separate with commas (e.g. Math, Physics)"
                                                 />
                                             </Grid>
                                         </Grid>
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                            <Button 
+                                                variant="contained" 
+                                                startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
+                                                onClick={handleSaveProfile}
+                                                disabled={saving}
+                                            >
+                                                Save Profile
+                                            </Button>
+                                        </Box>
                                     </Stack>
                                 )}
 
-                                {/* --- PAYOUT SECTION --- */}
+                                {/* --- 2. PAYOUT SECTION --- */}
                                 {activeSection === 'payout' && (
                                     <Stack spacing={4}>
                                         <Box>
                                             <Typography variant="h6" fontWeight={700}>Payout Preferences</Typography>
-                                            <Typography variant="body2" color="text.secondary">Update where we send your earnings.</Typography>
+                                            <Typography variant="body2" color="text.secondary">Choose how you want to receive payments.</Typography>
                                         </Box>
 
-                                        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, border: '2px solid', borderColor: 'primary.main', bgcolor: '#F0F9FF' }}>
-                                            <Stack direction="row" spacing={2} alignItems="center">
-                                                <AccountBalanceWalletOutlinedIcon color="primary" fontSize="large" />
-                                                <Box>
-                                                    <Typography variant="subtitle1" fontWeight={700}>Active Method</Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {formData.paymentNumber || 'No payment method set'}
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ flexGrow: 1 }} />
-                                                <CheckCircleIcon color="primary" />
-                                            </Stack>
-                                        </Paper>
+                                        <FormControl fullWidth>
+                                            <InputLabel>Payout Method</InputLabel>
+                                            <Select
+                                                value={payoutData.method}
+                                                label="Payout Method"
+                                                onChange={(e) => setPayoutData({...payoutData, method: e.target.value})}
+                                            >
+                                                <MenuItem value="mpesa">M-Pesa Mobile Money</MenuItem>
+                                                <MenuItem value="bank">Bank Transfer</MenuItem>
+                                            </Select>
+                                        </FormControl>
 
-                                        <Box>
-                                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>M-Pesa Number / Bank Account</Typography>
+                                        {payoutData.method === 'mpesa' ? (
                                             <TextField 
-                                                fullWidth size="small" 
-                                                value={formData.paymentNumber}
-                                                onChange={(e) => setFormData({...formData, paymentNumber: e.target.value})}
-                                                helperText="Format: 0712345678 or BankName:Account"
+                                                fullWidth label="M-Pesa Number"
+                                                value={payoutData.mpesaNumber}
+                                                onChange={(e) => setPayoutData({...payoutData, mpesaNumber: e.target.value})}
+                                                InputProps={{ startAdornment: <InputAdornment position="start">+254</InputAdornment> }}
                                             />
+                                        ) : (
+                                            <Stack spacing={3}>
+                                                <TextField 
+                                                    fullWidth label="Bank Name" 
+                                                    placeholder="e.g. Equity Bank"
+                                                    value={payoutData.bankName}
+                                                    onChange={(e) => setPayoutData({...payoutData, bankName: e.target.value})}
+                                                />
+                                                <TextField 
+                                                    fullWidth label="Account Number" 
+                                                    value={payoutData.accountNumber}
+                                                    onChange={(e) => setPayoutData({...payoutData, accountNumber: e.target.value})}
+                                                />
+                                            </Stack>
+                                        )}
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                            <Button 
+                                                variant="contained" 
+                                                startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
+                                                onClick={handleSavePayout}
+                                                disabled={saving}
+                                            >
+                                                Save Payout Details
+                                            </Button>
                                         </Box>
                                     </Stack>
                                 )}
 
-                                {/* --- INTEGRATIONS SECTION --- */}
+                                {/* --- 3. SECURITY SECTION --- */}
+                                {activeSection === 'security' && (
+                                    <Stack spacing={4}>
+                                        <Box>
+                                            <Typography variant="h6" fontWeight={700}>Security</Typography>
+                                            <Typography variant="body2" color="text.secondary">Update your password.</Typography>
+                                        </Box>
+
+                                        <Grid container spacing={3}>
+                                            <Grid item xs={12}>
+                                                <TextField 
+                                                    fullWidth type="password" label="Current Password" 
+                                                    value={securityData.currentPassword}
+                                                    onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} md={6}>
+                                                <TextField 
+                                                    fullWidth type="password" label="New Password" 
+                                                    value={securityData.newPassword}
+                                                    onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} md={6}>
+                                                <TextField 
+                                                    fullWidth type="password" label="Confirm New Password" 
+                                                    value={securityData.confirmPassword}
+                                                    onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})}
+                                                />
+                                            </Grid>
+                                        </Grid>
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                            <Button 
+                                                variant="contained" color="primary"
+                                                startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
+                                                onClick={handleSaveSecurity}
+                                                disabled={saving}
+                                            >
+                                                Update Password
+                                            </Button>
+                                        </Box>
+                                    </Stack>
+                                )}
+
+                                {/* --- 4. INTEGRATIONS (Visual Only) --- */}
                                 {activeSection === 'integrations' && (
                                     <Stack spacing={4}>
                                         <Box>
-                                            <Typography variant="h6" fontWeight={700}>Connected Apps</Typography>
+                                            <Typography variant="h6" fontWeight={700}>Integrations</Typography>
+                                            <Typography variant="body2" color="text.secondary">Third-party tools connected to your account.</Typography>
                                         </Box>
 
                                         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -300,65 +466,15 @@ const TeacherSettings: React.FC = () => {
                                                 </Box>
                                                 <Box>
                                                     <Typography variant="subtitle1" fontWeight={700}>Zoom Meetings</Typography>
-                                                    <Typography variant="body2" color="text.secondary">Auto-generate links for coaching.</Typography>
+                                                    <Typography variant="body2" color="text.secondary">Enable live classes and coaching sessions.</Typography>
                                                 </Box>
                                             </Box>
-                                            <Button 
-                                                variant={formData.isZoomConnected ? "outlined" : "contained"} 
-                                                color={formData.isZoomConnected ? "error" : "primary"}
-                                                onClick={handleZoomAction}
-                                                size="small"
-                                            >
-                                                {formData.isZoomConnected ? "Disconnect" : "Connect"}
-                                            </Button>
+                                            <Button variant="outlined" disabled>Coming Soon</Button>
                                         </Paper>
                                     </Stack>
                                 )}
-                                
-                                {/* --- SECURITY SECTION --- */}
-                                {activeSection === 'security' && (
-                                    <Box sx={{ textAlign: 'center', py: 5 }}>
-                                        <ShieldOutlinedIcon sx={{ fontSize: 60, color: '#ccc', mb: 2 }} />
-                                        <Typography variant="h6" fontWeight={700} color="text.secondary">Security Settings</Typography>
-                                        <Typography variant="body2" color="text.secondary">Password change functionality coming soon.</Typography>
-                                    </Box>
-                                )}
-
-                                <Divider sx={{ my: 4 }} />
-
-                                {/* FOOTER ACTIONS */}
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                                    <Button variant="text" sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 600 }}>Cancel</Button>
-                                    <Button 
-                                        variant="contained" 
-                                        onClick={handleSave}
-                                        disabled={saving}
-                                        sx={{ 
-                                            textTransform: 'none', 
-                                            fontWeight: 700, 
-                                            borderRadius: 2, 
-                                            px: 4, 
-                                            boxShadow: 'none',
-                                            '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }
-                                        }}
-                                    >
-                                        {saving ? 'Saving Changes...' : 'Save Changes'}
-                                    </Button>
-                                </Box>
 
                             </Paper>
-
-                            {/* DANGER ZONE */}
-                            <Box sx={{ mt: 4, p: 3, borderRadius: 3, border: '1px solid #FECACA', bgcolor: '#FEF2F2' }}>
-                                <Typography variant="subtitle1" fontWeight={700} color="#991B1B">Danger Zone</Typography>
-                                <Typography variant="body2" color="#B91C1C" sx={{ mb: 2 }}>
-                                    Deleting your account will remove all your resources and data. This action cannot be undone.
-                                </Typography>
-                                <Button variant="contained" color="error" size="small" sx={{ textTransform: 'none', boxShadow: 'none', fontWeight: 700 }}>
-                                    Delete Account
-                                </Button>
-                            </Box>
-
                         </Grid>
                     </Grid>
                 </Container>

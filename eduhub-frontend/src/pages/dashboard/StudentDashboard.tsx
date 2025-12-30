@@ -9,10 +9,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Components
 import ReviewModal from '../../components/ReviewModal';
 
-// Icons
 import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined';
 import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
@@ -31,7 +29,6 @@ import SchoolIcon from '@mui/icons-material/School';
 const drawerWidth = 280;
 const BACKEND_URL = "http://localhost:8081";
 
-// --- TYPES ---
 interface Resource {
     id: number;
     title: string;
@@ -43,11 +40,14 @@ interface Resource {
 
 interface DashboardData {
     student: { name: string; email: string; avatar?: string };
-    stats: { downloads: number; sessions: number; wishlist: number };
+    stats: { 
+        downloads: number; 
+        sessions: number; 
+        wishlist: number; 
+        totalSpent: number; 
+    };
     recentPurchase?: { title: string; teacher: string; id: number } | null;
 }
-
-// --- SUB-COMPONENTS ---
 
 const StatCard = ({ title, value, icon, color }: any) => (
     <Paper 
@@ -100,9 +100,6 @@ const ContinueLearning = ({ recent, onResume }: any) => (
     </Paper>
 );
 
-// --- SECTIONS ---
-
-// Helper for consistent gradients
 const getGradient = (id: number) => {
     const gradients = [
         'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -152,7 +149,6 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
 
     return (
         <Box>
-            {/* Header & Filters */}
             <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { md: 'center' }, gap: 2, mb: 3 }}>
                     <Box>
@@ -187,7 +183,6 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
                 </Stack>
             </Box>
 
-            {/* Content Grid */}
             {filteredResources.length === 0 ? (
                 <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 4, bgcolor: 'white', border: '1px dashed #cbd5e1' }} elevation={0}>
                     <LocalLibraryOutlinedIcon sx={{ fontSize: 60, color: '#e2e8f0', mb: 2 }} />
@@ -199,7 +194,6 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
                     {filteredResources.map((res) => (
                         <Grid item xs={12} sm={6} md={4} lg={3} key={res.id}>
                             <Card elevation={0} sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 3, bgcolor: 'white', border: '1px solid #f1f5f9', transition: 'all 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' } }}>
-                                {/* Thumbnail */}
                                 <Box sx={{ position: 'relative', pt: '60%', overflow: 'hidden', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
                                     {res.previewImageUrl ? (
                                         <CardMedia component="img" image={res.previewImageUrl} sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -213,7 +207,6 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
                                     </Box>
                                 </Box>
 
-                                {/* Content */}
                                 <CardContent sx={{ flexGrow: 1, p: 2, pb: 1 }}>
                                     <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>{res.subject}</Typography>
                                     <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5, mb: 1, fontSize: '1rem', lineHeight: 1.4, color: '#0f172a', display: '-webkit-box', overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, height: '2.8em' }}>{res.title}</Typography>
@@ -225,7 +218,6 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
 
                                 <Divider sx={{ borderColor: '#f8fafc', mx: 2 }} />
 
-                                {/* Buttons Action Area */}
                                 <CardActions sx={{ p: 2, pt: 1.5, gap: 1 }}>
                                     <Button 
                                         variant="contained" 
@@ -343,8 +335,6 @@ function AccountSettingsSection() {
     );
 }
 
-// --- MAIN DASHBOARD COMPONENT ---
-
 const StudentDashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -380,7 +370,6 @@ const StudentDashboard = () => {
       { id: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon /> },
   ];
 
-  // --- SIDEBAR CONTENT ---
   const SidebarContent = (
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0E243C', color: 'white' }}>
           
@@ -436,10 +425,13 @@ const StudentDashboard = () => {
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
 
+  const formattedSpent = data?.stats.totalSpent 
+      ? `KES ${data.stats.totalSpent.toLocaleString()}` 
+      : 'KES 0';
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8fafc' }}>
       
-      {/* SIDEBARS */}
       <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, display: { xs: 'none', md: 'block' } }}>
           <Box sx={{ position: 'fixed', width: drawerWidth, height: '100%', zIndex: 1200 }}>
              {SidebarContent}
@@ -460,7 +452,6 @@ const StudentDashboard = () => {
 
       <Box component="main" sx={{ flexGrow: 1, width: { md: `calc(100% - ${drawerWidth}px)` }, display: 'flex', flexDirection: 'column' }}>
           
-          {/* HEADER */}
           <Paper elevation={0} sx={{ py: 2, px: { xs: 2, md: 4 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 1100, borderRadius: 0, bgcolor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {isMobile && <IconButton onClick={handleDrawerToggle}><MenuIcon /></IconButton>}
@@ -489,7 +480,10 @@ const StudentDashboard = () => {
                       <Grid container spacing={3} sx={{ mb: 5 }}>
                           <Grid item xs={12} sm={6} md={4}><StatCard title="Resources Owned" value={data.stats.downloads} icon={<LocalLibraryOutlinedIcon />} color="#3b82f6" /></Grid>
                           <Grid item xs={12} sm={6} md={4}><StatCard title="Active Sessions" value={data.stats.sessions} icon={<CalendarTodayOutlinedIcon />} color="#8b5cf6" /></Grid>
-                          <Grid item xs={12} sm={6} md={4}><StatCard title="Total Spent" value="KES 4,200" icon={<ReceiptLongOutlinedIcon />} color="#10b981" /></Grid>
+                          
+                          <Grid item xs={12} sm={6} md={4}>
+                                <StatCard title="Total Spent" value={formattedSpent} icon={<ReceiptLongOutlinedIcon />} color="#10b981" />
+                          </Grid>
                       </Grid>
                       <Typography variant="h5" fontWeight={800} color="#1e293b" sx={{ mb: 3 }}>Recent Resources</Typography>
                       <LibrarySection onReview={handleOpenReview} />

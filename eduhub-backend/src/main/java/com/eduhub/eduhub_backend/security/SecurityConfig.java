@@ -18,9 +18,6 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.lang.NonNull;
 
 import java.util.Arrays;
 
@@ -88,36 +85,34 @@ public class SecurityConfig {
                 .httpBasic(httpBasic -> httpBasic.disable())
                 
                 .authorizeHttpRequests(auth -> auth
-                        // 1. PUBLIC ENDPOINTS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/teacher/onboarding",
-                                "/api/teacher/resources",       // Browse (Public)
-                                "/api/teacher/resources/**",    // Details (Public)
                                 "/api/teacher/top-contributors",
-                                "/api/payment/callback"
+                                "/api/payment/callback",
+                                "/uploads/**"
                         ).permitAll()
                         
-                        // 2. PAYMENT
+                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll()
+
                         .requestMatchers(
                                 "/api/payment/pay",
                                 "/api/payment/status/**"
                         ).authenticated() 
                         
-                        // 3. ADMIN (Super User)
                         .requestMatchers("/api/admin/**")
                             .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
 
-                        // 4. TEACHER
+                        .requestMatchers("/api/teacher/onboarding")
+                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
+
                         .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**")
                             .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
                         
-                        // 5. STUDENT
                         .requestMatchers("/api/student/**")
                             .hasAnyAuthority("STUDENT", "ROLE_STUDENT")
                         
-                        // 6. CATCH-ALL
                         .anyRequest().authenticated()
                 );
         return http.build();

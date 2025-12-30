@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, CircularProgress, Paper, Avatar, Grid, Dialog, 
@@ -7,43 +7,41 @@ import {
 } from '@mui/material';
 
 // Icons
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import LockIcon from '@mui/icons-material/Lock';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import MessageIcon from '@mui/icons-material/Message';
 
 const paymentMethods = [
   { label: 'M-Pesa (Mobile Money)', value: 'mpesa' },
-  { label: 'Credit / Debit Card', value: 'card' },
 ];
 
 const ResourceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Data State
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState<any>(null);
-  const isLoggedIn = Boolean(localStorage.getItem('email')); 
+  
+  // FIX 1: Removed unreliable client-side auth check
+  // const isLoggedIn = ... 
 
-  // Payment State
   const [buyOpen, setBuyOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [phoneNumber, setPhoneNumber] = useState(''); 
   const [processing, setProcessing] = useState(false);
-  const [isPolling, setIsPolling] = useState(false); // New state for waiting UI
+  const [isPolling, setIsPolling] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
 
-  // Notification State
+  // Use any to bypass TypeScript NodeJS error
+  const pollIntervalRef = useRef<any>(null);
+
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
-    open: false,
-    message: '',
-    severity: 'info',
+    open: false, message: '', severity: 'info',
   });
 
-  // --- FETCH DATA ---
   useEffect(() => {
     setLoading(true);
     fetch(`http://localhost:8081/api/teacher/resources/${id}`)
@@ -54,15 +52,24 @@ const ResourceDetail = () => {
       })
       .catch(() => setResource(null))
       .finally(() => setLoading(false));
+      
+    return () => stopPolling();
   }, [id]);
 
-  // --- POLLING LOGIC (Real-time status check) ---
+  const stopPolling = () => {
+      if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+      }
+      setIsPolling(false);
+  };
+
   const pollPaymentStatus = async (checkoutRequestId: string) => {
     setIsPolling(true);
     let attempts = 0;
-    const maxAttempts = 30; // Timeout after 60 seconds
+    const maxAttempts = 60; 
 
-    const interval = setInterval(async () => {
+    pollIntervalRef.current = setInterval(async () => {
       attempts++;
       try {
         const res = await fetch(`http://localhost:8081/api/payment/status/${checkoutRequestId}`, {
@@ -71,39 +78,46 @@ const ResourceDetail = () => {
         const data = await res.json();
 
         if (data.status === 'COMPLETED') {
-          clearInterval(interval);
-          setIsPolling(false);
+          stopPolling();
           setBuyOpen(false);
           setToast({ open: true, message: "Payment Successful! Redirecting...", severity: 'success' });
-          setTimeout(() => navigate('/purchase-confirmation'), 1500);
-        } else if (data.status === 'FAILED') {
-          clearInterval(interval);
-          setIsPolling(false);
-          setToast({ open: true, message: "Payment Failed or Cancelled by user.", severity: 'error' });
+          setTimeout(() => navigate('/dashboard/student'), 2000);
+        } else if (data.status === 'FAILED' || data.status === 'CANCELLED') {
+          stopPolling();
+          setToast({ open: true, message: "Payment Failed or Cancelled.", severity: 'error' });
         }
 
         if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          setIsPolling(false);
-          setToast({ open: true, message: "Payment timed out. Please try again.", severity: 'warning' });
+          stopPolling();
+          setToast({ open: true, message: "We haven't received confirmation yet. If you paid, check your dashboard shortly.", severity: 'warning' });
+          setBuyOpen(false);
         }
       } catch (e) {
-        // Ignore network glitches during polling
+        // Ignore network glitches
       }
-    }, 2000); // Check every 2 seconds
+    }, 2000);
   };
 
-  // --- HANDLERS ---
+  // FIX 2: Allow opening modal immediately. We check auth when they actually click "Pay"
   const handleBuyNow = () => {
-    if (!isLoggedIn) {
-      setLoginPrompt(true);
-      return;
-    }
     setBuyOpen(true);
   };
 
-  const handleCloseToast = () => {
-    setToast({ ...toast, open: false });
+  const handleIPaid = () => {
+      stopPolling();
+      setBuyOpen(false);
+      setToast({ 
+          open: true, 
+          message: "We are processing your payment in the background. Check your dashboard in a minute.", 
+          severity: 'info' 
+      });
+      setTimeout(() => navigate('/dashboard/student'), 2000);
+  };
+
+  const handleManualCancel = () => {
+      stopPolling();
+      setBuyOpen(false);
+      setToast({ open: true, message: "Payment process cancelled.", severity: 'info' });
   };
 
   const handlePayment = () => {
@@ -114,24 +128,30 @@ const ResourceDetail = () => {
 
     setProcessing(true);
     
+    // FIX 3: Check response status here. If 401/403, THEN show login prompt.
     fetch('http://localhost:8081/api/payment/pay', {
       method: 'POST',
-      credentials: 'include', 
+      credentials: 'include', // This sends the Cookie
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `phone=${encodeURIComponent(phoneNumber)}&resourceId=${encodeURIComponent(id || '')}`
     })
     .then(async res => {
       setProcessing(false);
+      
+      // AUTH CHECK IS HERE
+      if (res.status === 401 || res.status === 403) {
+          setBuyOpen(false);
+          setLoginPrompt(true); // Show Login Dialog
+          return;
+      }
+
       if (res.ok) {
         const data = await res.json();
-        
-        // Start Polling if we got an ID back
         if (data.checkoutRequestId) {
             pollPaymentStatus(data.checkoutRequestId);
         } else {
-            // Fallback for older backend versions
             setBuyOpen(false);
-            setToast({ open: true, message: "STK Push Sent!", severity: 'success' });
+            setToast({ open: true, message: "Request Sent!", severity: 'success' });
         }
       } else {
         const errorText = await res.text();
@@ -140,8 +160,12 @@ const ResourceDetail = () => {
     })
     .catch(() => {
       setProcessing(false);
-      setToast({ open: true, message: 'Network error. Check your connection.', severity: 'error' });
+      setToast({ open: true, message: 'Network error. Check connection.', severity: 'error' });
     });
+  };
+
+  const handleCloseToast = () => {
+    setToast({ ...toast, open: false });
   };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 20 }}><CircularProgress /></Box>;
@@ -163,7 +187,6 @@ const ResourceDetail = () => {
 
         <Container maxWidth="lg" sx={{ mt: 5 }}>
             <Grid container spacing={6}>
-                
                 {/* LEFT CONTENT */}
                 <Grid item xs={12} md={8}>
                     <Box sx={{ 
@@ -181,9 +204,6 @@ const ResourceDetail = () => {
                                  <Typography color="text.secondary" fontWeight={500}>No Preview Available</Typography>
                              </Box>
                          )}
-                         <Box sx={{ position: 'absolute', bottom: 20, right: 20, bgcolor: 'rgba(0,0,0,0.7)', color: 'white', px: 2, py: 0.5, borderRadius: 20, fontSize: '0.75rem', fontWeight: 600 }}>
-                             PREVIEW MODE
-                         </Box>
                     </Box>
 
                     <Typography variant="h3" fontWeight={800} sx={{ mb: 2, lineHeight: 1.2, color: '#111827', fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
@@ -258,13 +278,13 @@ const ResourceDetail = () => {
         {/* --- CHECKOUT DIALOG --- */}
         <Dialog 
             open={buyOpen} 
-            onClose={() => !isPolling && setBuyOpen(false)} // Prevent closing while polling
+            onClose={handleManualCancel} 
             maxWidth="xs" 
             fullWidth
             PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
         >
             <DialogTitle sx={{ fontWeight: 800 }}>
-                {isPolling ? "Waiting for Payment..." : "Checkout"}
+                {isPolling ? "Processing..." : "Checkout"}
             </DialogTitle>
             
             <DialogContent sx={{ textAlign: isPolling ? 'center' : 'left', py: isPolling ? 4 : 2 }}>
@@ -303,7 +323,7 @@ const ResourceDetail = () => {
                                     sx={{ bgcolor: 'white' }}
                                 />
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    You will receive a prompt on this phone to enter your PIN.
+                                    You will receive a PIN prompt on your phone.
                                 </Typography>
                             </Box>
                         )}
@@ -316,14 +336,36 @@ const ResourceDetail = () => {
                             Check your phone
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300, mx: 'auto', mb: 2 }}>
-                            We've sent a prompt to <b>{phoneNumber}</b>. Please enter your M-Pesa PIN to complete the transaction.
+                            We've sent a prompt to <b>{phoneNumber}</b>. Enter your PIN to complete the purchase.
                         </Typography>
+                        <Chip label="Waiting for confirmation..." color="warning" variant="outlined" size="small" />
                     </Box>
                 )}
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-                {!isPolling && (
+            <DialogActions sx={{ px: 3, pb: 3, flexDirection: isPolling ? 'column' : 'row', gap: 2 }}>
+                {isPolling ? (
+                    <>
+                        <Button 
+                            onClick={handleIPaid} 
+                            variant="contained" 
+                            fullWidth 
+                            startIcon={<MessageIcon />}
+                            color="success"
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                        >
+                            I have received the SMS
+                        </Button>
+                        <Button 
+                            onClick={handleManualCancel} 
+                            fullWidth 
+                            color="inherit" 
+                            sx={{ color: 'text.secondary', fontSize: '0.85rem' }}
+                        >
+                            Cancel Payment
+                        </Button>
+                    </>
+                ) : (
                     <>
                         <Button onClick={() => setBuyOpen(false)} sx={{ fontWeight: 600, color: 'text.secondary' }}>Cancel</Button>
                         <Button 
@@ -339,14 +381,15 @@ const ResourceDetail = () => {
             </DialogActions>
         </Dialog>
         
+        {/* LOGIN PROMPT DIALOG */}
         <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)}>
-            <DialogTitle>Log in Required</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 700 }}>Log in Required</DialogTitle>
             <DialogContent>
                 <Typography>Please log in to purchase this resource.</Typography>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={() => setLoginPrompt(false)}>Cancel</Button>
-                <Button onClick={() => navigate('/login')} variant="contained">Log In</Button>
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={() => setLoginPrompt(false)} color="inherit">Cancel</Button>
+                <Button onClick={() => navigate('/login')} variant="contained" autoFocus>Log In</Button>
             </DialogActions>
         </Dialog>
 

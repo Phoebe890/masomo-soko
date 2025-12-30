@@ -18,30 +18,35 @@ public class FileUploadService {
     private Cloudinary cloudinary;
 
     public Map uploadFile(MultipartFile file) throws IOException {
-        
-        // 1. Get original filename and extension
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        
-        // Extract extension (e.g., ".pdf")
-        if (originalFilename != null && originalFilename.contains(".")) {
-             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        try {
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            
+            // Extract extension safely
+            if (originalFilename != null && originalFilename.contains(".")) {
+                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            
+            // Generate clean unique ID
+            String publicId = UUID.randomUUID().toString();
+
+            Map params = ObjectUtils.asMap(
+                "resource_type", "auto",
+                "folder", "eduhub_resources",
+                "public_id", publicId, 
+                "use_filename", true,
+                "unique_filename", false
+            );
+
+            // Upload
+            return cloudinary.uploader().upload(file.getBytes(), params);
+            
+        } catch (Exception e) {
+            // Log the error so we can see it in the console
+            System.err.println("Cloudinary Upload Error: " + e.getMessage());
+            e.printStackTrace();
+            throw new IOException("Failed to upload file to cloud storage: " + e.getMessage());
         }
-        
-        // 2. Create a unique Public ID but KEEP the extension
-        // e.g. "550e8400-e29b-41d4-a716-446655440000.pdf"
-        // Cloudinary needs the extension in the public_id for RAW files to work as links
-        String publicId = UUID.randomUUID().toString() + extension;
-
-        Map params = ObjectUtils.asMap(
-            "resource_type", "auto",
-            "folder", "eduhub_resources",
-            "public_id", publicId,   // Use our custom ID with extension
-            "use_filename", true,    // Use the filename provided
-            "unique_filename", false // Don't let Cloudinary add random chars, we already used UUID
-        );
-
-        return cloudinary.uploader().upload(file.getBytes(), params);
     }
 
     public String generatePreviewImageUrl(Map uploadResult) {

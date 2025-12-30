@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Paper, Table, TableBody, TableCell, TableHead, TableRow, 
     Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
-    Stack, Alert, CircularProgress 
+    Stack, Alert, CircularProgress, Snackbar 
 } from '@mui/material';
 import axios from 'axios';
 import AdminSidebar from './AdminSidebar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 const BACKEND_URL = "http://localhost:8081";
 
@@ -23,9 +22,17 @@ const AdminPayouts = () => {
     const [notes, setNotes] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // Toast Notification State
+    const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+        open: false,
+        message: '',
+        severity: 'success'
+    });
+
     const fetchPayouts = () => {
         axios.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true })
             .then(res => setPayouts(res.data))
+            .catch(err => console.error(err))
             .finally(() => setLoading(false));
     };
 
@@ -38,19 +45,31 @@ const AdminPayouts = () => {
         setOpen(true);
     };
 
+    const handleCloseToast = () => {
+        setToast({ ...toast, open: false });
+    };
+
     const handleSubmit = async () => {
         if (!selectedPayout) return;
         setProcessing(true);
         try {
             await axios.post(`${BACKEND_URL}/api/admin/payouts/${selectedPayout.id}/${actionType}`, 
-                { notes }, // We will update backend to accept notes optionally
+                { notes }, 
                 { withCredentials: true }
             );
             setOpen(false);
             fetchPayouts();
-            alert(`Withdrawal ${actionType}d successfully.`);
+            setToast({ 
+                open: true, 
+                message: `Withdrawal ${actionType === 'approve' ? 'approved' : 'rejected'} successfully.`, 
+                severity: 'success' 
+            });
         } catch (e) {
-            alert("Action failed.");
+            setToast({ 
+                open: true, 
+                message: "Action failed. Please try again.", 
+                severity: 'error' 
+            });
         } finally {
             setProcessing(false);
         }
@@ -162,6 +181,18 @@ const AdminPayouts = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* SNACKBAR NOTIFICATION */}
+            <Snackbar 
+                open={toast.open} 
+                autoHideDuration={4000} 
+                onClose={handleCloseToast}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%', fontWeight: 600 }}>
+                    {toast.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 };

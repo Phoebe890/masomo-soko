@@ -3,7 +3,7 @@ import {
     Box, Typography, Paper, Grid, Button, Table, TableBody, TableCell, 
     TableContainer, TableHead, TableRow, Chip, CircularProgress, 
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
-    Alert, Snackbar, Container
+    Alert, Snackbar, Container, InputAdornment
 } from '@mui/material';
 import axios from 'axios';
 import TeacherSidebar from './TeacherSidebar';
@@ -12,8 +12,10 @@ import TeacherSidebar from './TeacherSidebar';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import HistoryIcon from '@mui/icons-material/History';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const BACKEND_URL = "http://localhost:8081";
+const MPESA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png";
 
 const TeacherEarnings = () => {
     const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ const TeacherEarnings = () => {
 
     return (
         <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9FAFB' }}>
-            <TeacherSidebar selectedRoute="/teacher/earnings" mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+            <TeacherSidebar selectedRoute="/dashboard/teacher/earnings" mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
             <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 } }}>
                 <Container maxWidth="lg">
@@ -88,7 +90,7 @@ const TeacherEarnings = () => {
                     </Typography>
 
                     {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>
                     ) : (
                         <Grid container spacing={4}>
                             {/* --- BALANCE CARD --- */}
@@ -96,11 +98,12 @@ const TeacherEarnings = () => {
                                 <Paper elevation={0} sx={{ 
                                     p: 4, borderRadius: 4, 
                                     background: 'linear-gradient(135deg, #0F172A 0%, #334155 100%)',
-                                    color: 'white', position: 'relative', overflow: 'hidden'
+                                    color: 'white', position: 'relative', overflow: 'hidden',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                                 }}>
                                     <Box sx={{ position: 'relative', zIndex: 1 }}>
-                                        <Typography variant="body2" sx={{ opacity: 0.8, fontWeight: 600, mb: 1 }}>AVAILABLE BALANCE</Typography>
-                                        <Typography variant="h2" fontWeight={800} sx={{ mb: 3 }}>KES {balance.toLocaleString()}</Typography>
+                                        <Typography variant="body2" sx={{ opacity: 0.8, fontWeight: 600, mb: 1, letterSpacing: 1 }}>AVAILABLE BALANCE</Typography>
+                                        <Typography variant="h2" fontWeight={800} sx={{ mb: 4 }}>KES {balance.toLocaleString()}</Typography>
                                         
                                         <Button 
                                             variant="contained" 
@@ -108,7 +111,7 @@ const TeacherEarnings = () => {
                                             startIcon={<RequestQuoteIcon />}
                                             sx={{ 
                                                 bgcolor: 'white', color: '#0F172A', 
-                                                fontWeight: 700, borderRadius: 50, px: 3,
+                                                fontWeight: 700, borderRadius: 50, px: 4, py: 1.5,
                                                 '&:hover': { bgcolor: '#F1F5F9' }
                                             }}
                                         >
@@ -116,24 +119,36 @@ const TeacherEarnings = () => {
                                         </Button>
                                     </Box>
                                     {/* Decoration */}
-                                    <AccountBalanceWalletIcon sx={{ position: 'absolute', right: -20, bottom: -20, fontSize: 180, opacity: 0.1 }} />
+                                    <AccountBalanceWalletIcon sx={{ position: 'absolute', right: -30, bottom: -40, fontSize: 200, opacity: 0.1 }} />
                                 </Paper>
 
-                                <Box sx={{ mt: 3 }}>
-                                    <Typography variant="subtitle2" fontWeight={700} color="text.secondary">PAYOUT METHOD</Typography>
-                                    <Paper elevation={0} sx={{ p: 2, mt: 1, borderRadius: 3, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{ width: 40, height: 40, bgcolor: '#DCFCE7', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontWeight: 800 }}>M</Box>
-                                        <Box>
-                                            <Typography fontWeight={600}>M-Pesa</Typography>
-                                            <Typography variant="caption" color="text.secondary">{mpesaNumber || "No number set"}</Typography>
+                                <Box sx={{ mt: 4 }}>
+                                    <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 2 }}>ACTIVE PAYOUT METHOD</Typography>
+                                    <Paper elevation={0} sx={{ 
+                                        p: 3, borderRadius: 3, border: '2px solid #22c55e', 
+                                        bgcolor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' 
+                                    }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box 
+                                                component="img" 
+                                                src={MPESA_LOGO} 
+                                                sx={{ height: 40, objectFit: 'contain' }}
+                                            />
+                                            <Box>
+                                                <Typography fontWeight={700} color="#111827">M-Pesa Mobile Money</Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {mpesaNumber ? mpesaNumber : "No number configured"}
+                                                </Typography>
+                                            </Box>
                                         </Box>
+                                        <CheckCircleIcon color="success" />
                                     </Paper>
                                 </Box>
                             </Grid>
 
                             {/* --- HISTORY TABLE --- */}
                             <Grid item xs={12} md={7}>
-                                <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                                <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: '1px solid #E5E7EB', overflow: 'hidden', minHeight: 400 }}>
                                     <Box sx={{ p: 3, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <HistoryIcon color="action" />
                                         <Typography variant="h6" fontWeight={700}>Withdrawal History</Typography>
@@ -142,27 +157,32 @@ const TeacherEarnings = () => {
                                         <Table stickyHeader>
                                             <TableHead>
                                                 <TableRow>
-                                                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                                                    <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
-                                                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB' }}>Date</TableCell>
+                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB' }}>Amount</TableCell>
+                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB', textAlign: 'right' }}>Status</TableCell>
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
                                                 {history.length === 0 ? (
                                                     <TableRow>
-                                                        <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary' }}>No withdrawals yet</TableCell>
+                                                        <TableCell colSpan={3} align="center" sx={{ py: 8 }}>
+                                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, opacity: 0.5 }}>
+                                                                <RequestQuoteIcon sx={{ fontSize: 48 }} />
+                                                                <Typography>No withdrawal history yet</Typography>
+                                                            </Box>
+                                                        </TableCell>
                                                     </TableRow>
                                                 ) : (
                                                     history.map((item) => (
-                                                        <TableRow key={item.id}>
+                                                        <TableRow key={item.id} hover>
                                                             <TableCell>{new Date(item.requestedAt).toLocaleDateString()}</TableCell>
                                                             <TableCell sx={{ fontWeight: 600 }}>KES {item.amount.toLocaleString()}</TableCell>
-                                                            <TableCell>
+                                                            <TableCell align="right">
                                                                 <Chip 
                                                                     label={item.status} 
                                                                     size="small" 
                                                                     color={item.status === 'PENDING' ? 'warning' : item.status === 'PAID' ? 'success' : 'default'}
-                                                                    sx={{ fontWeight: 700, borderRadius: 1 }}
+                                                                    sx={{ fontWeight: 700, borderRadius: 1, minWidth: 80 }}
                                                                 />
                                                             </TableCell>
                                                         </TableRow>
@@ -183,29 +203,35 @@ const TeacherEarnings = () => {
                 <DialogTitle sx={{ fontWeight: 800 }}>Withdraw Funds</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Funds will be sent to <b>{mpesaNumber}</b>.
+                        Available Balance: <b>KES {balance.toLocaleString()}</b>
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Funds will be sent to <b>{mpesaNumber || "your configured number"}</b>.
                     </Typography>
                     <TextField
                         autoFocus
-                        label="Amount (KES)"
+                        label="Amount to Withdraw"
                         type="number"
                         fullWidth
                         value={withdrawAmount}
                         onChange={(e) => setWithdrawAmount(e.target.value)}
                         placeholder="Min 50"
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start">KES</InputAdornment>,
+                        }}
                     />
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <Button onClick={() => setWithdrawOpen(false)} color="inherit">Cancel</Button>
-                    <Button variant="contained" onClick={handleWithdraw} disabled={processing}>
-                        {processing ? "Processing..." : "Confirm"}
+                    <Button onClick={() => setWithdrawOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+                    <Button variant="contained" onClick={handleWithdraw} disabled={processing} sx={{ fontWeight: 700, px: 3 }}>
+                        {processing ? <CircularProgress size={24} color="inherit" /> : "Confirm Withdraw"}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* TOAST */}
             <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <Alert severity={toast.type} variant="filled" sx={{ width: '100%', borderRadius: 2 }}>{toast.msg}</Alert>
+                <Alert severity={toast.type} variant="filled" sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}>{toast.msg}</Alert>
             </Snackbar>
         </Box>
     );

@@ -15,11 +15,10 @@ public class Withdrawal {
 
     private Double amount;
     private String mpesaNumber;
-    private String status; // PENDING, APPROVED, REJECTED
+    private String status; // PENDING, PAID, REJECTED
     
-    private LocalDateTime requestedAt = LocalDateTime.now();
+    private LocalDateTime requestedAt;
 
-    // Constructors, Getters, Setters
     public Withdrawal() {}
 
     public Withdrawal(User teacher, Double amount, String mpesaNumber) {
@@ -27,6 +26,7 @@ public class Withdrawal {
         this.amount = amount;
         this.mpesaNumber = mpesaNumber;
         this.status = "PENDING";
+        this.requestedAt = LocalDateTime.now();
     }
 
     public Long getId() { return id; }

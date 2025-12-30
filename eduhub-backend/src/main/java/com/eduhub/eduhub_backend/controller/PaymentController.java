@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @RestController
@@ -26,7 +27,7 @@ public class PaymentController {
     @Autowired private PaymentTransactionRepository transactionRepository;
     @Autowired private PurchaseRepository purchaseRepository;
     @Autowired private NotificationRepository notificationRepository;
-    @Autowired private TeacherProfileRepository teacherProfileRepository; // ADDED THIS
+    @Autowired private TeacherProfileRepository teacherProfileRepository;
     @Autowired private EmailProducer emailProducer;
 
     // 1. INITIATE PAYMENT
@@ -39,7 +40,6 @@ public class PaymentController {
             User student = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherResource resource = resourceRepository.findById(resourceId).orElseThrow();
             
-            // Check Duplicate
             boolean alreadyOwned = purchaseRepository.findByStudent(student).stream()
                     .anyMatch(p -> p.getResource().getId().equals(resourceId));
             if(alreadyOwned) return ResponseEntity.badRequest().body("You already own this resource.");
@@ -103,44 +103,76 @@ public class PaymentController {
                 purchase.setPrice(transaction.getAmount());
                 purchaseRepository.save(purchase);
 
-                // B. Credit Teacher Wallet (90% Split)
+                // B. Calculations
+                Double amountPaid = transaction.getAmount();
+                Double teacherShare = amountPaid * 0.90; // 90%
+
+                // C. Credit Wallet
                 User teacherUser = transaction.getResource().getUser();
                 TeacherProfile profile = teacherProfileRepository.findByUserId(teacherUser.getId()).orElse(null);
                 
                 if (profile != null) {
-                    Double amountPaid = transaction.getAmount();
-                    Double teacherShare = amountPaid * 0.90; // 90%
-                    
                     Double currentBalance = profile.getAccountBalance() != null ? profile.getAccountBalance() : 0.0;
                     profile.setAccountBalance(currentBalance + teacherShare);
                     teacherProfileRepository.save(profile);
-                    System.out.println("Wallet Credited: " + teacherShare);
                 }
                 
-                // C. Notify Teacher
+                // D. Notify Teacher (In-App)
                 Notification notif = new Notification(
-                    transaction.getResource().getUser(),
-                    "New Sale! + KES " + (transaction.getAmount() * 0.90) + " added to wallet.",
+                    teacherUser,
+                    "New Sale: '" + transaction.getResource().getTitle() + "' sold for KES " + amountPaid,
                     LocalDateTime.now(), false
                 );
                 notificationRepository.save(notif);
 
-                // D. Send Emails
+                // E. SEND EMAILS (UPDATED SECTION)
                 try {
+                    // 1. Email to Student
                     emailProducer.sendEmail(
                         transaction.getStudent().getEmail(),
-                        "EduHub Receipt: " + transaction.getResource().getTitle(),
-                        "Thank you for your purchase of " + transaction.getResource().getTitle() + "."
+                        "Receipt: " + transaction.getResource().getTitle(),
+                        "Dear " + transaction.getStudent().getName() + ",\n\n" +
+                        "Thank you for purchasing '" + transaction.getResource().getTitle() + "'.\n" +
+                        "You can now access and download this resource from your dashboard.\n\n" +
+                        "Happy Learning,\nEduHub Team"
                     );
-                    emailProducer.sendEmail(
-                        transaction.getResource().getUser().getEmail(),
-                        "New Sale Alert! ",
-                        "You just earned money from a new sale!"
+
+                    // 2. Email to Teacher (MORE INFORMATIVE)
+                    String teacherSubject = "New Sale: " + transaction.getResource().getTitle();
+                    String teacherBody = String.format(
+                        "Dear %s,\n\n" +
+                        "Great news! You have made a new sale on EduHub.\n\n" +
+                        "Transaction Details:\n" +
+                        "------------------------------------------------\n" +
+                        "Resource: %s\n" +
+                        "Student: %s\n" +
+                        "Sale Amount: KES %.2f\n" +
+                        "Your Earnings (90%%): KES %.2f\n" +
+                        "Date: %s\n" +
+                        "------------------------------------------------\n\n" +
+                        "This amount has been credited to your wallet.\n\n" +
+                        "Keep creating great content!\n" +
+                        "The EduHub Team",
+                        teacherUser.getName(),
+                        transaction.getResource().getTitle(),
+                        transaction.getStudent().getName(),
+                        amountPaid,
+                        teacherShare,
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
                     );
-                } catch (Exception emailEx) { System.err.println("Email Error: " + emailEx.getMessage()); }
+
+                    emailProducer.sendEmail(teacherUser.getEmail(), teacherSubject, teacherBody);
+
+                } catch (Exception emailEx) { 
+                    System.err.println("Email Error: " + emailEx.getMessage()); 
+                }
 
             } else {
-                transaction.setStatus("FAILED");
+                // Handle Failures
+                if (resultCode == 1032) transaction.setStatus("CANCELLED");
+                else if (resultCode == 1037) transaction.setStatus("TIMEOUT");
+                else transaction.setStatus("FAILED");
+                
                 transactionRepository.save(transaction);
             }
         } catch (Exception e) { e.printStackTrace(); }

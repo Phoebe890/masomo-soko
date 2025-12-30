@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 @CrossOrigin(
     origins = { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000" }, 
     allowCredentials = "true",
-    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS},
     allowedHeaders = "*"
 )
 public class TeacherController {
@@ -40,11 +39,103 @@ public class TeacherController {
     @Autowired private ReviewRepository reviewRepository;
     @Autowired private NotificationRepository notificationRepository;
 
+    // --- FIX: SAFE GET PROFILE ---
+    // Helper to get or create profile to prevent 500 Errors
+    private TeacherProfile getOrCreateProfile(User user) {
+        return teacherProfileRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    TeacherProfile newProfile = new TeacherProfile();
+                    newProfile.setUser(user);
+                    return teacherProfileRepository.save(newProfile);
+                });
+    }
+
+    // --- 1. PAYOUT SETUP (FIXED) ---
+    @PostMapping("/payout")
+    public ResponseEntity<?> setupPayout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("method") String method,
+            @RequestParam(value = "mpesa", required = false) String mpesa,
+            @RequestParam(value = "bank", required = false) String bank,
+            @RequestParam(value = "account", required = false) String account) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            
+            // USE HELPER TO PREVENT NULL POINTER / 500 ERROR
+            TeacherProfile profile = getOrCreateProfile(user);
+
+            if ("mpesa".equals(method)) {
+                if(mpesa == null || mpesa.isEmpty()) return ResponseEntity.badRequest().body("M-Pesa number required");
+                profile.setPaymentNumber(mpesa);
+            } 
+            else if ("bank".equals(method)) {
+                if(bank == null || account == null) return ResponseEntity.badRequest().body("Bank details required");
+                profile.setPaymentNumber(bank + ":" + account);
+            }
+            
+            teacherProfileRepository.save(profile);
+            return ResponseEntity.ok("Payout details saved successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error saving payout: " + e.getMessage());
+        }
+    }
+
+    // --- 2. ONBOARDING (FIXED) ---
+    @PostMapping("/onboarding")
+    public ResponseEntity<?> onboarding(
+            @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
+            @RequestParam("bio") String bio,
+            @RequestParam("subjects") String subjectsJson,
+            @RequestParam("grades") String gradesJson,
+            @RequestParam(value = "paymentNumber", required = false) String paymentNumber, // Optional here
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            
+            // USE HELPER HERE TOO
+            TeacherProfile profile = getOrCreateProfile(user);
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> subjects = new ArrayList<>();
+            try { if(subjectsJson != null && !subjectsJson.isEmpty()) subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
+            
+            List<String> grades = new ArrayList<>();
+            try { if(gradesJson != null && !gradesJson.isEmpty()) grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
+
+            if (profilePic != null && !profilePic.isEmpty()) {
+                Map uploadResult = fileUploadService.uploadFile(profilePic);
+                profile.setProfilePicPath((String) uploadResult.get("secure_url"));
+            }
+
+            profile.setBio(bio);
+            profile.setSubjects(subjects);
+            profile.setGrades(grades);
+            
+            // Only update payment number if provided (don't overwrite with null)
+            if (paymentNumber != null && !paymentNumber.isEmpty()) {
+                profile.setPaymentNumber(paymentNumber);
+            }
+            
+            teacherProfileRepository.save(profile);
+            return ResponseEntity.ok("Profile updated");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed: " + e.getMessage());
+        }
+    }
+
+    // --- KEEP ALL OTHER METHODS (SETTINGS, RESOURCES, ETC) AS THEY WERE ---
+    // (Paste the rest of your Controller methods here: getTeacherSettings, getDashboard, uploadResource, etc.)
+    // ...
+    
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             User currentUser = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            // Use orElse(null) so we don't crash on settings page load
             TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
+            
             boolean isZoomConnected = currentUser.getZoomAccessToken() != null && !currentUser.getZoomAccessToken().isEmpty();
 
             Map<String, Object> responseData = new HashMap<>();
@@ -70,15 +161,14 @@ public class TeacherController {
             return ResponseEntity.status(500).body("Error fetching settings");
         }
     }
-
+    
+    // ... Include uploadResource, deleteResource, etc. here ...
     @GetMapping("/reviews")
     public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            
             List<TeacherResource> resources = teacherResourceRepository.findByUserId(teacher.getId());
             List<Map<String, Object>> allReviews = new ArrayList<>();
-            
             for (TeacherResource res : resources) {
                 List<Review> reviews = reviewRepository.findByResource(res);
                 for (Review r : reviews) {
@@ -92,49 +182,10 @@ public class TeacherController {
                     allReviews.add(map);
                 }
             }
-            
             allReviews.sort((a, b) -> ((LocalDateTime)b.get("date")).compareTo((LocalDateTime)a.get("date")));
             return ResponseEntity.ok(allReviews);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error fetching reviews");
-        }
-    }
-
-    @PostMapping("/onboarding")
-    public ResponseEntity<?> onboarding(
-            @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
-            @RequestParam("bio") String bio,
-            @RequestParam("subjects") String subjectsJson,
-            @RequestParam("grades") String gradesJson,
-            @RequestParam("paymentNumber") String paymentNumber,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            ObjectMapper mapper = new ObjectMapper();
-            List<String> subjects = new ArrayList<>();
-            try { if(subjectsJson != null && !subjectsJson.isEmpty()) subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
-            
-            List<String> grades = new ArrayList<>();
-            try { if(gradesJson != null && !gradesJson.isEmpty()) grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
-
-            String profilePicUrl = null;
-            if (profilePic != null && !profilePic.isEmpty()) {
-                Map uploadResult = fileUploadService.uploadFile(profilePic);
-                profilePicUrl = (String) uploadResult.get("secure_url");
-            }
-
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
-            profile.setUser(user);
-            profile.setBio(bio);
-            profile.setSubjects(subjects);
-            profile.setGrades(grades);
-            profile.setPaymentNumber(paymentNumber);
-            if (profilePicUrl != null) profile.setProfilePicPath(profilePicUrl);
-            
-            teacherProfileRepository.save(profile);
-            return ResponseEntity.ok("Profile updated");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed");
         }
     }
 
@@ -251,27 +302,6 @@ public class TeacherController {
             return ResponseEntity.ok("Deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error deleting resource");
-        }
-    }
-
-    @PostMapping("/payout")
-    public ResponseEntity<?> setupPayout(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("method") String method,
-            @RequestParam(value = "mpesa", required = false) String mpesa,
-            @RequestParam(value = "bank", required = false) String bank,
-            @RequestParam(value = "account", required = false) String account) {
-        try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElseThrow();
-
-            if ("mpesa".equals(method)) profile.setPaymentNumber(mpesa);
-            else if ("bank".equals(method)) profile.setPaymentNumber(bank + ":" + account);
-            
-            teacherProfileRepository.save(profile);
-            return ResponseEntity.ok("Saved");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error saving payout");
         }
     }
 

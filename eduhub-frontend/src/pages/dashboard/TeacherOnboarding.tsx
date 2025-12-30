@@ -3,10 +3,11 @@ import {
   Box, Typography, Button, TextField, Container, 
   LinearProgress, Grid, Avatar, Chip, Stack, 
   InputAdornment, CardActionArea, 
-  useTheme, alpha, IconButton, Paper, Link
+  useTheme, alpha, IconButton, Paper, Link, CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 
 // Icons
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
@@ -24,13 +25,18 @@ import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import BrushIcon from '@mui/icons-material/Brush';
 import ScienceIcon from '@mui/icons-material/Science';
 
+const BACKEND_URL = "http://localhost:8081";
+
+// M-Pesa Logo URL
+const MPESA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png";
+
 const categories = [
-  { id: 'math', label: 'Maths & Logic', icon: <SchoolIcon fontSize="inherit" /> },
-  { id: 'coding', label: 'Development', icon: <CodeIcon fontSize="inherit" /> },
-  { id: 'business', label: 'Business', icon: <BusinessCenterIcon fontSize="inherit" /> },
-  { id: 'languages', label: 'Languages', icon: <LanguageIcon fontSize="inherit" /> },
-  { id: 'design', label: 'Art & Design', icon: <BrushIcon fontSize="inherit" /> },
-  { id: 'science', label: 'Science', icon: <ScienceIcon fontSize="inherit" /> },
+  { id: 'Mathematics', label: 'Maths & Logic', icon: <SchoolIcon fontSize="inherit" /> },
+  { id: 'Computer Science', label: 'Development', icon: <CodeIcon fontSize="inherit" /> },
+  { id: 'Business', label: 'Business', icon: <BusinessCenterIcon fontSize="inherit" /> },
+  { id: 'Languages', label: 'Languages', icon: <LanguageIcon fontSize="inherit" /> },
+  { id: 'Art', label: 'Art & Design', icon: <BrushIcon fontSize="inherit" /> },
+  { id: 'Science', label: 'Science', icon: <ScienceIcon fontSize="inherit" /> },
 ];
 
 const TeacherOnboarding: React.FC = () => {
@@ -39,6 +45,9 @@ const TeacherOnboarding: React.FC = () => {
   const [step, setStep] = useState(1);
   const totalSteps = 4;
   const progress = ((step - 1) / (totalSteps - 1)) * 100;
+  
+  // Loading State
+  const [loading, setLoading] = useState(false);
 
   // --- STATE ---
   const [formData, setFormData] = useState({
@@ -46,18 +55,58 @@ const TeacherOnboarding: React.FC = () => {
     headline: '',
     bio: '',
     photoPreview: '',
+    photoFile: null as File | null,
     category: '',
     skills: [] as string[],
-    payoutMethod: 'mpesa',
+    payoutMethod: 'mpesa', // Default and only option
     mpesaNumber: '',
-    bankName: '',
-    accountNumber: ''
   });
   const [skillInput, setSkillInput] = useState('');
 
+  // --- API SUBMISSION ---
+  const submitProfileToBackend = async () => {
+    setLoading(true);
+    try {
+        const uploadData = new FormData();
+        
+        // Append Text Data
+        uploadData.append('bio', formData.bio);
+        const subjectsList = formData.category ? [formData.category] : [];
+        uploadData.append('subjects', JSON.stringify(subjectsList));
+        uploadData.append('grades', JSON.stringify(formData.skills)); // Using skills as grades/tags
+        uploadData.append('paymentNumber', formData.mpesaNumber);
+
+        // Append File
+        if (formData.photoFile) {
+            uploadData.append('profilePic', formData.photoFile);
+        }
+
+        // Send Request
+        await axios.post(`${BACKEND_URL}/api/teacher/onboarding`, uploadData, {
+            withCredentials: true,
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        // Move to Success Screen
+        setStep(4);
+    } catch (error) {
+        console.error("Onboarding Error:", error);
+        alert("Failed to save profile. Please check your internet connection.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
   // --- HANDLERS ---
   const handleNext = () => {
-    if (step === totalSteps) {
+    if (step === 3) {
+        // Save data before showing success screen
+        if (!formData.mpesaNumber) {
+            alert("Please enter your M-Pesa number");
+            return;
+        }
+        submitProfileToBackend();
+    } else if (step === 4) {
       localStorage.setItem('setupComplete', 'true');
       navigate('/dashboard/teacher');
     } else {
@@ -73,7 +122,8 @@ const TeacherOnboarding: React.FC = () => {
       const file = e.target.files[0];
       setFormData({
         ...formData,
-        photoPreview: URL.createObjectURL(file)
+        photoPreview: URL.createObjectURL(file),
+        photoFile: file
       });
     }
   };
@@ -88,7 +138,7 @@ const TeacherOnboarding: React.FC = () => {
     }
   };
 
-  // --- ANIMATION CONFIG ---
+  // --- ANIMATION ---
   const slideVariants = {
     hidden: { opacity: 0, x: 20 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
@@ -107,7 +157,6 @@ const TeacherOnboarding: React.FC = () => {
       </Typography>
 
       <Grid container spacing={{ xs: 4, md: 8 }}>
-        {/* Photo Section: Center on mobile, Left on desktop */}
         <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
           <Box sx={{ position: 'relative', mb: 2 }}>
             <Avatar 
@@ -137,7 +186,6 @@ const TeacherOnboarding: React.FC = () => {
           <Typography variant="caption" color="text.secondary">Accepted: JPG, PNG</Typography>
         </Grid>
 
-        {/* Form Inputs */}
         <Grid item xs={12} md={8}>
           <Stack spacing={3}>
             <TextField 
@@ -179,7 +227,6 @@ const TeacherOnboarding: React.FC = () => {
         Choose a domain so we can recommend you to the right students.
       </Typography>
 
-      {/* Grid: 2 columns on mobile, 3 on desktop */}
       <Grid container spacing={2} sx={{ mb: 5 }}>
         {categories.map((cat) => (
           <Grid item xs={6} sm={4} md={4} key={cat.id}>
@@ -236,47 +283,46 @@ const TeacherOnboarding: React.FC = () => {
         Secure payouts processed every Friday. <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', color: 'success.main', fontWeight: 600, gap: 0.5 }}><LockIcon fontSize="small" /> Encrypted</Box>
       </Typography>
 
+      {/* M-Pesa Only Selection */}
       <Stack spacing={2} sx={{ mb: 4 }}>
-        {[ 
-          { id: 'mpesa', title: 'M-Pesa Mobile Money', desc: 'Instant transfer to your mobile wallet.' }, 
-          { id: 'bank', title: 'Bank Transfer', desc: 'Direct deposit for larger amounts.' } 
-        ].map((method) => (
-          <Paper
-            key={method.id}
-            variant="outlined"
-            onClick={() => setFormData({...formData, payoutMethod: method.id})}
-            sx={{
-              p: 3, cursor: 'pointer', borderRadius: 3,
-              border: formData.payoutMethod === method.id ? `2px solid ${theme.palette.primary.main}` : '1px solid #e0e0e0',
-              bgcolor: formData.payoutMethod === method.id ? alpha(theme.palette.primary.main, 0.04) : 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              transition: 'all 0.2s',
-              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) }
-            }}
-          >
-            <Box>
-              <Typography variant="h6" fontWeight={700}>{method.title}</Typography>
-              <Typography variant="body2" color="text.secondary">{method.desc}</Typography>
-            </Box>
-            {formData.payoutMethod === method.id && <CheckCircleIcon color="primary" fontSize="large" />}
-          </Paper>
-        ))}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3, borderRadius: 3,
+            border: `2px solid ${theme.palette.primary.main}`,
+            bgcolor: alpha(theme.palette.primary.main, 0.04),
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={2}>
+             <Box 
+                component="img" 
+                src={MPESA_LOGO} 
+                alt="M-Pesa"
+                sx={{ height: 45, objectFit: 'contain' }} 
+             />
+             <Box>
+                <Typography variant="h6" fontWeight={700}>M-Pesa</Typography>
+                <Typography variant="body2" color="text.secondary">Instant transfer to your mobile wallet.</Typography>
+             </Box>
+          </Box>
+          <CheckCircleIcon color="primary" fontSize="large" />
+        </Paper>
       </Stack>
 
       <Box sx={{ p: 4, bgcolor: '#f8f9fa', borderRadius: 3 }}>
-        {formData.payoutMethod === 'mpesa' ? (
-             <TextField
-             fullWidth label="M-Pesa Number" placeholder="712 345 678"
-             value={formData.mpesaNumber}
-             onChange={e => setFormData({...formData, mpesaNumber: e.target.value})}
-             InputProps={{ startAdornment: <InputAdornment position="start">+254</InputAdornment>, sx: { bgcolor: 'white' } }}
-           />
-        ) : (
-            <Stack spacing={3}>
-                <TextField fullWidth label="Bank Name" value={formData.bankName} onChange={e => setFormData({...formData, bankName: e.target.value})} sx={{ bgcolor: 'white' }} />
-                <TextField fullWidth label="Account Number" value={formData.accountNumber} onChange={e => setFormData({...formData, accountNumber: e.target.value})} sx={{ bgcolor: 'white' }} />
-            </Stack>
-        )}
+         <TextField
+           fullWidth 
+           label="M-Pesa Number" 
+           placeholder="712 345 678"
+           value={formData.mpesaNumber}
+           onChange={e => setFormData({...formData, mpesaNumber: e.target.value})}
+           InputProps={{ 
+             startAdornment: <InputAdornment position="start">+254</InputAdornment>, 
+             sx: { bgcolor: 'white' } 
+           }}
+           helperText="Enter the number you want to receive payments on."
+         />
       </Box>
     </Box>
   );
@@ -298,10 +344,9 @@ const TeacherOnboarding: React.FC = () => {
   );
 
   return (
-    // OUTER WRAPPER: Ensures Footer is at bottom
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#fff' }}>
       
-      {/* 1. TOP HEADER */}
+      {/* 1. HEADER */}
       <Box sx={{ height: 70, borderBottom: '1px solid #f0f0f0', px: { xs: 2, md: 4 }, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, bgcolor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
         <Typography variant="h6" fontWeight={800} color="primary" sx={{ letterSpacing: -0.5 }}>
             EduHub<Box component="span" sx={{ color: 'text.secondary', fontWeight: 400 }}> | Instructor</Box>
@@ -309,13 +354,12 @@ const TeacherOnboarding: React.FC = () => {
         <Button onClick={() => navigate('/')} color="inherit" sx={{ fontWeight: 600 }}>Save & Exit</Button>
       </Box>
 
-      {/* 2. PROGRESS BAR */}
+      {/* 2. PROGRESS */}
       <LinearProgress variant="determinate" value={progress} sx={{ height: 4, bgcolor: '#f0f0f0', '& .MuiLinearProgress-bar': { borderRadius: 0 } }} />
 
-      {/* 3. MAIN CONTENT (Flex 1 pushes footer down) */}
+      {/* 3. CONTENT */}
       <Container maxWidth="md" sx={{ flex: 1, py: { xs: 4, md: 8 }, display: 'flex', flexDirection: 'column' }}>
         
-        {/* Animated Step Content */}
         <Box sx={{ flex: 1 }}>
           <AnimatePresence mode="wait">
             <motion.div
@@ -333,24 +377,29 @@ const TeacherOnboarding: React.FC = () => {
           </AnimatePresence>
         </Box>
 
-        {/* 4. NAVIGATION BUTTONS */}
+        {/* 4. BUTTONS */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 8, pt: 4, borderTop: '1px solid #f0f0f0' }}>
             {step > 1 && step < 4 ? (
-                <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ color: 'text.secondary', fontWeight: 600, px: 3 }}>Back</Button>
+                <Button startIcon={<ArrowBackIcon />} onClick={handleBack} disabled={loading} sx={{ color: 'text.secondary', fontWeight: 600, px: 3 }}>Back</Button>
             ) : <Box />}
 
             <Button 
                 variant="contained" 
                 size="large"
                 onClick={handleNext}
-                endIcon={step === 4 ? null : <ArrowForwardIcon />}
+                disabled={loading}
+                // --- LOADING SPINNER LOGIC ---
+                endIcon={step === 4 ? null : (loading ? null : <ArrowForwardIcon />)}
                 sx={{ 
                     px: 6, py: 1.5, borderRadius: 10,
                     fontSize: '1rem', fontWeight: 700, 
                     textTransform: 'none', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' 
                 }}
             >
-                {step === 4 ? "Go to Dashboard" : "Continue"}
+                {step === 4 
+                    ? "Go to Dashboard" 
+                    : (loading ? <CircularProgress size={24} color="inherit" /> : "Continue")
+                }
             </Button>
         </Box>
       </Container>
@@ -365,8 +414,6 @@ const TeacherOnboarding: React.FC = () => {
                <Link href="#" underline="hover" color="text.secondary" variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <HelpOutlineIcon fontSize="inherit" /> Need Help?
                </Link>
-               <Link href="#" underline="hover" color="text.secondary" variant="caption">Terms</Link>
-               <Link href="#" underline="hover" color="text.secondary" variant="caption">Privacy</Link>
             </Stack>
          </Container>
       </Box>

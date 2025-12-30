@@ -33,7 +33,7 @@ public class MeetingController {
         String email = userDetails.getUsername();
         System.out.println("Attempting to create meeting for user: " + email);
 
-        Optional<TeacherProfile> teacherProfileOptional = teacherProfileRepository.findByUserEmail(email);
+        Optional<TeacherProfile> teacherProfileOptional = teacherProfileRepository.findByUser_Email(email);
 
         if (teacherProfileOptional.isEmpty()) {
             System.err.println("FORBIDDEN: No TeacherProfile found for email: " + email);
