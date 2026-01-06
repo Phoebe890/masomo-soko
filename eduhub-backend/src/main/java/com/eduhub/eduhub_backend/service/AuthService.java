@@ -7,11 +7,7 @@ import com.eduhub.eduhub_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import java.util.List;
+
 import java.util.Optional;
 
 @Service
@@ -24,29 +20,41 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public String signup(SignUpRequest request) {
-        String normalizedEmail = request.email.trim().toLowerCase();
+        // FIX: Use getEmail()
+        if (request.getEmail() == null || request.getPassword() == null) {
+            return "Email and Password are required.";
+        }
+
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        
         if (userRepository.existsByEmail(normalizedEmail)) {
             return "Email already in use.";
         }
 
         User user = new User();
-        user.setName(request.name);
+        user.setName(request.getName()); // FIX: Use getName()
         user.setEmail(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(request.password)); // hash password
-        user.setRole(request.role.toUpperCase());
+        user.setPassword(passwordEncoder.encode(request.getPassword())); // FIX: Use getPassword()
+        user.setRole(request.getRole().toUpperCase()); // FIX: Use getRole()
+        user.setEnabled(true);
 
         userRepository.save(user);
         return "User registered successfully.";
     }
 
     public User login(LoginRequest request) {
-        String normalizedEmail = request.email.trim().toLowerCase();
+        // FIX: Use getEmail()
+        if (request.getEmail() == null) return null;
+
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
         Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
+        
         if (userOpt.isEmpty())
             return null;
 
         User user = userOpt.get();
-        if (passwordEncoder.matches(request.password, user.getPassword())) {
+        // FIX: Use getPassword()
+        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return user;
         } else {
             return null;

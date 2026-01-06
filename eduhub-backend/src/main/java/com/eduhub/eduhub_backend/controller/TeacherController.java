@@ -39,8 +39,6 @@ public class TeacherController {
     @Autowired private ReviewRepository reviewRepository;
     @Autowired private NotificationRepository notificationRepository;
 
-    // --- FIX: SAFE GET PROFILE ---
-    // Helper to get or create profile to prevent 500 Errors
     private TeacherProfile getOrCreateProfile(User user) {
         return teacherProfileRepository.findByUserId(user.getId())
                 .orElseGet(() -> {
@@ -50,50 +48,22 @@ public class TeacherController {
                 });
     }
 
-    // --- 1. PAYOUT SETUP (FIXED) ---
-    @PostMapping("/payout")
-    public ResponseEntity<?> setupPayout(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("method") String method,
-            @RequestParam(value = "mpesa", required = false) String mpesa,
-            @RequestParam(value = "bank", required = false) String bank,
-            @RequestParam(value = "account", required = false) String account) {
-        try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            
-            // USE HELPER TO PREVENT NULL POINTER / 500 ERROR
-            TeacherProfile profile = getOrCreateProfile(user);
-
-            if ("mpesa".equals(method)) {
-                if(mpesa == null || mpesa.isEmpty()) return ResponseEntity.badRequest().body("M-Pesa number required");
-                profile.setPaymentNumber(mpesa);
-            } 
-            else if ("bank".equals(method)) {
-                if(bank == null || account == null) return ResponseEntity.badRequest().body("Bank details required");
-                profile.setPaymentNumber(bank + ":" + account);
-            }
-            
-            teacherProfileRepository.save(profile);
-            return ResponseEntity.ok("Payout details saved successfully");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error saving payout: " + e.getMessage());
-        }
-    }
-
-    // --- 2. ONBOARDING (FIXED) ---
+    // --- ONBOARDING (FIXED NULL POINTER EXCEPTION) ---
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
             @RequestParam("bio") String bio,
             @RequestParam("subjects") String subjectsJson,
             @RequestParam("grades") String gradesJson,
-            @RequestParam(value = "paymentNumber", required = false) String paymentNumber, // Optional here
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @RequestParam(value = "paymentNumber", required = false) String paymentNumber,
+            @AuthenticationPrincipal UserDetails userDetails) { // <--- This was null
         try {
+            // 1. CHECK IF USER IS AUTHENTICATED
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired or user not logged in. Please login again.");
+            }
+
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            
-            // USE HELPER HERE TOO
             TeacherProfile profile = getOrCreateProfile(user);
 
             ObjectMapper mapper = new ObjectMapper();
@@ -112,7 +82,6 @@ public class TeacherController {
             profile.setSubjects(subjects);
             profile.setGrades(grades);
             
-            // Only update payment number if provided (don't overwrite with null)
             if (paymentNumber != null && !paymentNumber.isEmpty()) {
                 profile.setPaymentNumber(paymentNumber);
             }
@@ -125,17 +94,45 @@ public class TeacherController {
         }
     }
 
-    // --- KEEP ALL OTHER METHODS (SETTINGS, RESOURCES, ETC) AS THEY WERE ---
-    // (Paste the rest of your Controller methods here: getTeacherSettings, getDashboard, uploadResource, etc.)
-    // ...
+    // ... (Keep other methods: uploadResource, setupPayout, getDashboard, etc.) ...
     
+    // For completeness, here is the corrected setupPayout as well
+    @PostMapping("/payout")
+    public ResponseEntity<?> setupPayout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("method") String method,
+            @RequestParam(value = "mpesa", required = false) String mpesa,
+            @RequestParam(value = "bank", required = false) String bank,
+            @RequestParam(value = "account", required = false) String account) {
+        try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+            
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherProfile profile = getOrCreateProfile(user);
+
+            if ("mpesa".equals(method)) {
+                if(mpesa == null || mpesa.isEmpty()) return ResponseEntity.badRequest().body("M-Pesa number required");
+                profile.setPaymentNumber(mpesa);
+            } 
+            else if ("bank".equals(method)) {
+                if(bank == null || account == null) return ResponseEntity.badRequest().body("Bank details required");
+                profile.setPaymentNumber(bank + ":" + account);
+            }
+            
+            teacherProfileRepository.save(profile);
+            return ResponseEntity.ok("Payout details saved successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error saving payout: " + e.getMessage());
+        }
+    }
+    
+    // ... Keep the rest of your existing methods ...
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
         try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User currentUser = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            // Use orElse(null) so we don't crash on settings page load
             TeacherProfile profile = teacherProfileRepository.findByUserId(currentUser.getId()).orElse(null);
-            
             boolean isZoomConnected = currentUser.getZoomAccessToken() != null && !currentUser.getZoomAccessToken().isEmpty();
 
             Map<String, Object> responseData = new HashMap<>();
@@ -162,33 +159,46 @@ public class TeacherController {
         }
     }
     
-    // ... Include uploadResource, deleteResource, etc. here ...
-    @GetMapping("/reviews")
-    public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails userDetails) {
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            List<TeacherResource> resources = teacherResourceRepository.findByUserId(teacher.getId());
-            List<Map<String, Object>> allReviews = new ArrayList<>();
-            for (TeacherResource res : resources) {
-                List<Review> reviews = reviewRepository.findByResource(res);
-                for (Review r : reviews) {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", r.getId());
-                    map.put("resourceTitle", res.getTitle());
-                    map.put("studentName", r.getStudent().getName());
-                    map.put("rating", r.getRating());
-                    map.put("comment", r.getComment());
-                    map.put("date", r.getCreatedAt());
-                    allReviews.add(map);
-                }
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
+            List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
+            if (resources == null) resources = new ArrayList<>();
+
+            long totalSales = 0;
+            Double currentBalance = 0.0;
+
+            if (!resources.isEmpty()) {
+                try {
+                    List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
+                    if(!resourceIds.isEmpty()) {
+                        totalSales = purchaseRepository.countByResourceIdIn(resourceIds);
+                        Double bal = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+                        currentBalance = (bal != null) ? bal : 0.0;
+                    }
+                } catch (Exception e) { e.printStackTrace(); }
             }
-            allReviews.sort((a, b) -> ((LocalDateTime)b.get("date")).compareTo((LocalDateTime)a.get("date")));
-            return ResponseEntity.ok(allReviews);
+
+            List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
+                List<Review> reviews = reviewRepository.findByResource(res);
+                return new TeacherResourceDTO(res, reviews);
+            }).collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("resources", resourceDtos);
+            response.put("totalSales", totalSales);
+            response.put("currentBalance", currentBalance);
+            response.put("profile", profile);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error fetching reviews");
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
-
+    
     @PostMapping("/resources")
     public ResponseEntity<?> uploadResource(
             @RequestParam("file") MultipartFile file,
@@ -234,7 +244,7 @@ public class TeacherController {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
-
+    
     @PutMapping("/resources/{id}")
     public ResponseEntity<?> updateResource(
             @PathVariable Long id,
@@ -249,6 +259,7 @@ public class TeacherController {
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
 
@@ -289,6 +300,7 @@ public class TeacherController {
             @PathVariable Long id, 
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
 
@@ -304,46 +316,7 @@ public class TeacherController {
             return ResponseEntity.status(500).body("Error deleting resource");
         }
     }
-
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
-            List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
-            if (resources == null) resources = new ArrayList<>();
-
-            long totalSales = 0;
-            Double currentBalance = 0.0;
-
-            if (!resources.isEmpty()) {
-                try {
-                    List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
-                    if(!resourceIds.isEmpty()) {
-                        totalSales = purchaseRepository.countByResourceIdIn(resourceIds);
-                        Double bal = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
-                        currentBalance = (bal != null) ? bal : 0.0;
-                    }
-                } catch (Exception e) { e.printStackTrace(); }
-            }
-
-            List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
-                List<Review> reviews = reviewRepository.findByResource(res);
-                return new TeacherResourceDTO(res, reviews);
-            }).collect(Collectors.toList());
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("resources", resourceDtos);
-            response.put("totalSales", totalSales);
-            response.put("currentBalance", currentBalance);
-            response.put("profile", profile);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
-        }
-    }
-
+    
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources(
             @RequestParam(value = "subject", required = false) String subject,
@@ -393,6 +366,7 @@ public class TeacherController {
 
     @GetMapping("/analytics")
     public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).collect(Collectors.toList());
@@ -458,12 +432,14 @@ public class TeacherController {
 
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         return ResponseEntity.ok(notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher));
     }
 
     @PostMapping("/notifications/clear")
     public ResponseEntity<?> clearNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
         for (var n : notifications) n.setRead(true);
@@ -473,6 +449,7 @@ public class TeacherController {
 
     @PostMapping("/notifications/clearAll")
     public ResponseEntity<?> clearAllNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         var notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(teacher);
         notificationRepository.deleteAll(notifications);
@@ -482,12 +459,11 @@ public class TeacherController {
     @DeleteMapping("/notifications/{id}")
     public ResponseEntity<?> deleteNotification(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             var notification = notificationRepository.findById(id).orElse(null);
             
-            if (notification == null) {
-                return ResponseEntity.status(404).body("Notification not found");
-            }
+            if (notification == null) return ResponseEntity.status(404).body("Notification not found");
             
             if (!notification.getTeacher().getId().equals(user.getId())) {
                 return ResponseEntity.status(403).body("You are not authorized to delete this notification");
@@ -503,6 +479,7 @@ public class TeacherController {
     @PostMapping("/zoom/disconnect")
     public ResponseEntity<?> disconnectZoom(@AuthenticationPrincipal UserDetails userDetails) {
         try {
+            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User currentUser = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             currentUser.setZoomAccessToken(null);
             currentUser.setZoomRefreshToken(null);

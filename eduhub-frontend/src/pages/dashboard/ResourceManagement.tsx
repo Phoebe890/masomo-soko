@@ -18,7 +18,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 // Components
-import TeacherSidebar from './TeacherSidebar';
+import TeacherSidebar from '../../components/TeacherSidebar';
 
 // --- CONFIGURATION ---
 const BACKEND_URL = "http://localhost:8081";

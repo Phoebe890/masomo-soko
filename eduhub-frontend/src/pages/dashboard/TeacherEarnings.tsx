@@ -3,34 +3,30 @@ import {
     Box, Typography, Paper, Grid, Button, Table, TableBody, TableCell, 
     TableContainer, TableHead, TableRow, Chip, CircularProgress, 
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
-    Alert, Snackbar, Container, InputAdornment
+    InputAdornment, Alert, Snackbar, useTheme, alpha
 } from '@mui/material';
 import axios from 'axios';
-import TeacherSidebar from './TeacherSidebar';
-
+import TeacherLayout from '../../components/TeacherLayout';
 // Icons
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import HistoryIcon from '@mui/icons-material/History';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const BACKEND_URL = "http://localhost:8081";
-const MPESA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png";
 
 const TeacherEarnings = () => {
+    const theme = useTheme();
     const [loading, setLoading] = useState(true);
     const [balance, setBalance] = useState(0.0);
     const [mpesaNumber, setMpesaNumber] = useState('');
     const [history, setHistory] = useState<any[]>([]);
-    const [mobileOpen, setMobileOpen] = useState(false);
     
-    // Withdrawal Dialog
+    // Withdrawal Logic
     const [withdrawOpen, setWithdrawOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [toast, setToast] = useState<{ open: boolean; msg: string; type: 'success'|'error' }>({ open: false, msg: '', type: 'success' });
 
-    // --- FETCH DATA ---
     const fetchWallet = async () => {
         setLoading(true);
         try {
@@ -38,202 +34,130 @@ const TeacherEarnings = () => {
             setBalance(res.data.balance || 0.0);
             setMpesaNumber(res.data.mpesaNumber || '');
             setHistory(res.data.history || []);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        fetchWallet();
-    }, []);
+    useEffect(() => { fetchWallet(); }, []);
 
-    // --- HANDLERS ---
     const handleWithdraw = async () => {
         const amount = parseFloat(withdrawAmount);
-        if (!amount || amount < 50) {
-            setToast({ open: true, msg: "Minimum withdrawal is KES 50", type: 'error' });
-            return;
-        }
-        if (amount > balance) {
-            setToast({ open: true, msg: "Insufficient funds", type: 'error' });
-            return;
-        }
+        if (!amount || amount < 50) return setToast({ open: true, msg: "Min withdrawal KES 50", type: 'error' });
+        if (amount > balance) return setToast({ open: true, msg: "Insufficient funds", type: 'error' });
 
         setProcessing(true);
         try {
             const params = new URLSearchParams();
             params.append('amount', amount.toString());
-            
             await axios.post(`${BACKEND_URL}/api/wallet/withdraw`, params, { withCredentials: true });
-            
-            setToast({ open: true, msg: "Withdrawal request submitted!", type: 'success' });
+            setToast({ open: true, msg: "Request Submitted!", type: 'success' });
             setWithdrawOpen(false);
             setWithdrawAmount('');
-            fetchWallet(); // Refresh data
+            fetchWallet();
         } catch (err: any) {
-            setToast({ open: true, msg: err.response?.data || "Failed to withdraw", type: 'error' });
+            setToast({ open: true, msg: err.response?.data || "Failed", type: 'error' });
         } finally {
             setProcessing(false);
         }
     };
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9FAFB' }}>
-            <TeacherSidebar selectedRoute="/dashboard/teacher/earnings" mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        <TeacherLayout title="Earnings & Payouts" selectedRoute="/teacher/earnings">
+            {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box> : (
+                <Grid container spacing={4}>
+                    {/* WALLET CARD */}
+                    <Grid item xs={12} md={5}>
+                        <Paper 
+                            elevation={0}
+                            sx={{ 
+                                p: 4, borderRadius: 4, border: `1px solid ${theme.palette.divider}`,
+                                bgcolor: '#1F2937', color: 'white',
+                                display: 'flex', flexDirection: 'column', gap: 2,
+                                position: 'relative', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                            }}
+                        >
+                            <Box sx={{ zIndex: 1 }}>
+                                <Typography variant="caption" sx={{ opacity: 0.7, letterSpacing: 1, fontWeight: 700 }}>AVAILABLE BALANCE</Typography>
+                                <Typography variant="h3" fontWeight={800} sx={{ my: 1 }}>KES {balance.toLocaleString()}</Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.8, mb: 3 }}>
+                                    Active Method: M-Pesa ({mpesaNumber || 'Not Set'})
+                                </Typography>
+                                <Button 
+                                    variant="contained" 
+                                    onClick={() => setWithdrawOpen(true)}
+                                    startIcon={<RequestQuoteIcon />}
+                                    sx={{ bgcolor: 'white', color: '#1F2937', fontWeight: 700, '&:hover': { bgcolor: '#F3F4F6' } }}
+                                >
+                                    Withdraw Funds
+                                </Button>
+                            </Box>
+                            <AccountBalanceWalletIcon sx={{ position: 'absolute', right: -30, bottom: -40, fontSize: 200, opacity: 0.1 }} />
+                        </Paper>
+                    </Grid>
 
-            <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 6 } }}>
-                <Container maxWidth="lg">
-                    <Typography variant="h4" fontWeight={800} sx={{ mb: 4, color: '#111827' }}>
-                        Earnings & Payouts
-                    </Typography>
-
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>
-                    ) : (
-                        <Grid container spacing={4}>
-                            {/* --- BALANCE CARD --- */}
-                            <Grid item xs={12} md={5}>
-                                <Paper elevation={0} sx={{ 
-                                    p: 4, borderRadius: 4, 
-                                    background: 'linear-gradient(135deg, #0F172A 0%, #334155 100%)',
-                                    color: 'white', position: 'relative', overflow: 'hidden',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-                                }}>
-                                    <Box sx={{ position: 'relative', zIndex: 1 }}>
-                                        <Typography variant="body2" sx={{ opacity: 0.8, fontWeight: 600, mb: 1, letterSpacing: 1 }}>AVAILABLE BALANCE</Typography>
-                                        <Typography variant="h2" fontWeight={800} sx={{ mb: 4 }}>KES {balance.toLocaleString()}</Typography>
-                                        
-                                        <Button 
-                                            variant="contained" 
-                                            onClick={() => setWithdrawOpen(true)}
-                                            startIcon={<RequestQuoteIcon />}
-                                            sx={{ 
-                                                bgcolor: 'white', color: '#0F172A', 
-                                                fontWeight: 700, borderRadius: 50, px: 4, py: 1.5,
-                                                '&:hover': { bgcolor: '#F1F5F9' }
-                                            }}
-                                        >
-                                            Withdraw Funds
-                                        </Button>
-                                    </Box>
-                                    {/* Decoration */}
-                                    <AccountBalanceWalletIcon sx={{ position: 'absolute', right: -30, bottom: -40, fontSize: 200, opacity: 0.1 }} />
-                                </Paper>
-
-                                <Box sx={{ mt: 4 }}>
-                                    <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 2 }}>ACTIVE PAYOUT METHOD</Typography>
-                                    <Paper elevation={0} sx={{ 
-                                        p: 3, borderRadius: 3, border: '2px solid #22c55e', 
-                                        bgcolor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' 
-                                    }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box 
-                                                component="img" 
-                                                src={MPESA_LOGO} 
-                                                sx={{ height: 40, objectFit: 'contain' }}
-                                            />
-                                            <Box>
-                                                <Typography fontWeight={700} color="#111827">M-Pesa Mobile Money</Typography>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {mpesaNumber ? mpesaNumber : "No number configured"}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                        <CheckCircleIcon color="success" />
-                                    </Paper>
-                                </Box>
-                            </Grid>
-
-                            {/* --- HISTORY TABLE --- */}
-                            <Grid item xs={12} md={7}>
-                                <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: '1px solid #E5E7EB', overflow: 'hidden', minHeight: 400 }}>
-                                    <Box sx={{ p: 3, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <HistoryIcon color="action" />
-                                        <Typography variant="h6" fontWeight={700}>Withdrawal History</Typography>
-                                    </Box>
-                                    <TableContainer sx={{ maxHeight: 400 }}>
-                                        <Table stickyHeader>
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB' }}>Date</TableCell>
-                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB' }}>Amount</TableCell>
-                                                    <TableCell sx={{ fontWeight: 700, bgcolor: '#F9FAFB', textAlign: 'right' }}>Status</TableCell>
+                    {/* HISTORY TABLE */}
+                    <Grid item xs={12} md={7}>
+                        <Paper elevation={0} sx={{ borderRadius: 4, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
+                            <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <HistoryIcon color="action" />
+                                <Typography variant="h6" fontWeight={700}>Transaction History</Typography>
+                            </Box>
+                            <TableContainer sx={{ overflowX: 'auto', maxHeight: 400 }}>
+                                <Table stickyHeader>
+                                    <TableHead sx={{ bgcolor: '#F9FAFB' }}>
+                                        <TableRow>
+                                            <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                                            <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 700 }}>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {history.length === 0 ? (
+                                            <TableRow><TableCell colSpan={3} align="center" sx={{ py: 6, color: 'text.secondary' }}>No transactions yet.</TableCell></TableRow>
+                                        ) : (
+                                            history.map((item) => (
+                                                <TableRow key={item.id} hover>
+                                                    <TableCell>{new Date(item.requestedAt).toLocaleDateString()}</TableCell>
+                                                    <TableCell sx={{ fontWeight: 600 }}>KES {item.amount.toLocaleString()}</TableCell>
+                                                    <TableCell align="right">
+                                                        <Chip 
+                                                            label={item.status} size="small" 
+                                                            sx={{ 
+                                                                fontWeight: 700, borderRadius: 1,
+                                                                bgcolor: item.status === 'PAID' ? alpha('#10B981', 0.1) : alpha('#F59E0B', 0.1),
+                                                                color: item.status === 'PAID' ? '#059669' : '#D97706'
+                                                            }} 
+                                                        />
+                                                    </TableCell>
                                                 </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {history.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={3} align="center" sx={{ py: 8 }}>
-                                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, opacity: 0.5 }}>
-                                                                <RequestQuoteIcon sx={{ fontSize: 48 }} />
-                                                                <Typography>No withdrawal history yet</Typography>
-                                                            </Box>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ) : (
-                                                    history.map((item) => (
-                                                        <TableRow key={item.id} hover>
-                                                            <TableCell>{new Date(item.requestedAt).toLocaleDateString()}</TableCell>
-                                                            <TableCell sx={{ fontWeight: 600 }}>KES {item.amount.toLocaleString()}</TableCell>
-                                                            <TableCell align="right">
-                                                                <Chip 
-                                                                    label={item.status} 
-                                                                    size="small" 
-                                                                    color={item.status === 'PENDING' ? 'warning' : item.status === 'PAID' ? 'success' : 'default'}
-                                                                    sx={{ fontWeight: 700, borderRadius: 1, minWidth: 80 }}
-                                                                />
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                </Paper>
-                            </Grid>
-                        </Grid>
-                    )}
-                </Container>
-            </Box>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Paper>
+                    </Grid>
+                </Grid>
+            )}
 
-            {/* WITHDRAW DIALOG */}
-            <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+            {/* WITHDRAWAL DIALOG */}
+            <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
                 <DialogTitle sx={{ fontWeight: 800 }}>Withdraw Funds</DialogTitle>
                 <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Available Balance: <b>KES {balance.toLocaleString()}</b>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Funds will be sent to <b>{mpesaNumber || "your configured number"}</b>.
-                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2 }}>Available: <b>KES {balance}</b></Typography>
                     <TextField
-                        autoFocus
-                        label="Amount to Withdraw"
-                        type="number"
-                        fullWidth
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                        placeholder="Min 50"
-                        InputProps={{
-                            startAdornment: <InputAdornment position="start">KES</InputAdornment>,
-                        }}
+                        autoFocus label="Amount" type="number" fullWidth
+                        value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)}
+                        InputProps={{ startAdornment: <InputAdornment position="start">KES</InputAdornment> }}
                     />
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <Button onClick={() => setWithdrawOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-                    <Button variant="contained" onClick={handleWithdraw} disabled={processing} sx={{ fontWeight: 700, px: 3 }}>
-                        {processing ? <CircularProgress size={24} color="inherit" /> : "Confirm Withdraw"}
-                    </Button>
+                <DialogActions>
+                    <Button onClick={() => setWithdrawOpen(false)}>Cancel</Button>
+                    <Button onClick={handleWithdraw} variant="contained" disabled={processing}>Confirm</Button>
                 </DialogActions>
             </Dialog>
 
-            {/* TOAST */}
-            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <Alert severity={toast.type} variant="filled" sx={{ width: '100%', borderRadius: 2, fontWeight: 600 }}>{toast.msg}</Alert>
-            </Snackbar>
-        </Box>
+            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type}>{toast.msg}</Alert></Snackbar>
+        </TeacherLayout>
     );
 };
 

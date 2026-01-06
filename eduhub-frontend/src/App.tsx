@@ -1,10 +1,12 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import TeacherEarnings from './pages/dashboard/TeacherEarnings'
+
+// Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPayouts from './pages/admin/AdminPayouts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminResources from './pages/admin/AdminResources';
+
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
@@ -12,7 +14,7 @@ import BrowseResources from './pages/BrowseResources';
 import ResourceDetail from './pages/ResourceDetail';
 import PurchaseConfirmation from './pages/PurchaseConfirmation';
 import SellerLanding from './pages/seller/SellerLanding';
-import TeacherReviews from './pages/dashboard/TeacherReviews';
+
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -21,6 +23,8 @@ import Register from './pages/auth/Register';
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import TeacherOnboarding from './pages/dashboard/TeacherOnboarding'; 
 import StudentDashboard from './pages/dashboard/StudentDashboard';
+import TeacherEarnings from './pages/dashboard/TeacherEarnings';
+import TeacherReviews from './pages/dashboard/TeacherReviews';
 
 // Teacher Task Pages
 import UploadFirstResource from './pages/dashboard/UploadFirstResource';
@@ -43,10 +47,12 @@ function AuthGate() {
 
     // Redirect logged-in users away from Login/Register pages
     if (email && (location.pathname === '/login' || location.pathname === '/register')) {
-      if (role === 'teacher') {
+      if (role === 'TEACHER' || role === 'teacher') {
         navigate('/dashboard/teacher', { replace: true });
-      } else if (role === 'student') {
+      } else if (role === 'STUDENT' || role === 'student') {
         navigate('/dashboard/student', { replace: true });
+      } else if (role === 'ADMIN' || role === 'admin' || role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
       }
     }
   }, [navigate, location]);
@@ -60,9 +66,10 @@ function App() {
   // Define which paths should NOT have the global Header/Footer (Layout)
   const isDashboardRoute = 
     location.pathname.startsWith('/dashboard') || 
-    location.pathname.startsWith('/teacher');
+    location.pathname.startsWith('/teacher') ||
+    location.pathname.startsWith('/admin');
 
-  // We define the routes content once to avoid duplication
+  
   const appRoutes = (
     <Routes>
       {/* Main Public Routes */}
@@ -71,8 +78,6 @@ function App() {
       <Route path="/resource/:id" element={<ResourceDetail />} />
       <Route path="/purchase-confirmation" element={<PurchaseConfirmation />} />
       
-      {/* Seller Landing is PUBLIC, so it stays inside Layout logic normally, 
-          but if you want it to have no header, add it to isDashboardRoute logic above */}
       <Route path="/seller" element={<SellerLanding />} />
 
       {/* Authentication Routes */}
@@ -83,27 +88,21 @@ function App() {
       <Route path="/dashboard/student" element={<StudentDashboard />} />
 
       {/* --- TEACHER FLOW --- */}
-      
-      {/* 1. The Main Dashboard */}
       <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
-      
-      {/* 2. The New Onboarding Wizard */}
       <Route path="/dashboard/teacher/onboarding" element={<TeacherOnboarding />} />
-      
-      {/* 3. Resource Management */}
       <Route path="/dashboard/teacher/resources" element={<ResourceManagement />} />
       <Route path="/dashboard/teacher/upload-first-resource" element={<UploadFirstResource />} />
       <Route path="/teacher/earnings" element={<TeacherEarnings />} />
-      {/* 4. Coaching & Settings */}
       <Route path="/teacher/settings" element={<TeacherSettings />} />
       <Route path="/teacher/coaching-services" element={<CoachingServiceManager />} />
       <Route path="/teacher/availability" element={<AvailabilityCalendar />} />
-<Route path="/admin/dashboard" element={<AdminDashboard />} />
-<Route path="/admin/payouts" element={<AdminPayouts />} />
-  <Route path="/admin/users" element={<AdminUsers />} />
-  <Route path="/admin/resources" element={<AdminResources />} />
-      {/* 5. Teacher Reviews from Students */}
       <Route path="/teacher/reviews" element={<TeacherReviews />} />
+
+      {/* --- ADMIN FLOW --- */}
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/payouts" element={<AdminPayouts />} />
+      <Route path="/admin/users" element={<AdminUsers />} />
+      <Route path="/admin/resources" element={<AdminResources />} />
     </Routes>
   );
 
@@ -111,11 +110,7 @@ function App() {
     <>
       <AuthGate />
       
-      {/* 
-         LOGIC: 
-         If we are on a dashboard page, render routes DIRECTLY (Sidebar will handle layout).
-         If we are on a public page, wrap routes in <Layout> (Header + Footer).
-      */}
+      {}
       {isDashboardRoute ? (
         appRoutes
       ) : (
