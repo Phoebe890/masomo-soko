@@ -11,6 +11,9 @@ import { useLoading } from '../../context/LoadingContext';
 // GOOGLE IMPORT
 import { useGoogleLogin } from '@react-oauth/google';
 
+// IMPORT API INSTANCE (The fix)
+import { api } from '@/api/axios';
+
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -31,31 +34,27 @@ const Login: React.FC = () => {
       startLoading();
       setMessage(null);
       try {
-        const res = await fetch('/api/auth/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: tokenResponse.access_token }),
-          credentials: 'include'
+        // USE API instead of fetch
+        const res = await api.post('/api/auth/google', { 
+            token: tokenResponse.access_token 
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem('email', data.email);
-          localStorage.setItem('role', data.role);
-          
-          setMessage('Google Login Successful! Redirecting...');
-          setTimeout(() => {
+        const data = res.data;
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('role', data.role);
+        
+        setMessage('Google Login Successful! Redirecting...');
+        setTimeout(() => {
              const userRole = data.role?.toUpperCase();
              if (userRole === 'TEACHER') navigate('/dashboard/teacher');
              else if (userRole === 'STUDENT') navigate('/dashboard/student');
              else if (userRole === 'ADMIN') navigate('/admin/dashboard');
              else navigate('/');
-          }, 800);
-        } else {
-          setMessage('Google authentication failed on server.');
-        }
-      } catch (err) {
-        setMessage('Network error during Google login.');
+        }, 800);
+
+      } catch (err: any) {
+        console.error(err);
+        setMessage('Google authentication failed. ' + (err.response?.data || ''));
       } finally {
         stopLoading();
       }
@@ -70,32 +69,25 @@ const Login: React.FC = () => {
     startLoading();
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-        credentials: 'include'
-      });
+      // USE API instead of fetch
+      const response = await api.post('/api/auth/login', formData);
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('email', data.email);
-        localStorage.setItem('role', data.role);
-        
-        setMessage('Welcome back! Redirecting...');
-        setTimeout(() => {
-          const userRole = data.role?.toUpperCase();
-          if (userRole === 'TEACHER') navigate('/dashboard/teacher');
-          else if (userRole === 'STUDENT') navigate('/dashboard/student');
-          else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-          else navigate('/');
-        }, 800);
-      } else {
-        const errorText = await response.text();
-        setMessage(errorText || 'Invalid email or password.');
-      }
-    } catch (error) {
-      setMessage('Network error. Please try again later.');
+      const data = response.data;
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('role', data.role);
+      
+      setMessage('Welcome back! Redirecting...');
+      setTimeout(() => {
+        const userRole = data.role?.toUpperCase();
+        if (userRole === 'TEACHER') navigate('/dashboard/teacher');
+        else if (userRole === 'STUDENT') navigate('/dashboard/student');
+        else if (userRole === 'ADMIN') navigate('/admin/dashboard');
+        else navigate('/');
+      }, 800);
+
+    } catch (error: any) {
+      const errorText = error.response?.data || 'Invalid email or password.';
+      setMessage(typeof errorText === 'string' ? errorText : 'Login Failed');
     } finally {
       stopLoading();
     }
@@ -119,30 +111,8 @@ const Login: React.FC = () => {
               fullWidth
               variant="outlined"
               onClick={() => googleLogin()}
-              startIcon={
-                <img 
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                  alt="Google" 
-                  style={{ width: 20, height: 20 }} 
-                />
-              }
-              sx={{ 
-                py: 1.5, mb: 3, 
-                color: '#3c4043', 
-                bgcolor: '#fff',
-                borderColor: '#dadce0', 
-                textTransform: 'none', 
-                fontWeight: 500,
-                fontSize: '1rem',
-                borderRadius: '8px',
-                boxShadow: '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': { 
-                  bgcolor: '#f7f8f8', 
-                  borderColor: '#dadce0',
-                  boxShadow: '0 1px 3px 0 rgba(60,64,67,0.30), 0 4px 8px 3px rgba(60,64,67,0.15)'
-                }
-              }}
+              startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />}
+              sx={{ py: 1.5, mb: 3, color: '#3c4043', bgcolor: '#fff', borderColor: '#dadce0', textTransform: 'none', fontWeight: 500, fontSize: '1rem', borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)', transition: 'all 0.2s ease-in-out', '&:hover': { bgcolor: '#f7f8f8', borderColor: '#dadce0', boxShadow: '0 1px 3px 0 rgba(60,64,67,0.30), 0 4px 8px 3px rgba(60,64,67,0.15)' } }}
             >
               Sign in with Google
             </Button>
@@ -161,23 +131,7 @@ const Login: React.FC = () => {
                 <TextField fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
                 
                 <Box>
-                  <TextField
-                    fullWidth label="Password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
+                  <TextField fullWidth label="Password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
                     <FormControlLabel control={<Checkbox size="small" />} label={<Typography variant="body2" color="text.secondary">Remember me</Typography>} />
                     <Link component={RouterLink} to="/forgot-password" variant="body2" color="primary" underline="hover" fontWeight={600}>Forgot password?</Link>
