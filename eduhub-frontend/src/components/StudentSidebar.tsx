@@ -27,7 +27,6 @@ const StudentSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, activeTab
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: <DashboardCustomizeOutlinedIcon /> },
         { id: 'library', label: 'My Library', icon: <LocalLibraryOutlinedIcon /> },
-        // Coaching Removed
         { id: 'history', label: 'Purchase History', icon: <ReceiptLongOutlinedIcon /> },
         { id: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon /> },
     ];
@@ -39,7 +38,8 @@ const StudentSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, activeTab
                     <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: theme.palette.primary.main, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <SchoolIcon sx={{ color: 'white' }} />
                     </Box>
-                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>EduHub</Typography>
+                    {/* CHANGED NAME HERE */}
+                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>Mwalimu Soko</Typography>
                 </Box>
                 <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)', display: { xs: 'flex', md: 'none' } }}>
                     <CloseIcon />

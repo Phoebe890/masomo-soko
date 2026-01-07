@@ -18,7 +18,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import SchoolIcon from '@mui/icons-material/School'; 
+import SchoolIcon from '@mui/icons-material/School'; // ORIGINAL LOGO ICON
 
 const Header: React.FC = () => {
   const theme = useTheme();
@@ -28,8 +28,6 @@ const Header: React.FC = () => {
   const isLoggedIn = Boolean(localStorage.getItem('email'));
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
   const userRole = localStorage.getItem('role'); 
-  
-  // Determine Dashboard URL based on Role
   const isTeacher = userRole === 'TEACHER' || userRole === 'ROLE_TEACHER';
   const dashboardRoute = isTeacher ? '/dashboard/teacher' : '/dashboard/student';
 
@@ -71,31 +69,30 @@ const Header: React.FC = () => {
       mx: 0.5,
       '&:hover': { color: theme.palette.primary.main, bgcolor: 'transparent' },
     },
-    // --- IMPROVED SEARCH BAR STYLING ---
+    // --- ORIGINAL SEARCH BAR STYLING ---
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
         backgroundColor: '#f8f9fa', // Very light grey
-        height: 48, // Slightly taller for better click area
+        height: 48,
         paddingRight: 1,
         border: '1px solid transparent',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth animation
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         
-        // Target the fieldset (the default border) and remove it so we can use our own custom border logic
         '& fieldset': { border: 'none' },
 
         // Hover State
         '&:hover': { 
             backgroundColor: '#fff',
-            border: '1px solid #d1d7dc', // Subtle border appears
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)' // Tiny lift effect
+            border: '1px solid #d1d7dc',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         },
 
-        // Focused State (Clicking inside)
+        // Focused State
         '&.Mui-focused': {
           backgroundColor: '#fff',
-          border: `1px solid ${theme.palette.primary.main}`, // Primary color border
-          boxShadow: `0 0 0 4px ${theme.palette.primary.main}15`, // Soft glow ring
+          border: `1px solid ${theme.palette.primary.main}`,
+          boxShadow: `0 0 0 4px ${theme.palette.primary.main}15`,
         },
       },
       '& input': {
@@ -126,30 +123,26 @@ const Header: React.FC = () => {
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
-      {/* 
-         CHANGE 1: Position Fixed 
-         This keeps the navbar pinned to the top.
-         zIndex guarantees it stays above other content.
-      */}
       <AppBar 
         position="fixed" 
         elevation={0} 
         sx={{ 
             ...styles.appBar,
-            zIndex: (theme) => theme.zIndex.drawer + 1
+            // Ensure Navbar is high, but we will make Drawer higher
+            zIndex: 1100
         }}
       >
         <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* 1. BRANDING */}
+          {/* 1. BRANDING (Original Logo Icon, New Name) */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 32, mr: 1 }} />
               <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ letterSpacing: '-0.5px' }}>
-                EduHub
+                Masomo Soko
               </Typography>
           </Box>
 
-          {/* 2. DESKTOP SEARCH (Improved Layout) */}
+          {/* 2. DESKTOP SEARCH (Original Styling) */}
           {!isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 6, maxWidth: 500 }}>
               <TextField
@@ -179,7 +172,6 @@ const Header: React.FC = () => {
               </IconButton>
             )}
 
-            {/* Desktop Browse Link */}
             {!isMobile && (
               <Button component={RouterLink} to="/browse" sx={styles.navLink}>
                 Browse
@@ -230,7 +222,6 @@ const Header: React.FC = () => {
                   </Avatar>
                 </IconButton>
 
-                {/* --- MENU --- */}
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
@@ -303,16 +294,21 @@ const Header: React.FC = () => {
           </Box>
         </Toolbar>
 
-        {/* ---------------- MOBILE DRAWER ---------------- */}
+        {/* ---------------- MOBILE DRAWER (With Close Button) ---------------- */}
         <Drawer
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          // FIX: High zIndex to appear ON TOP of Navbar
+          sx={{ zIndex: 1200 }}
           PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
         >
           <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-            <Typography variant="h6" fontWeight={800} color="primary">EduHub</Typography>
-            <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
+            <Typography variant="h6" fontWeight={800} color="primary">Masomo Soko</Typography>
+            {/* Added Close Button */}
+            <IconButton onClick={() => setDrawerOpen(false)}>
+                <CloseIcon />
+            </IconButton>
           </Box>
 
           <Box sx={{ p: 2 }}>
@@ -362,8 +358,13 @@ const Header: React.FC = () => {
           </Box>
         </Drawer>
 
-        {/* ---------------- MOBILE SEARCH OVERLAY ---------------- */}
-        <Drawer anchor="top" open={searchOpen} onClose={() => setSearchOpen(false)}>
+        {/* ---------------- MOBILE SEARCH OVERLAY (Improved) ---------------- */}
+        <Drawer 
+            anchor="top" 
+            open={searchOpen} 
+            onClose={() => setSearchOpen(false)}
+            sx={{ zIndex: 1200 }}
+        >
           <Box sx={{ p: 2, display: 'flex', gap: 1 }} component="form" onSubmit={handleSearch}>
             <TextField
               autoFocus
@@ -372,7 +373,8 @@ const Header: React.FC = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               size="small"
-              InputProps={{ sx: { borderRadius: 50 } }}
+              // Keep rounded style for mobile input too
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 50, bgcolor: '#f8f9fa' } }}
             />
             <Button onClick={() => setSearchOpen(false)}>Cancel</Button>
           </Box>
@@ -380,11 +382,7 @@ const Header: React.FC = () => {
 
       </AppBar>
 
-      {/* 
-          CHANGE 2: The Spacer Toolbar 
-          This is an invisible element that takes up the exact height of the AppBar.
-          It forces the page content to start BELOW the fixed navbar.
-      */}
+      {/* Spacer */}
       <Toolbar sx={{ minHeight: 70 }} />
     </Box>
   );

@@ -13,7 +13,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import CloseIcon from '@mui/icons-material/Close'; // Imported Close Icon
+import CloseIcon from '@mui/icons-material/Close';
 
 const drawerWidth = 260;
 
@@ -42,12 +42,13 @@ const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) =
                 p: 3, 
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'space-between' // Pushes content to edges
+                justifyContent: 'space-between'
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 32 }} />
                     <Box>
-                        <Typography variant="h6" fontWeight={700} lineHeight={1}>EduHub</Typography>
+                        {/* UPDATED BRAND NAME */}
+                        <Typography variant="h6" fontWeight={700} lineHeight={1}>Mwalimu Soko</Typography>
                         <Typography variant="caption" color="text.secondary">Admin Console</Typography>
                     </Box>
                 </Box>
@@ -57,7 +58,7 @@ const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) =
                     onClick={onClose} 
                     sx={{ 
                         color: 'gray', 
-                        display: { xs: 'flex', md: 'none' }, // Hidden on desktop
+                        display: { xs: 'flex', md: 'none' }, 
                         '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' } 
                     }}
                 >

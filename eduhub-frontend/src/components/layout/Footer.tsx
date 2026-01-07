@@ -11,11 +11,14 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom'; // Added RouterLink for logo
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import SchoolIcon from '@mui/icons-material/School'; // Changed to School Icon
+
+// --- IMPORT LOGO ---
+import logo from '../../assets/logo.png'; 
 
 const Footer: React.FC = () => {
   // Styles based on the image
@@ -30,38 +33,54 @@ const Footer: React.FC = () => {
       sx={{
         backgroundColor: brandColor,
         color: textColor,
-        pt: 6, // Reduced from 8
-        pb: 3, // Reduced from 4
+        pt: 8, // Increased top padding slightly for balance
+        pb: 4,
         mt: 'auto',
       }}
     >
-      <Container maxWidth="lg">
-        <Grid container spacing={4}>
+      {/* 
+         CHANGED: maxWidth="xl" 
+         This allows the footer to spread out on large screens (or when zoomed out),
+         preventing the content from clumping in the middle.
+      */}
+      <Container maxWidth="xl">
+        <Grid container spacing={5} justifyContent="space-between">
           
-          {/* --- Column 1: Brand & Bio --- */}
-          <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ 
-                    bgcolor: accentColor, 
-                    borderRadius: '50%', 
-                    p: 1, 
-                    mr: 1.5, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                }}>
-                   <SchoolIcon sx={{ color: 'white', fontSize: 24 }} />
-                </Box>
-                <Typography variant="h5" fontWeight="bold">
-                  EduHub
-                </Typography>
+          {/* --- Column 1: Brand & Logo --- */}
+          <Grid item xs={12} md={4} sx={{ textAlign: 'left' }}>
+            {/* Logo Container - White background to make logo pop */}
+            <Box 
+                component={RouterLink} 
+                to="/"
+                sx={{ 
+                    display: 'inline-block', 
+                    bgcolor: 'white', 
+                    borderRadius: 2, 
+                    px: 2, 
+                    py: 1, 
+                    mb: 3,
+                    textDecoration: 'none'
+                }}
+            >
+                <Box 
+                    component="img" 
+                    src={logo} 
+                    alt="Mwalimu Soko"
+                    sx={{ 
+                        height: 45, 
+                        width: 'auto', 
+                        objectFit: 'contain',
+                        display: 'block' 
+                    }} 
+                />
             </Box>
-            <Typography variant="body2" sx={{ color: textLightColor, mb: 3, maxWidth: '300px', lineHeight: 1.6 }}>
-              Empowering students and teachers with world-class resources. Learn anywhere, anytime.
+
+            <Typography variant="body1" sx={{ color: textLightColor, mb: 3, maxWidth: '350px', lineHeight: 1.7, fontSize: '1rem' }}>
+              The #1 marketplace for educational resources. Buy high-quality notes or upload your own to earn extra income instantly via M-Pesa.
             </Typography>
             
-            {/* Social Icons moved here to save vertical space */}
-            <Stack direction="row" spacing={1}>
+            {/* Social Icons */}
+            <Stack direction="row" spacing={1.5}>
               <IconButton size="small" sx={{ color: textLightColor, bgcolor: 'rgba(255,255,255,0.05)', '&:hover': { bgcolor: accentColor, color: 'white' } }}>
                 <FacebookIcon fontSize="small" />
               </IconButton>
@@ -76,12 +95,12 @@ const Footer: React.FC = () => {
 
           {/* --- Column 2: Quick Links --- */}
           <Grid item xs={6} sm={4} md={2}>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'white' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'white', mb: 2 }}>
               Company
             </Typography>
-            <Stack spacing={1}>
-              {['About Us', 'Become a Tutor', 'Plans & Pricing', 'Careers'].map((item) => (
-                <Link key={item} href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.9rem', '&:hover': { color: accentColor } }}>
+            <Stack spacing={1.5}>
+              {['About Us', 'Sell Resources', 'Plans & Pricing', 'Careers'].map((item) => (
+                <Link key={item} href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
                   {item}
                 </Link>
               ))}
@@ -90,63 +109,68 @@ const Footer: React.FC = () => {
 
           {/* --- Column 3: Contact Info --- */}
           <Grid item xs={6} sm={4} md={3}>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'white' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'white', mb: 2 }}>
               Contact
             </Typography>
             <Stack spacing={2}>
               <Box>
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>Phone:</Typography>
+                <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Phone</Typography>
                 <Typography variant="body2" sx={{ color: textLightColor }}>+(254) 712 345 678</Typography>
               </Box>
               <Box>
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>Email:</Typography>
-                <Typography variant="body2" sx={{ color: textLightColor }}>support@eduhub.com</Typography>
+                <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Email</Typography>
+                <Typography variant="body2" sx={{ color: textLightColor }}>support@mwalimusoko.com</Typography>
               </Box>
               <Box>
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>Address:</Typography>
+                <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Location</Typography>
                 <Typography variant="body2" sx={{ color: textLightColor }}>Westlands, Nairobi, Kenya</Typography>
               </Box>
             </Stack>
           </Grid>
 
-          {/* --- Column 4: Newsletter (Integrated to save height) --- */}
+          {/* --- Column 4: Newsletter --- */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: 'white' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'white', mb: 2 }}>
               Newsletter
             </Typography>
-            <Typography variant="body2" sx={{ color: textLightColor, mb: 2 }}>
-              Subscribe to get the latest resources and updates.
+            <Typography variant="body2" sx={{ color: textLightColor, mb: 2.5 }}>
+              Subscribe to get the latest resources and teacher updates.
             </Typography>
             <Box sx={{ display: 'flex', bgcolor: 'white', borderRadius: 1, overflow: 'hidden' }}>
               <InputBase
-                placeholder="Email..."
-                sx={{ pl: 1.5, py: 0.5, flex: 1, fontSize: '0.9rem' }}
+                placeholder="Email address..."
+                sx={{ pl: 2, py: 1, flex: 1, fontSize: '0.9rem' }}
               />
-              <Button sx={{ bgcolor: accentColor, color: 'white', borderRadius: 0, minWidth: '50px', '&:hover': { bgcolor: '#1e54d6' } }}>
+              <Button sx={{ bgcolor: accentColor, color: 'white', borderRadius: 0, px: 3, '&:hover': { bgcolor: '#1e54d6' } }}>
                 Go
               </Button>
             </Box>
           </Grid>
         </Grid>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mt: 5, mb: 2 }} />
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mt: 6, mb: 3 }} />
 
         {/* --- Bottom Bar --- */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: textLightColor }}>
-                © 2025 EduHub Inc. All rights reserved.
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Typography variant="body2" sx={{ color: textLightColor }}>
+                © {new Date().getFullYear()} Mwalimu Soko Inc. All rights reserved.
             </Typography>
+
+            <Stack direction="row" spacing={3} sx={{ display: { xs: 'none', sm: 'flex' } }}>
+                <Link href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.85rem', '&:hover': { color: 'white' } }}>Privacy Policy</Link>
+                <Link href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.85rem', '&:hover': { color: 'white' } }}>Terms of Service</Link>
+            </Stack>
 
             <IconButton 
                 size="small"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.05)', 
+                    bgcolor: 'rgba(255,255,255,0.1)', 
                     color: 'white', 
                     '&:hover': { bgcolor: accentColor } 
                 }}
             >
-                <KeyboardArrowUpIcon fontSize="small" />
+                <KeyboardArrowUpIcon />
             </IconButton>
         </Box>
 

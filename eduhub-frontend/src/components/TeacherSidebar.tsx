@@ -13,7 +13,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SchoolIcon from '@mui/icons-material/School'; 
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn'; 
 import StarOutlineIcon from '@mui/icons-material/StarOutline'; 
-import CloseIcon from '@mui/icons-material/Close'; // <--- Added this
+import CloseIcon from '@mui/icons-material/Close';
 
 interface SidebarProps {
     mobileOpen: boolean;
@@ -30,7 +30,7 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
         { text: 'My Resources', icon: <LibraryBooksIcon />, path: '/dashboard/teacher/resources' },
         { text: 'Upload New', icon: <CloudUploadIcon />, path: '/dashboard/teacher/upload-first-resource' },
         { text: 'Earnings', icon: <MonetizationOnIcon />, path: '/teacher/earnings' },
-        { text: 'Student Reviews', icon: <StarOutlineIcon />, path: '/teacher/reviews' },
+        { text: 'Resource Reviews', icon: <StarOutlineIcon />, path: '/teacher/reviews' }, // Changed from Student Reviews
         { text: 'Profile Settings', icon: <AccountCircleIcon />, path: '/teacher/settings' },
     ];
 
@@ -46,7 +46,8 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
                     <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: theme.palette.primary.main, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <SchoolIcon sx={{ color: 'white' }} />
                     </Box>
-                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>EduHub</Typography>
+                    {/* UPDATED BRAND NAME */}
+                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>Mwalimu Soko</Typography>
                 </Box>
 
                 {/* Close Button (Visible only on mobile) */}
@@ -54,7 +55,7 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
                     onClick={onClose}
                     sx={{ 
                         color: 'rgba(255,255,255,0.7)', 
-                        display: { xs: 'flex', md: 'none' }, // <--- Hidden on Desktop
+                        display: { xs: 'flex', md: 'none' }, 
                         '&:hover': { color: 'white' }
                     }}
                 >
@@ -89,7 +90,8 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
             {/* USER INFO */}
             <Box sx={{ mt: 'auto', p: 3, bgcolor: 'rgba(0,0,0,0.2)' }}>
                 <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1 }}>Logged in as</Typography>
-                <Typography variant="subtitle2" fontWeight={700}>Instructor Account</Typography>
+                {/* UPDATED LABEL */}
+                <Typography variant="subtitle2" fontWeight={700}>Teacher Account</Typography>
             </Box>
         </Box>
     );
