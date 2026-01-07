@@ -4,7 +4,7 @@ import {
     Stack, IconButton, Alert, Snackbar, CircularProgress 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -49,7 +49,7 @@ const UploadFirstResource = () => {
         if (formData.thumbnailFile) data.append('thumbnail', formData.thumbnailFile);
 
         try {
-            await axios.post('http://localhost:8081/api/teacher/resources', data, {
+            await api.post('http://localhost:8081/api/teacher/resources', data, {
                 headers: { 'Content-Type': 'multipart/form-data' }, withCredentials: true 
             });
             setSnackbar({ open: true, msg: "Resource Published!", type: 'success' });

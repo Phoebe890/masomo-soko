@@ -4,7 +4,7 @@ import {
     Button, TextField, Rating, Typography, Box, Alert, 
     Fade, IconButton, Stack, Avatar 
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 
 // Icons
 import CloseIcon from '@mui/icons-material/Close';
@@ -53,7 +53,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
             formData.append('rating', rating.toString());
             formData.append('comment', comment);
 
-            await axios.post(`${BACKEND_URL}/api/student/review`, formData, { 
+            await api.post(`${BACKEND_URL}/api/student/review`, formData, { 
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });

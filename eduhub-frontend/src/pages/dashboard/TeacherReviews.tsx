@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Paper, Rating, Stack, Chip, CircularProgress, Avatar, useTheme } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
 
 const BACKEND_URL = "http://localhost:8081";
@@ -11,7 +11,7 @@ const TeacherReviews = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/teacher/reviews`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/teacher/reviews`, { withCredentials: true })
             .then(res => setReviews(res.data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));

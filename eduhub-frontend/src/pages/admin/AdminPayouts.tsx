@@ -4,7 +4,7 @@ import {
     Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
     Stack, Alert, CircularProgress, Snackbar 
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout'; // Import Layout
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -24,7 +24,7 @@ const AdminPayouts = () => {
     });
 
     const fetchPayouts = () => {
-        axios.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true })
             .then(res => setPayouts(res.data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
@@ -43,7 +43,7 @@ const AdminPayouts = () => {
         if (!selectedPayout) return;
         setProcessing(true);
         try {
-            await axios.post(`${BACKEND_URL}/api/admin/payouts/${selectedPayout.id}/${actionType}`, 
+            await api.post(`${BACKEND_URL}/api/admin/payouts/${selectedPayout.id}/${actionType}`, 
                 { notes }, { withCredentials: true }
             );
             setOpen(false);
