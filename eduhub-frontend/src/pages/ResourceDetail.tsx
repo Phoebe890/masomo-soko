@@ -1,352 +1,417 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Paper,
-  Avatar,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Divider,
-  FormControl,
+  Box, Typography, Button, CircularProgress, Paper, Avatar, Grid, Dialog, 
+  DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, 
+  Stack, Rating, Chip, Container, Breadcrumbs, Link, Snackbar, Alert
 } from '@mui/material';
-import Rating from '@mui/material/Rating';
+
+// Icons
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import MessageIcon from '@mui/icons-material/Message';
 
 const paymentMethods = [
-  { label: 'M-Pesa', value: 'mpesa' },
-  { label: 'Card', value: 'card' },
+  { label: 'M-Pesa (Mobile Money)', value: 'mpesa' },
 ];
 
 const ResourceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState<any>(null);
+  
+  // FIX 1: Removed unreliable client-side auth check
+  // const isLoggedIn = ... 
+
   const [buyOpen, setBuyOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
+  const [phoneNumber, setPhoneNumber] = useState(''); 
   const [processing, setProcessing] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
-  const isLoggedIn = Boolean(localStorage.getItem('email'));
-  const [canReview, setCanReview] = useState(false);
-  const [reviewed, setReviewed] = useState(false);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [reviewError, setReviewError] = useState('');
-  const [refreshReviews, setRefreshReviews] = useState(0);
+
+  // Use any to bypass TypeScript NodeJS error
+  const pollIntervalRef = useRef<any>(null);
+
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
+    open: false, message: '', severity: 'info',
+  });
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/teacher/resources/${id}`)
+    fetch(`http://localhost:8081/api/teacher/resources/${id}`)
       .then(async res => {
-        if (!res.ok) {
-          setResource(null);
-          setLoading(false);
-          return;
-        }
+        if (!res.ok) throw new Error("Failed");
         const data = await res.json();
-        // Support both { resource: ... } and direct resource object
-        if (data && (data.resource || data.title)) {
-          setResource(data.resource || data);
-        } else {
-          setResource(null);
-        }
-        setLoading(false);
+        setResource(data.resource || data);
       })
-      .catch(() => {
-        setResource(null);
-        setLoading(false);
-      });
-    // Check if student can review
-    const email = localStorage.getItem('email');
-    if (email && id) {
-      fetch(`/api/student/review/check?email=${encodeURIComponent(email)}&resourceId=${encodeURIComponent(id)}`)
-        .then(res => res.json())
-        .then(data => {
-          setReviewed(!!data.reviewed);
-        });
-      fetch(`/api/student/purchases?email=${encodeURIComponent(email)}`)
-        .then(res => res.json())
-        .then(data => {
-          setCanReview((data.resources || []).some((r: any) => String(r.id) === String(id)));
-        });
-    }
-    // Listen for global resource changes
-    const handleResourceListChanged = () => {
-      setLoading(true);
-      fetch(`/api/teacher/resources/${id}`)
-        .then(async res => {
-          if (!res.ok) {
-            setResource(null);
-            setLoading(false);
-            // Optionally redirect if deleted
-            navigate('/browse-resources');
-            return;
-          }
-          const data = await res.json();
-          if (data && (data.resource || data.title)) {
-            setResource(data.resource || data);
-          } else {
-            setResource(null);
-            navigate('/browse-resources');
-          }
-          setLoading(false);
-        })
-        .catch(() => {
-          setResource(null);
-          setLoading(false);
-          navigate('/browse-resources');
-        });
-    };
-    window.addEventListener('resourceListChanged', handleResourceListChanged);
-    return () => {
-      window.removeEventListener('resourceListChanged', handleResourceListChanged);
-    };
-  }, [id, navigate, refreshReviews]);
+      .catch(() => setResource(null))
+      .finally(() => setLoading(false));
+      
+    return () => stopPolling();
+  }, [id]);
 
+  const stopPolling = () => {
+      if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+      }
+      setIsPolling(false);
+  };
+
+  const pollPaymentStatus = async (checkoutRequestId: string) => {
+    setIsPolling(true);
+    let attempts = 0;
+    const maxAttempts = 60; 
+
+    pollIntervalRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(`http://localhost:8081/api/payment/status/${checkoutRequestId}`, {
+            credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (data.status === 'COMPLETED') {
+          stopPolling();
+          setBuyOpen(false);
+          setToast({ open: true, message: "Payment Successful! Redirecting...", severity: 'success' });
+          setTimeout(() => navigate('/dashboard/student'), 2000);
+        } else if (data.status === 'FAILED' || data.status === 'CANCELLED') {
+          stopPolling();
+          setToast({ open: true, message: "Payment Failed or Cancelled.", severity: 'error' });
+        }
+
+        if (attempts >= maxAttempts) {
+          stopPolling();
+          setToast({ open: true, message: "We haven't received confirmation yet. If you paid, check your dashboard shortly.", severity: 'warning' });
+          setBuyOpen(false);
+        }
+      } catch (e) {
+        // Ignore network glitches
+      }
+    }, 2000);
+  };
+
+  // FIX 2: Allow opening modal immediately. We check auth when they actually click "Pay"
   const handleBuyNow = () => {
-    if (!isLoggedIn) {
-      setLoginPrompt(true);
-      return;
-    }
     setBuyOpen(true);
   };
 
+  const handleIPaid = () => {
+      stopPolling();
+      setBuyOpen(false);
+      setToast({ 
+          open: true, 
+          message: "We are processing your payment in the background. Check your dashboard in a minute.", 
+          severity: 'info' 
+      });
+      setTimeout(() => navigate('/dashboard/student'), 2000);
+  };
+
+  const handleManualCancel = () => {
+      stopPolling();
+      setBuyOpen(false);
+      setToast({ open: true, message: "Payment process cancelled.", severity: 'info' });
+  };
+
   const handlePayment = () => {
+    if (paymentMethod === 'mpesa' && !phoneNumber) {
+        setToast({ open: true, message: "Please enter your M-Pesa phone number.", severity: 'error' });
+        return;
+    }
+
     setProcessing(true);
-    const email = localStorage.getItem('email');
-    fetch('/api/student/purchase', {
+    
+    // FIX 3: Check response status here. If 401/403, THEN show login prompt.
+    fetch('http://localhost:8081/api/payment/pay', {
       method: 'POST',
+      credentials: 'include', // This sends the Cookie
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `email=${encodeURIComponent(email || '')}&resourceId=${encodeURIComponent(id || '')}`
+      body: `phone=${encodeURIComponent(phoneNumber)}&resourceId=${encodeURIComponent(id || '')}`
     })
-      .then(async res => {
-        setProcessing(false);
-        if (res.ok) {
+    .then(async res => {
+      setProcessing(false);
+      
+      // AUTH CHECK IS HERE
+      if (res.status === 401 || res.status === 403) {
           setBuyOpen(false);
-          navigate('/purchase-confirmation');
-        } else {
-          const msg = await res.text();
-          alert(msg || 'Purchase failed');
-        }
-      })
-      .catch(() => {
-        setProcessing(false);
-        alert('Purchase failed');
-      });
-  };
-
-  // Review submit handler
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setReviewError('');
-    if (!reviewRating) {
-      setReviewError('Please select a rating.');
-      return;
-    }
-    setReviewSubmitting(true);
-    const email = localStorage.getItem('email');
-    try {
-      const res = await fetch('/api/student/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `email=${encodeURIComponent(email || '')}&resourceId=${encodeURIComponent(id || '')}&rating=${reviewRating}&comment=${encodeURIComponent(reviewComment)}`
-      });
-      if (!res.ok) {
-        setReviewError(await res.text());
-      } else {
-        setReviewRating(0);
-        setReviewComment('');
-        setReviewed(true);
-        setRefreshReviews(r => r + 1);
+          setLoginPrompt(true); // Show Login Dialog
+          return;
       }
-    } catch (err: any) {
-      setReviewError('Failed to submit review.');
-    } finally {
-      setReviewSubmitting(false);
-    }
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.checkoutRequestId) {
+            pollPaymentStatus(data.checkoutRequestId);
+        } else {
+            setBuyOpen(false);
+            setToast({ open: true, message: "Request Sent!", severity: 'success' });
+        }
+      } else {
+        const errorText = await res.text();
+        setToast({ open: true, message: errorText || 'Payment initiation failed.', severity: 'error' });
+      }
+    })
+    .catch(() => {
+      setProcessing(false);
+      setToast({ open: true, message: 'Network error. Check connection.', severity: 'error' });
+    });
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress aria-label="Loading resource details" />
-      </Box>
-    );
-  }
-  if (!resource) {
-    return <Typography color="error">Resource not found.</Typography>;
-  }
+  const handleCloseToast = () => {
+    setToast({ ...toast, open: false });
+  };
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 20 }}><CircularProgress /></Box>;
+  if (!resource) return <Typography sx={{ mt: 10, textAlign: 'center' }}>Resource not found.</Typography>;
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', py: { xs: 2, md: 6 } }}>
-      <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 3, boxShadow: 3 }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={5}>
-            <Box sx={{ mb: 2 }}>
-              {resource.previewImageUrl ? (
-                <>
-                  <img
-                    src={resource.previewImageUrl}
-                    alt={`Preview of ${resource.title}`}
-                    style={{ width: '100%', borderRadius: 8, border: '1px solid #ddd', maxHeight: 400, objectFit: 'contain' }}
-                  />
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    href={resource.previewImageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ mt: 2, width: '100%' }}
-                  >
-                    View Full Preview
-                  </Button>
-                </>
-              ) : (
-                <Avatar variant="rounded" sx={{ width: 180, height: 180, bgcolor: 'grey.200', color: 'grey.700', fontSize: 64, mx: 'auto' }}>
-                  📄
-                </Avatar>
-              )}
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Watermarked preview. Full file available after purchase.
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1 }}>Reviews</Typography>
-            {/* Reviews list (mock) */}
-            <Box sx={{ mb: 2 }}>
-              {(resource.reviews || []).length === 0 ? (
-                <Typography color="text.secondary">No reviews yet.</Typography>
-              ) : (
-                resource.reviews.map((rev: any, idx: number) => (
-                  <Box key={idx} sx={{ mb: 1 }}>
-                    <Typography variant="body2" fontWeight={600}>{rev.reviewer}</Typography>
-                    <Typography variant="body2" color="text.secondary">{rev.comment}</Typography>
-                  </Box>
-                ))
-              )}
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={7}>
-            <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>{resource.title}</Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>{resource.description}</Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>By <b>{resource.teacherName}</b></Typography>
-            <Typography variant="h5" color="primary" fontWeight={700} sx={{ mb: 2 }}>KES {resource.price}</Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              sx={{ minWidth: 180, mb: 2 }}
-              onClick={handleBuyNow}
-              aria-label="Buy this resource now"
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
+        
+        {/* HEADER */}
+        <Box sx={{ borderBottom: '1px solid #eee', py: 2 }}>
+            <Container maxWidth="lg">
+                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb">
+                    <Link underline="hover" color="inherit" href="/" sx={{ fontSize: '0.9rem' }}>Home</Link>
+                    <Link underline="hover" color="inherit" href="/browse" sx={{ fontSize: '0.9rem' }}>Resources</Link>
+                    <Typography color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{resource.title}</Typography>
+                </Breadcrumbs>
+            </Container>
+        </Box>
+
+        <Container maxWidth="lg" sx={{ mt: 5 }}>
+            <Grid container spacing={6}>
+                {/* LEFT CONTENT */}
+                <Grid item xs={12} md={8}>
+                    <Box sx={{ 
+                        bgcolor: '#F3F4F6', borderRadius: 4, overflow: 'hidden', mb: 4,
+                        display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative',
+                        minHeight: 300, border: '1px solid #E5E7EB'
+                    }}>
+                         {resource.previewImageUrl ? (
+                             <img src={resource.previewImageUrl} alt={resource.title} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
+                         ) : (
+                             <Box sx={{ textAlign: 'center', py: 8 }}>
+                                 <Avatar variant="rounded" sx={{ width: 80, height: 80, bgcolor: 'white', color: '#ccc', mx: 'auto', mb: 2 }}>
+                                     <FileDownloadIcon sx={{ fontSize: 40 }} />
+                                 </Avatar>
+                                 <Typography color="text.secondary" fontWeight={500}>No Preview Available</Typography>
+                             </Box>
+                         )}
+                    </Box>
+
+                    <Typography variant="h3" fontWeight={800} sx={{ mb: 2, lineHeight: 1.2, color: '#111827', fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
+                        {resource.title}
+                    </Typography>
+
+                    <Stack direction="row" spacing={2} sx={{ mb: 4 }} alignItems="center">
+                         <Chip label={resource.subject} size="small" sx={{ fontWeight: 600, bgcolor: '#EFF6FF', color: '#1D4ED8' }} />
+                         <Chip label={resource.grade || "General"} size="small" sx={{ fontWeight: 600, bgcolor: '#F3F4F6', color: '#374151' }} />
+                         <Stack direction="row" spacing={0.5} alignItems="center">
+                             <Rating value={resource.averageRating || 0} precision={0.5} readOnly size="small" />
+                             <Typography variant="body2" fontWeight={600} color="text.secondary">
+                                 ({resource.reviews?.length || 0})
+                             </Typography>
+                         </Stack>
+                    </Stack>
+                    
+                    <Divider sx={{ mb: 4 }} />
+
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                        <Avatar sx={{ width: 56, height: 56, bgcolor: '#111827' }}>{resource.teacherName?.[0] || 'T'}</Avatar>
+                        <Box>
+                            <Typography variant="subtitle1" fontWeight={700}>{resource.teacherName || 'Instructor'}</Typography>
+                            <Typography variant="body2" color="text.secondary">Verified Teacher</Typography>
+                        </Box>
+                    </Stack>
+
+                    <Box sx={{ mb: 6 }}>
+                        <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>About this resource</Typography>
+                        <Typography variant="body1" sx={{ color: '#4B5563', lineHeight: 1.8, fontSize: '1.05rem' }}>
+                            {resource.description}
+                        </Typography>
+                    </Box>
+                </Grid>
+
+                {/* RIGHT COLUMN: BUY WIDGET */}
+                <Grid item xs={12} md={4}>
+                    <Box sx={{ position: 'sticky', top: 100 }}>
+                        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #E5E7EB', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.08)' }}>
+                            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 3 }}>
+                                <Typography variant="h3" fontWeight={800} color="#111827">KES {resource.price || 0}</Typography>
+                                <Typography variant="body2" color="text.secondary" fontWeight={500}>One-time payment</Typography>
+                            </Stack>
+
+                            <Button 
+                                variant="contained" fullWidth size="large" onClick={handleBuyNow}
+                                sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', mb: 2, textTransform: 'none', boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)' }}
+                            >
+                                Buy Now
+                            </Button>
+
+                            <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 3 }}>
+                                Secure payment via M-Pesa
+                            </Typography>
+
+                            <Stack spacing={2}>
+                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                    <CheckCircleIcon color="success" fontSize="small" />
+                                    <Typography variant="body2">Instant Download</Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                    <VerifiedIcon color="primary" fontSize="small" />
+                                    <Typography variant="body2">Quality Checked</Typography>
+                                </Stack>
+                            </Stack>
+                        </Paper>
+                    </Box>
+                </Grid>
+            </Grid>
+        </Container>
+
+        {/* --- CHECKOUT DIALOG --- */}
+        <Dialog 
+            open={buyOpen} 
+            onClose={handleManualCancel} 
+            maxWidth="xs" 
+            fullWidth
+            PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        >
+            <DialogTitle sx={{ fontWeight: 800 }}>
+                {isPolling ? "Processing..." : "Checkout"}
+            </DialogTitle>
+            
+            <DialogContent sx={{ textAlign: isPolling ? 'center' : 'left', py: isPolling ? 4 : 2 }}>
+                {!isPolling ? (
+                    // NORMAL FORM
+                    <>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                            Purchase <b>{resource.title}</b>
+                        </Typography>
+                        
+                        <TextField
+                            select
+                            label="Payment Method"
+                            fullWidth
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            sx={{ mb: 3 }}
+                        >
+                            {paymentMethods.map(opt => (
+                                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                            ))}
+                        </TextField>
+
+                        {paymentMethod === 'mpesa' && (
+                            <Box sx={{ bgcolor: '#F0FDF4', p: 2, borderRadius: 2, border: '1px solid #DCFCE7' }}>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                                    <PhoneIphoneIcon color="success" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight={700} color="success.main">M-Pesa Number</Typography>
+                                </Stack>
+                                <TextField
+                                    fullWidth
+                                    placeholder="e.g. 0712345678"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    size="small"
+                                    sx={{ bgcolor: 'white' }}
+                                />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                    You will receive a PIN prompt on your phone.
+                                </Typography>
+                            </Box>
+                        )}
+                    </>
+                ) : (
+                    // POLLING STATE
+                    <Box>
+                        <CircularProgress size={60} thickness={4} sx={{ mb: 3, color: '#16A34A' }} />
+                        <Typography variant="h6" fontWeight={700} gutterBottom>
+                            Check your phone
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300, mx: 'auto', mb: 2 }}>
+                            We've sent a prompt to <b>{phoneNumber}</b>. Enter your PIN to complete the purchase.
+                        </Typography>
+                        <Chip label="Waiting for confirmation..." color="warning" variant="outlined" size="small" />
+                    </Box>
+                )}
+            </DialogContent>
+
+            <DialogActions sx={{ px: 3, pb: 3, flexDirection: isPolling ? 'column' : 'row', gap: 2 }}>
+                {isPolling ? (
+                    <>
+                        <Button 
+                            onClick={handleIPaid} 
+                            variant="contained" 
+                            fullWidth 
+                            startIcon={<MessageIcon />}
+                            color="success"
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                        >
+                            I have received the SMS
+                        </Button>
+                        <Button 
+                            onClick={handleManualCancel} 
+                            fullWidth 
+                            color="inherit" 
+                            sx={{ color: 'text.secondary', fontSize: '0.85rem' }}
+                        >
+                            Cancel Payment
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button onClick={() => setBuyOpen(false)} sx={{ fontWeight: 600, color: 'text.secondary' }}>Cancel</Button>
+                        <Button 
+                            variant="contained" 
+                            onClick={handlePayment} 
+                            disabled={processing}
+                            sx={{ borderRadius: 2, px: 3, fontWeight: 700, boxShadow: 'none' }}
+                        >
+                            {processing ? "Sending..." : `Pay KES ${resource.price}`}
+                        </Button>
+                    </>
+                )}
+            </DialogActions>
+        </Dialog>
+        
+        {/* LOGIN PROMPT DIALOG */}
+        <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)}>
+            <DialogTitle sx={{ fontWeight: 700 }}>Log in Required</DialogTitle>
+            <DialogContent>
+                <Typography>Please log in to purchase this resource.</Typography>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={() => setLoginPrompt(false)} color="inherit">Cancel</Button>
+                <Button onClick={() => navigate('/login')} variant="contained" autoFocus>Log In</Button>
+            </DialogActions>
+        </Dialog>
+
+        {/* --- SNACKBAR --- */}
+        <Snackbar
+            open={toast.open}
+            autoHideDuration={6000}
+            onClose={handleCloseToast}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+            <Alert 
+                onClose={handleCloseToast} 
+                severity={toast.severity} 
+                variant="filled"
+                sx={{ width: '100%', borderRadius: 3, fontWeight: 600 }}
             >
-              BUY NOW
-            </Button>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Full Description</Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>{resource.longDescription || resource.description}</Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-      {/* Reviews Section */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" fontWeight={600} gutterBottom>Reviews</Typography>
-        {resource && resource.averageRating != null && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Rating value={resource.averageRating} precision={0.1} readOnly />
-            <Typography variant="body2" sx={{ ml: 1 }}>{resource.averageRating.toFixed(1)} / 5</Typography>
-            <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>({resource.reviews?.length || 0} reviews)</Typography>
-          </Box>
-        )}
-        {/* Review Form */}
-        {isLoggedIn && canReview && !reviewed && (
-          <Box component="form" onSubmit={handleReviewSubmit} sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 2, boxShadow: 1 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Leave a Review</Typography>
-            <Rating
-              value={reviewRating}
-              onChange={(_, newValue) => setReviewRating(newValue || 0)}
-              size="large"
-              sx={{ mb: 1 }}
-            />
-            <TextField
-              label="Comment (optional)"
-              value={reviewComment}
-              onChange={e => setReviewComment(e.target.value)}
-              fullWidth
-              multiline
-              minRows={2}
-              sx={{ mb: 1 }}
-            />
-            {reviewError && <Typography color="error" sx={{ mb: 1 }}>{reviewError}</Typography>}
-            <Button type="submit" variant="contained" color="primary" disabled={reviewSubmitting}>
-              {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
-            </Button>
-          </Box>
-        )}
-        {/* Review List */}
-        {resource && resource.reviews && resource.reviews.length > 0 ? (
-          <Box>
-            {resource.reviews.map((rev: any) => (
-              <Paper key={rev.id} sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Rating value={rev.rating} readOnly size="small" />
-                  <Typography variant="subtitle2" sx={{ ml: 1 }}>{rev.studentName}</Typography>
-                  <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>{rev.createdAt ? new Date(rev.createdAt).toLocaleString() : ''}</Typography>
-                </Box>
-                <Typography variant="body2">{rev.comment}</Typography>
-              </Paper>
-            ))}
-          </Box>
-        ) : (
-          <Typography color="text.secondary">No reviews yet.</Typography>
-        )}
-      </Box>
-      {/* Buy Now Dialog */}
-      <Dialog open={buyOpen} onClose={() => setBuyOpen(false)} aria-labelledby="buy-dialog-title">
-        <DialogTitle id="buy-dialog-title">Complete Your Purchase</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <TextField
-              select
-              label="Payment Method"
-              value={paymentMethod}
-              onChange={e => setPaymentMethod(e.target.value)}
-              aria-label="Select payment method"
-            >
-              {paymentMethods.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </TextField>
-          </FormControl>
-          {/* Add payment details fields as needed */}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBuyOpen(false)} disabled={processing}>Cancel</Button>
-          <Button onClick={handlePayment} variant="contained" color="primary" disabled={processing}>
-            {processing ? <CircularProgress size={24} /> : 'Pay Now'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Login Prompt Dialog */}
-      <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)} aria-labelledby="login-dialog-title">
-        <DialogTitle id="login-dialog-title">Sign In Required</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2 }}>You must be logged in to purchase resources.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLoginPrompt(false)}>Cancel</Button>
-          <Button onClick={() => navigate('/login')} variant="contained" color="primary">Sign In</Button>
-        </DialogActions>
-      </Dialog>
+                {toast.message}
+            </Alert>
+        </Snackbar>
+
     </Box>
   );
 };
 
-export default ResourceDetail; 
+export default ResourceDetail;

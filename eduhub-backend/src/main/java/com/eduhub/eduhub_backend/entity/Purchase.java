@@ -17,6 +17,9 @@ public class Purchase {
     @JoinColumn(name = "resource_id")
     private TeacherResource resource;
 
+    // --- ADDED THIS FIELD ---
+    private Double price; 
+
     private LocalDateTime purchasedAt;
 
     public Purchase() {
@@ -26,6 +29,10 @@ public class Purchase {
         this.student = student;
         this.resource = resource;
         this.purchasedAt = purchasedAt;
+        // Optionally auto-set price if resource is provided
+        if (resource != null) {
+            this.price = resource.getPrice();
+        }
     }
 
     public Long getId() {
@@ -58,5 +65,14 @@ public class Purchase {
 
     public void setPurchasedAt(LocalDateTime purchasedAt) {
         this.purchasedAt = purchasedAt;
+    }
+
+    // --- ADDED GETTER AND SETTER ---
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
     }
 }

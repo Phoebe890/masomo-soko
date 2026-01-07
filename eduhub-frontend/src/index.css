@@ -1,13 +1,25 @@
-/* 1. Import the Inter Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* 1. Import Plus Jakarta Sans from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* --- GLOBAL SCALE CONTROL --- */
+html {
+  font-size: 14px; /* Keeps the scale refined */
+}
+
+@media (max-width: 600px) {
+  html {
+    font-size: 15px; 
+  }
+}
 
 :root {
-  /* 2. Force Inter as the main font */
-  font-family: 'Inter', sans-serif;
-  line-height: 1.5;
+  /* 2. Change the font family here */
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  
+  /* Slightly increase line height for better readability in education */
+  line-height: 1.6;
   font-weight: 400;
 
-  /* Basic text settings */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -19,8 +31,6 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #ffffff; /* Ensure background is white */
-  color: #2d2f31; /* Standard dark grey text */
-  
-  
+  background-color: #ffffff;
+  color: #0f172a; /* The Cool Slate color */
 }

@@ -1,374 +1,150 @@
 import React, { useEffect, useState } from 'react';
 import { 
-    Box, Typography, Button, Avatar, 
-    Grid, IconButton, Menu, MenuItem, 
-    useTheme, useMediaQuery, Chip, Container, Paper, 
-    Divider, ListItemIcon, List, ListItem, ListItemAvatar, ListItemText, 
-    CircularProgress
+    Box, Typography, Grid, Paper, Chip, CircularProgress, 
+    List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, useTheme 
 } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import TeacherLayout from '../../components/TeacherLayout';
 
 // Icons
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import MenuIcon from '@mui/icons-material/Menu';
-import AddIcon from '@mui/icons-material/Add';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import PeopleIcon from '@mui/icons-material/People';
-import LogoutIcon from '@mui/icons-material/Logout';
-import HomeIcon from '@mui/icons-material/Home';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import PeopleIcon from '@mui/icons-material/PeopleOutline';
+import StarIcon from '@mui/icons-material/Star';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
-// Import Sidebar
-import TeacherSidebar from './TeacherSidebar';
+const BACKEND_URL = "http://localhost:8081";
 
-// Import Loading Context (Ensure this path is correct for your project)
-import { useLoading } from '../../context/LoadingContext';
-
-// --- Types based on your Spring Boot DTOs ---
-interface TeacherResourceDTO {
-    id: number;
-    title: string;
-    subject: string;
-    price: number;
-    pricing: string;
-    salesCount?: number; // Optional depending on DTO
-}
-
-interface TeacherProfile {
-    bio: string;
-    profilePicPath: string;
-    paymentNumber: string;
-}
-
-interface DashboardData {
-    resources: TeacherResourceDTO[];
-    totalSales: number;
-    currentBalance: number;
-    profile: TeacherProfile | null;
-}
-
-const TeacherDashboard: React.FC = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
+const TeacherDashboard = () => {
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<any>(null);
+    const [chartData, setChartData] = useState<any[]>([]);
 
-    // Loading Context
-    const { startLoading, stopLoading } = useLoading();
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // 1. Fetch Dashboard Stats
+                const dashRes = await axios.get(`${BACKEND_URL}/api/teacher/dashboard`, { withCredentials: true });
+                setData(dashRes.data);
 
-    // State
-    const [dashboardData, setDashboardData] = useState<DashboardData>({
-        resources: [],
-        totalSales: 0,
-        currentBalance: 0.0,
-        profile: null
-    });
-    
-    // UI State
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+                // 2. Fetch Analytics (Chart Data)
+                const analyticsRes = await axios.get(`${BACKEND_URL}/api/teacher/analytics`, { withCredentials: true });
+                const rawSales = analyticsRes.data.salesLast30Days || {};
+                
+                // Transform data for Recharts
+                const formattedChart = Object.keys(rawSales).sort().map(dateKey => ({
+                    date: new Date(dateKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    sales: rawSales[dateKey]
+                }));
+                setChartData(formattedChart.length > 0 ? formattedChart : [{ date: 'Today', sales: 0 }]);
 
-    // Fetch Data from Backend
-   // Inside TeacherDashboard.tsx
-
-useEffect(() => {
-    const fetchData = async () => {
-        startLoading();
-        try {
-            // FIX: Ensure this is http://localhost:8081
-            const response = await axios.get('http://localhost:8081/api/teacher/dashboard', {
-                withCredentials: true
-            });
-
-            if (response.status === 200) {
-                setDashboardData(response.data);
+            } catch (error) {
+                console.error("Error fetching dashboard:", error);
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error("Error fetching dashboard data:", error);
-        } finally {
-            stopLoading();
-        }
+        };
+        fetchData();
+    }, []);
+
+    // Helper: Calculate Avg Rating
+    const getAvgRating = () => {
+        if (!data?.resources) return "0.0";
+        let total = 0, count = 0;
+        data.resources.forEach((r: any) => r.reviews?.forEach((rv: any) => { total += rv.rating; count++; }));
+        return count === 0 ? "0.0" : (total / count).toFixed(1);
     };
 
-    fetchData();
-}, []);
-
-    // Handlers
-    const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
-    const handleMenuClose = () => setAnchorEl(null);
-    
-    const handleLogout = async () => {
-        startLoading();
-        try {
-            // Optional: Call backend logout endpoint if you have one
-            // await axios.post('http://localhost:8080/logout'); 
-            
-            // Clear local storage
-            localStorage.clear();
-            
-            navigate('/'); // Redirect to Home/Login
-        } catch (error) {
-            console.error("Logout failed", error);
-        } finally {
-            stopLoading();
-            handleMenuClose();
-        }
-    };
-
-    // --- SUB-COMPONENTS ---
-
-    const StatWidget = ({ title, value, icon, trend, color }: any) => (
-        <Paper elevation={0} sx={{ 
-            p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
-        }}>
+    const StatWidget = ({ title, value, icon, color }: any) => (
+        <Paper
+            elevation={0}
+            sx={{
+                p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                border: `1px solid ${theme.palette.divider}`, borderRadius: 4,
+                transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' }
+            }}
+        >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: `${color}15`, color: color }}>
-                    {icon}
-                </Box>
-                {trend && (
-                    <Chip 
-                        label={trend} 
-                        size="small" 
-                        sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, borderRadius: 1 }} 
-                    />
-                )}
+                <Box sx={{ p: 1.5, borderRadius: 3, bgcolor: alpha(color, 0.1), color: color }}>{icon}</Box>
+                <Chip icon={<ArrowUpwardIcon sx={{ width: 14 }} />} label="Live" size="small" sx={{ bgcolor: alpha(color, 0.1), color: color, fontWeight: 700, borderRadius: 1 }} />
             </Box>
             <Box>
-                <Typography variant="h4" fontWeight={800} sx={{ color: '#0E243C' }}>{value}</Typography>
+                <Typography variant="h4" fontWeight={800} sx={{ color: '#111827' }}>{value}</Typography>
                 <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
             </Box>
         </Paper>
     );
 
-    // Placeholder Chart - (Backend endpoint /analytics is separate, using mock data for UI visual)
-    const RevenueChart = () => (
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-                <Box>
-                    <Typography variant="h6" fontWeight={700}>Revenue Analytics</Typography>
-                    <Typography variant="body2" color="text.secondary">Income Overview</Typography>
-                </Box>
-                <Button variant="outlined" size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate('/teacher/analytics')}>
-                    Full Report
-                </Button>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 200, gap: 1 }}>
-                {[40, 65, 30, 80, 55, 90, 70].map((height, i) => (
-                    <Box key={i} sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ 
-                            width: '60%', 
-                            height: `${height}%`, 
-                            bgcolor: i === 6 ? theme.palette.primary.main : '#E2E8F0', 
-                            borderRadius: 2,
-                            transition: 'height 1s',
-                            '&:hover': { bgcolor: theme.palette.primary.main }
-                        }} />
-                        <Typography variant="caption" color="text.secondary">
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
-                        </Typography>
-                    </Box>
-                ))}
-            </Box>
-        </Paper>
-    );
+    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8F9FA' }}>
-            
-            <TeacherSidebar 
-                selectedRoute={location.pathname} 
-                mobileOpen={sidebarOpen} 
-                onClose={() => setSidebarOpen(false)} 
-            />
-
-            <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` } }}>
-                
-                {/* --- HEADER --- */}
-                <Box sx={{ 
-                    bgcolor: 'white', px: { xs: 2, md: 4 }, py: 2, 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    borderBottom: '1px solid #E0E0E0', position: 'sticky', top: 0, zIndex: 100
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {isMobile && <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>}
-                        <Typography variant="h6" fontWeight={800} color="text.primary">Dashboard Overview</Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<AddIcon />} 
-                            onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
-                            sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', display: { xs: 'none', sm: 'flex' } }}
-                        >
-                            Upload
-                        </Button>
-                        <IconButton><NotificationsNoneIcon /></IconButton>
-                        
-                        {/* PROFILE AVATAR FROM BACKEND DATA */}
-                        <Avatar 
-                            src={dashboardData.profile?.profilePicPath} 
-                            onClick={handleAvatarClick} 
-                            sx={{ cursor: 'pointer', bgcolor: theme.palette.primary.main, width: 36, height: 36 }}
-                        >
-                            {/* Fallback Initial */}
-                            T
-                        </Avatar>
-                        
-                        <Menu 
-                            anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
-                            PaperProps={{ sx: { minWidth: 200, mt: 1.5, borderRadius: 3, boxShadow: 3 } }}
-                            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                        >
-                            <MenuItem onClick={() => { handleMenuClose(); navigate('/'); }}><ListItemIcon><HomeIcon fontSize="small" /></ListItemIcon>Home Page</MenuItem>
-                            <MenuItem onClick={() => { handleMenuClose(); navigate('/teacher/settings'); }}><ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>Settings</MenuItem>
-                            <Divider />
-                            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}><ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>Logout</MenuItem>
-                        </Menu>
-                    </Box>
-                </Box>
-
-                {/* --- MAIN CONTENT BODY --- */}
-                <Container maxWidth="xl" sx={{ p: { xs: 2, md: 4 } }}>
-                    
-                    {/* 1. STATS ROW - Data from Backend */}
-                    <Grid container spacing={3} sx={{ mb: 4 }}>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget 
-                                title="Total Earnings" 
-                                value={`KES ${dashboardData.currentBalance.toLocaleString()}`} 
-                                icon={<AttachMoneyIcon />} 
-                                color={theme.palette.success.main}
-                                trend="Lifetime"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget 
-                                title="Total Sales" 
-                                value={dashboardData.totalSales} 
-                                icon={<ShoppingBagIcon />} 
-                                color={theme.palette.primary.main}
-                                trend="Items sold"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget 
-                                title="Total Resources" 
-                                value={dashboardData.resources.length} 
-                                icon={<PeopleIcon />} 
-                                color="#8B5CF6" // Purple
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget 
-                                title="Avg. Rating" 
-                                value="4.8" 
-                                icon={<TrendingUpIcon />} 
-                                color="#F59E0B" // Orange
-                            />
-                        </Grid>
-                    </Grid>
-
-                    {/* 2. ANALYTICS & ACTIVITY ROW */}
-                    <Grid container spacing={3} sx={{ mb: 4 }}>
-                        {/* Revenue Chart */}
-                        <Grid item xs={12} md={8}>
-                            <RevenueChart />
-                        </Grid>
-                        
-                        {/* Recent Activity (Placeholder as backend dashboard endpoint only gives summaries) */}
-                        <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #eee', height: '100%' }}>
-                                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>System Status</Typography>
-                                <List disablePadding>
-                                    <ListItem>
-                                        <ListItemAvatar><Avatar sx={{ bgcolor: '#E0F2FE', color: '#0284C7' }}><CheckCircleIcon /></Avatar></ListItemAvatar>
-                                        <ListItemText primary="Account Active" secondary="Your profile is visible" />
-                                    </ListItem>
-                                    <Divider variant="inset" component="li" />
-                                    <ListItem>
-                                        <ListItemAvatar><Avatar sx={{ bgcolor: '#FCE7F3', color: '#DB2777' }}><CloudUploadIcon /></Avatar></ListItemAvatar>
-                                        <ListItemText primary="Uploads Enabled" secondary="You can publish resources" />
-                                    </ListItem>
-                                </List>
-                            </Paper>
-                        </Grid>
-                    </Grid>
-
-                    {/* 3. QUICK ACTIONS & TOP RESOURCES TABLE */}
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={12}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6" fontWeight={700}>Your Resources</Typography>
-                                <Button onClick={() => navigate('/dashboard/teacher/resources')}>View All</Button>
-                            </Box>
-                            
-                            <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #eee', overflow: 'hidden' }}>
-                                {/* Table Header */}
-                                <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, bgcolor: '#F8F9FA', borderBottom: '1px solid #eee' }}>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">RESOURCE NAME</Typography>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">SUBJECT</Typography>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">PRICE</Typography>
-                                    <Typography variant="caption" fontWeight={700} color="text.secondary">STATUS</Typography>
-                                </Box>
-                                
-                                {/* Rows - Mapped from Backend Data */}
-                                {dashboardData.resources.length > 0 ? (
-                                    dashboardData.resources.slice(0, 5).map((resource, index) => (
-                                        <Box key={resource.id} sx={{ 
-                                            display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr', p: 2, 
-                                            borderBottom: '1px solid #f0f0f0',
-                                            alignItems: 'center',
-                                            '&:hover': { bgcolor: '#F8F9FA' }
-                                        }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                {/* Fallback Icon for resource */}
-                                                <Box sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: '#eee', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                                    <PeopleIcon fontSize="small" color="disabled"/>
-                                                </Box>
-                                                <Typography variant="body2" fontWeight={600}>{resource.title}</Typography>
-                                            </Box>
-                                            <Typography variant="body2">{resource.subject}</Typography>
-                                            <Typography variant="body2" fontWeight={600}>
-                                                {resource.pricing === "Free" ? "Free" : `KES ${resource.price}`}
-                                            </Typography>
-                                            <Chip 
-                                                label="Active" 
-                                                size="small" 
-                                                sx={{ bgcolor: '#E6FFFA', color: '#047857', fontWeight: 700, width: 'fit-content' }} 
-                                            />
-                                        </Box>
-                                    ))
-                                ) : (
-                                    <Box sx={{ p: 4, textAlign: 'center' }}>
-                                        <Typography color="text.secondary">You haven't uploaded any resources yet.</Typography>
-                                        <Button 
-                                            variant="outlined" sx={{ mt: 2 }}
-                                            onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
-                                        >
-                                            Upload First Resource
-                                        </Button>
-                                    </Box>
-                                )}
-                            </Paper>
-                        </Grid>
-                    </Grid>
-
-                </Container>
+        <TeacherLayout title="Dashboard" selectedRoute="/dashboard/teacher">
+            <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" fontWeight={800} sx={{ color: '#111827' }}>Welcome back, {data?.profile?.user?.name || 'Instructor'}</Typography>
+                <Typography variant="body1" color="text.secondary">Here is an overview of your performance.</Typography>
             </Box>
-        </Box>
+
+            {/* 1. STATS GRID */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatWidget title="Total Earnings" value={`KES ${data?.currentBalance?.toLocaleString()}`} icon={<AttachMoneyIcon fontSize="large" />} color="#10B981" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatWidget title="Total Sales" value={data?.totalSales} icon={<ShoppingBagIcon fontSize="large" />} color="#3B82F6" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatWidget title="Active Resources" value={data?.resources?.length} icon={<PeopleIcon fontSize="large" />} color="#8B5CF6" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                    <StatWidget title="Average Rating" value={getAvgRating()} icon={<StarIcon fontSize="large" />} color="#F59E0B" />
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={3}>
+                {/* 2. CHART */}
+                <Grid item xs={12} md={8}>
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 400 }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Revenue Analytics</Typography>
+                        <ResponsiveContainer width="100%" height="90%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                <XAxis dataKey="date" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                <Area type="monotone" dataKey="sales" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </Paper>
+                </Grid>
+
+                {/* 3. RECENT ACTIVITY */}
+                <Grid item xs={12} md={4}>
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%', maxHeight: 400, overflow: 'auto' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Activity</Typography>
+                        <List disablePadding>
+                            {/* Assuming notifications are part of data or fetched separately. using static/empty check for now based on your logic */}
+                            <ListItem>
+                                <ListItemAvatar>
+                                    <Avatar sx={{ bgcolor: '#EEF2FF', color: '#3B82F6' }}><NotificationsActiveIcon fontSize="small" /></Avatar>
+                                </ListItemAvatar>
+                                <ListItemText primary="System Welcome" secondary="Welcome to your new dashboard!" />
+                            </ListItem>
+                            <Divider component="li" variant="inset" />
+                        </List>
+                    </Paper>
+                </Grid>
+            </Grid>
+        </TeacherLayout>
     );
 };
-
-// Simple icon import helper for the status section
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 export default TeacherDashboard;

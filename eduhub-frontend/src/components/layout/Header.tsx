@@ -13,14 +13,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'; 
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
-import HomeIcon from '@mui/icons-material/Home';
 import StorefrontIcon from '@mui/icons-material/Storefront';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DashboardIcon from '@mui/icons-material/Dashboard'; // Filled Icon for Menu
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'; // Outlined for Mobile
+import DashboardIcon from '@mui/icons-material/Dashboard'; 
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LoginIcon from '@mui/icons-material/Login';
-import HowToRegIcon from '@mui/icons-material/HowToReg';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SchoolIcon from '@mui/icons-material/School'; 
@@ -33,8 +28,6 @@ const Header: React.FC = () => {
   const isLoggedIn = Boolean(localStorage.getItem('email'));
   const userInitial = localStorage.getItem('email')?.[0]?.toUpperCase() || 'U';
   const userRole = localStorage.getItem('role'); 
-  
-  // Determine Dashboard URL based on Role
   const isTeacher = userRole === 'TEACHER' || userRole === 'ROLE_TEACHER';
   const dashboardRoute = isTeacher ? '/dashboard/teacher' : '/dashboard/student';
 
@@ -49,7 +42,7 @@ const Header: React.FC = () => {
   const handleMenuClose = () => setAnchorEl(null);
   
   const handleLogout = () => {
-    localStorage.clear(); // Clear all auth data
+    localStorage.clear(); 
     window.location.href = '/';
   };
 
@@ -60,10 +53,6 @@ const Header: React.FC = () => {
       setSearchOpen(false); 
     }
   };
-
-  const navLinks = [
-    { label: 'Browse', to: '/browse', icon: <StorefrontIcon /> },
-  ];
 
   // --- STYLES ---
   const styles = {
@@ -83,18 +72,24 @@ const Header: React.FC = () => {
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
-        backgroundColor: '#f3f4f6', 
-        height: 44,
+        backgroundColor: '#f8f9fa', 
+        height: 48,
         paddingRight: 1,
-        transition: 'all 0.2s ease',
-        '& fieldset': { borderWidth: '1px', borderColor: 'transparent' },
-        '&:hover': { backgroundColor: '#e5e7eb' },
+        border: '1px solid transparent',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        '& fieldset': { border: 'none' },
+        '&:hover': { 
+            backgroundColor: '#fff',
+            border: '1px solid #d1d7dc',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+        },
         '&.Mui-focused': {
           backgroundColor: '#fff',
-          boxShadow: `0 0 0 2px ${theme.palette.primary.main}20`,
-          '& fieldset': { borderColor: theme.palette.primary.main },
+          border: `1px solid ${theme.palette.primary.main}`,
+          boxShadow: `0 0 0 4px ${theme.palette.primary.main}15`,
         },
-      }
+      },
+      '& input': { fontSize: '0.95rem', color: '#333' }
     },
     menuPaper: {
       mt: 1.5, 
@@ -102,7 +97,7 @@ const Header: React.FC = () => {
       borderRadius: 3, 
       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
       overflow: 'visible',
-      '&:before': { // The little triangle arrow
+      '&:before': { 
         content: '""',
         display: 'block',
         position: 'absolute',
@@ -119,14 +114,36 @@ const Header: React.FC = () => {
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
-      <AppBar position="sticky" elevation={0} sx={styles.appBar}>
+      
+      {/* 1. IMPORT THE STYLISH FONT */}
+      <style>
+        {`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');`}
+      </style>
+
+      <AppBar 
+        position="fixed" 
+        elevation={0} 
+        sx={{ ...styles.appBar, zIndex: 1100 }}
+      >
         <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* 1. BRANDING */}
+          {/* --- BRANDING (Updated) --- */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 32, mr: 1 }} />
-              <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ letterSpacing: '-0.5px' }}>
-                EduHub
+              {/* Icon is now Orange to match */}
+              <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />
+              
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                    fontFamily: "'Playfair Display', serif", // The "Word-like" stylish font
+                    fontWeight: 900, 
+                    color: '#ea580c', // A rich, deep Orange/Gold
+                    letterSpacing: '-0.5px',
+                    fontSize: '1.7rem',
+                    fontStyle: 'italic' // Slight italic for extra style
+                }}
+              >
+                Masomo Soko.
               </Typography>
           </Box>
 
@@ -141,8 +158,8 @@ const Header: React.FC = () => {
                 sx={styles.searchField}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start" sx={{ pl: 1 }}>
-                      <SearchIcon color="disabled" fontSize="small" />
+                    <InputAdornment position="start" sx={{ pl: 1.5, mr: -0.5 }}>
+                      <SearchIcon sx={{ color: '#666' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -152,15 +169,12 @@ const Header: React.FC = () => {
 
           {/* 3. NAVIGATION & ACTIONS */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-            
-            {/* Mobile Search Trigger */}
             {isMobile && (
               <IconButton onClick={() => setSearchOpen(true)}>
                 <SearchIcon />
               </IconButton>
             )}
 
-            {/* Desktop Browse Link */}
             {!isMobile && (
               <Button component={RouterLink} to="/browse" sx={styles.navLink}>
                 Browse
@@ -168,23 +182,20 @@ const Header: React.FC = () => {
             )}
 
             {isLoggedIn ? (
-              // --- LOGGED IN STATE ---
+              // --- LOGGED IN ---
               <>
                 {!isMobile && (
                   <>
-                     {/* "Teach" Link - Only if they are a teacher (Pattern from Airbnb/Udemy) */}
                      {isTeacher && (
                         <Button component={RouterLink} to="/dashboard/teacher/upload-first-resource" sx={styles.navLink}>
                            Teach
                         </Button>
                      )}
-                     
                      <Tooltip title="Shopping Cart">
                         <IconButton component={RouterLink} to="/cart" size="small">
                             <ShoppingCartOutlinedIcon />
                         </IconButton>
                      </Tooltip>
-
                      <Tooltip title="Notifications">
                         <IconButton size="small">
                             <Badge color="error" variant="dot">
@@ -195,24 +206,16 @@ const Header: React.FC = () => {
                   </>
                 )}
                 
-                {/* USER AVATAR (The Main Dashboard Entry) */}
                 <IconButton 
                     onClick={handleAvatarClick} 
                     size="small"
-                    sx={{ 
-                        ml: 1, 
-                        p: 0.5,
-                        border: `1px solid ${theme.palette.divider}`,
-                        transition: '0.2s',
-                        '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
-                    }}
+                    sx={{ ml: 1, p: 0.5, border: `1px solid ${theme.palette.divider}` }}
                 >
                   <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32, fontSize: '0.9rem', fontWeight: 700 }}>
                     {userInitial}
                   </Avatar>
                 </IconButton>
 
-                {/* --- MODERN DROPDOWN MENU --- */}
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
@@ -222,21 +225,11 @@ const Header: React.FC = () => {
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  {/* Top Section: Dashboard Link */}
                   <MenuItem component={RouterLink} to={dashboardRoute} sx={{ py: 1.5, px: 2.5 }}>
-                      <ListItemIcon>
-                          <DashboardIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                          primary="Dashboard" 
-                          primaryTypographyProps={{ fontWeight: 700 }}
-                          secondary="Manage your activity"
-                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
-                      />
+                      <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
+                      <ListItemText primary="Dashboard" />
                   </MenuItem>
-                  
                   <Divider />
-
                   <MenuItem component={RouterLink} to="/profile" sx={{ py: 1.5 }}>
                       <ListItemIcon><PersonOutlineIcon fontSize="small"/></ListItemIcon> 
                       Public Profile
@@ -245,9 +238,7 @@ const Header: React.FC = () => {
                       <ListItemIcon><SettingsOutlinedIcon fontSize="small"/></ListItemIcon> 
                       Account Settings
                   </MenuItem>
-                  
                   <Divider />
-                  
                   <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: 'error.main' }}>
                       <ListItemIcon><LogoutIcon fontSize="small" color="error"/></ListItemIcon> 
                       Log out
@@ -255,7 +246,7 @@ const Header: React.FC = () => {
                 </Menu>
               </>
             ) : (
-              // --- LOGGED OUT STATE ---
+              // --- LOGGED OUT ---
               !isMobile && (
                 <>
                   <Button component={RouterLink} to="/login" sx={{ ...styles.navLink, fontWeight: 700 }}>Log in</Button>
@@ -264,11 +255,7 @@ const Header: React.FC = () => {
                     to="/register" 
                     variant="contained" 
                     sx={{ 
-                        borderRadius: 50, 
-                        textTransform: 'none', 
-                        fontWeight: 700,
-                        px: 3,
-                        boxShadow: 'none'
+                        borderRadius: 50, textTransform: 'none', fontWeight: 700, px: 3, boxShadow: 'none'
                     }}
                   >
                     Sign up
@@ -277,7 +264,6 @@ const Header: React.FC = () => {
               )
             )}
 
-            {/* Mobile Hamburger */}
             {isMobile && (
               <IconButton edge="end" onClick={() => setDrawerOpen(true)}>
                 <MenuIcon />
@@ -291,18 +277,31 @@ const Header: React.FC = () => {
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          sx={{ zIndex: 1200 }} // Over Navbar
           PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
         >
           <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-            <Typography variant="h6" fontWeight={800} color="primary">EduHub</Typography>
-            <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon /></IconButton>
+            {/* Branding in Mobile Menu */}
+            <Typography 
+                variant="h6" 
+                sx={{ 
+                    fontFamily: "'Playfair Display', serif", 
+                    fontWeight: 900, 
+                    color: '#ea580c', 
+                    fontStyle: 'italic'
+                }}
+            >
+                Masomo Soko.
+            </Typography>
+            <IconButton onClick={() => setDrawerOpen(false)}>
+                <CloseIcon />
+            </IconButton>
           </Box>
 
           <Box sx={{ p: 2 }}>
             <List>
                {isLoggedIn ? (
                  <>
-                    {/* Highlighted Dashboard Link for Mobile */}
                     <ListItemButton 
                         component={RouterLink} 
                         to={dashboardRoute} 
@@ -310,16 +309,14 @@ const Header: React.FC = () => {
                         sx={{ bgcolor: theme.palette.primary.main + '15', borderRadius: 2, mb: 1 }}
                     >
                         <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
-                        <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 700, color: 'primary' }} />
+                        <ListItemText primary="Dashboard" />
                     </ListItemButton>
-
                     <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)}>
                         <ListItemIcon><PersonOutlineIcon /></ListItemIcon>
                         <ListItemText primary="Profile" />
                     </ListItemButton>
                  </>
                ) : (
-                 // Mobile Login/Signup
                  <Stack spacing={2} sx={{ mb: 3 }}>
                     <Button variant="contained" fullWidth component={RouterLink} to="/register" size="large" onClick={() => setDrawerOpen(false)}>
                         Sign up
@@ -348,7 +345,12 @@ const Header: React.FC = () => {
         </Drawer>
 
         {/* ---------------- MOBILE SEARCH OVERLAY ---------------- */}
-        <Drawer anchor="top" open={searchOpen} onClose={() => setSearchOpen(false)}>
+        <Drawer 
+            anchor="top" 
+            open={searchOpen} 
+            onClose={() => setSearchOpen(false)}
+            sx={{ zIndex: 1200 }}
+        >
           <Box sx={{ p: 2, display: 'flex', gap: 1 }} component="form" onSubmit={handleSearch}>
             <TextField
               autoFocus
@@ -357,13 +359,14 @@ const Header: React.FC = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               size="small"
-              InputProps={{ sx: { borderRadius: 50 } }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 50, bgcolor: '#f8f9fa' } }}
             />
             <Button onClick={() => setSearchOpen(false)}>Cancel</Button>
           </Box>
         </Drawer>
 
       </AppBar>
+      <Toolbar sx={{ minHeight: 70 }} />
     </Box>
   );
 };

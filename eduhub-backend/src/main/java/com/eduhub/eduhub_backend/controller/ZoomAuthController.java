@@ -73,7 +73,7 @@ public class ZoomAuthController {
             String email = userNode.get("email").asText();
 
             // Find teacher by user email
-            TeacherProfile teacher = teacherProfileRepository.findByUserEmail(email)
+            TeacherProfile teacher = teacherProfileRepository.findByUser_Email(email)
                     .orElseThrow(() -> new RuntimeException("Teacher not found for email: " + email));
             teacher.setZoomAccessToken(accessToken);
             teacher.setZoomRefreshToken(refreshToken);

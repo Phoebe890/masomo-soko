@@ -10,6 +10,10 @@ public class TeacherProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+
     private String bio;
 
     @ElementCollection
@@ -19,99 +23,49 @@ public class TeacherProfile {
     private List<String> grades;
 
     private String paymentNumber;
-
     private String profilePicPath;
 
+    // --- NEW WALLET FIELD ---
+    private Double accountBalance = 0.0;
+
+    // Zoom Integration
     @Column(length = 1024)
     private String zoomAccessToken;
-
     @Column(length = 1024)
     private String zoomRefreshToken;
-
     private Instant zoomTokenExpiresAt;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 
-    public String getBio() {
-        return bio;
-    }
+    public List<String> getSubjects() { return subjects; }
+    public void setSubjects(List<String> subjects) { this.subjects = subjects; }
 
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
+    public List<String> getGrades() { return grades; }
+    public void setGrades(List<String> grades) { this.grades = grades; }
 
-    public List<String> getSubjects() {
-        return subjects;
-    }
+    public String getPaymentNumber() { return paymentNumber; }
+    public void setPaymentNumber(String paymentNumber) { this.paymentNumber = paymentNumber; }
 
-    public void setSubjects(List<String> subjects) {
-        this.subjects = subjects;
-    }
+    public String getProfilePicPath() { return profilePicPath; }
+    public void setProfilePicPath(String profilePicPath) { this.profilePicPath = profilePicPath; }
 
-    public List<String> getGrades() {
-        return grades;
-    }
+    public Double getAccountBalance() { return accountBalance; }
+    public void setAccountBalance(Double accountBalance) { this.accountBalance = accountBalance; }
 
-    public void setGrades(List<String> grades) {
-        this.grades = grades;
-    }
+    public String getZoomAccessToken() { return zoomAccessToken; }
+    public void setZoomAccessToken(String zoomAccessToken) { this.zoomAccessToken = zoomAccessToken; }
 
-    public String getPaymentNumber() {
-        return paymentNumber;
-    }
+    public String getZoomRefreshToken() { return zoomRefreshToken; }
+    public void setZoomRefreshToken(String zoomRefreshToken) { this.zoomRefreshToken = zoomRefreshToken; }
 
-    public void setPaymentNumber(String paymentNumber) {
-        this.paymentNumber = paymentNumber;
-    }
-
-    public String getProfilePicPath() {
-        return profilePicPath;
-    }
-
-    public void setProfilePicPath(String profilePicPath) {
-        this.profilePicPath = profilePicPath;
-    }
-
-    public String getZoomAccessToken() {
-        return zoomAccessToken;
-    }
-
-    public void setZoomAccessToken(String zoomAccessToken) {
-        this.zoomAccessToken = zoomAccessToken;
-    }
-
-    public String getZoomRefreshToken() {
-        return zoomRefreshToken;
-    }
-
-    public void setZoomRefreshToken(String zoomRefreshToken) {
-        this.zoomRefreshToken = zoomRefreshToken;
-    }
-
-    public Instant getZoomTokenExpiresAt() {
-        return zoomTokenExpiresAt;
-    }
-
-    public void setZoomTokenExpiresAt(Instant zoomTokenExpiresAt) {
-        this.zoomTokenExpiresAt = zoomTokenExpiresAt;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
+    public Instant getZoomTokenExpiresAt() { return zoomTokenExpiresAt; }
+    public void setZoomTokenExpiresAt(Instant zoomTokenExpiresAt) { this.zoomTokenExpiresAt = zoomTokenExpiresAt; }
 }

@@ -18,9 +18,6 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.lang.NonNull;
 
 import java.util.Arrays;
 
@@ -38,14 +35,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // When using allowCredentials(true), you must specify exact origins, no wildcards
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173", 
-            "http://localhost:3000", 
-            "http://127.0.0.1:5173", 
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
             "http://127.0.0.1:3000"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
@@ -54,21 +50,6 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/api/**")
-                        .allowedOrigins("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                        .allowedHeaders("*")
-                        .allowCredentials(true)
-                        .maxAge(3600);
-            }
-        };
     }
 
     @Bean
@@ -93,9 +74,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CORS must be configured before other security settings
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) 
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
@@ -103,36 +83,38 @@ public class SecurityConfig {
                         .securityContextRepository(securityContextRepository()))
                 .authenticationProvider(authenticationProvider())
                 .httpBasic(httpBasic -> httpBasic.disable())
+                
                 .authorizeHttpRequests(auth -> auth
-                        // Allow OPTIONS requests for CORS preflight - MUST be first
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Allow auth endpoints
                         .requestMatchers(
-                                "/api/auth/signup",
-                                "/api/auth/login",
-                                "/api/auth/zoom/callback",
-                                "/api/teacher/onboarding")
-                        .permitAll()
-                        // Allow public GET endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources", "/api/teacher/resources/**",
-                                "/api/teacher/top-contributors")
-                        .permitAll()
-                        // Teacher endpoints
+                                "/api/auth/**",
+                                "/api/teacher/top-contributors",
+                                "/api/payment/callback",
+                                "/uploads/**"
+                        ).permitAll()
+                        
+                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll()
+
                         .requestMatchers(
-                                "/api/teacher/dashboard",
-                                "/api/teacher/payout",
-                                "/api/coaching/create-meeting")
-                        .hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.POST, "/api/teacher/resources").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.PUT, "/api/teacher/resources/**").hasRole("TEACHER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/teacher/resources/**").hasRole("TEACHER")
-                        // Student endpoints
-                        .requestMatchers(
-                                "/api/student/dashboard",
-                                "/api/student/purchases",
-                                "/api/student/purchase")
-                        .hasRole("STUDENT")
-                        .anyRequest().authenticated());
+                                "/api/payment/pay",
+                                "/api/payment/status/**"
+                        ).authenticated() 
+                        
+                        .requestMatchers("/api/admin/**")
+                            .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+
+                        .requestMatchers("/api/teacher/onboarding")
+                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
+
+                        .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**")
+                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
+                        
+                        .requestMatchers("/api/student/**")
+                            .hasAnyAuthority("STUDENT", "ROLE_STUDENT")
+                        
+                        .anyRequest().authenticated()
+                );
         return http.build();
     }
 }

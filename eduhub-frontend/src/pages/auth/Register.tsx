@@ -11,7 +11,6 @@ import {
   IconButton, 
   Divider,
   Stack,
-  useMediaQuery,
   FormControlLabel,
   Checkbox
 } from '@mui/material';
@@ -21,10 +20,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 // 1. IMPORT LOADING HOOK
 import { useLoading } from '../../context/LoadingContext';
 
+// 2. IMPORT GOOGLE HOOK
+import { useGoogleLogin } from '@react-oauth/google';
+
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import GoogleIcon from '@mui/icons-material/Google';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const Register: React.FC = () => {
@@ -34,7 +35,6 @@ const Register: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const navigate = useNavigate();
 
-  // 2. GET LOADING FUNCTIONS
   const { startLoading, stopLoading } = useLoading();
 
   const initialRole = params.get('role') === 'teacher' ? 'teacher' : 'student';
@@ -51,11 +51,58 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // --- 3. GOOGLE SIGNUP HANDLER ---
+  const googleSignup = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      startLoading();
+      setMessage(null);
+      try {
+        // Pass the TOKEN and the selected ROLE to the backend
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+              token: tokenResponse.access_token,
+              role: formData.role.toUpperCase() // "TEACHER" or "STUDENT"
+          }),
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('email', data.email);
+          localStorage.setItem('role', data.role);
+          
+          setMessage('Google Signup Successful! Redirecting...');
+          
+          setTimeout(() => {
+             // Redirect based on the role returned by server
+             const userRole = data.role?.toUpperCase();
+             if (userRole === 'TEACHER') {
+                 navigate('/dashboard/teacher/onboarding'); // Go to onboarding for new teachers
+             } else if (userRole === 'STUDENT') {
+                 navigate('/dashboard/student');
+             } else {
+                 navigate('/');
+             }
+          }, 1000);
+        } else {
+          setMessage('Google authentication failed on server.');
+        }
+      } catch (err) {
+        setMessage('Network error during Google signup.');
+      } finally {
+        stopLoading();
+      }
+    },
+    onError: () => setMessage('Google Signup Failed'),
+  });
+
+  // --- MANUAL FORM SUBMIT ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
-    // 1. Client-side validation
     if (formData.password !== formData.confirmPassword) {
       setMessage('Passwords do not match.');
       return;
@@ -65,11 +112,9 @@ const Register: React.FC = () => {
       return;
     }
 
-    // 3. START LOADING
     startLoading();
 
     try {
-      // 2. API Call
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,17 +128,9 @@ const Register: React.FC = () => {
       });
 
       if (response.ok) {
-        // 3. Store Session Data
-        localStorage.setItem('email', formData.email.trim().toLowerCase());
-        localStorage.setItem('role', formData.role.toLowerCase());
-        
-        let target = '/dashboard/student';
-        if (formData.role.toLowerCase() === 'teacher') {
-          target = '/dashboard/teacher/onboarding';
-        }
-        
-        setMessage('Success! Redirecting...');
-        setTimeout(() => navigate(target), 1000);
+        // Auto-login logic could go here, or redirect to login
+        setMessage('Account created! Redirecting to login...');
+        setTimeout(() => navigate('/login'), 1500);
       } else {
         const data = await response.text();
         setMessage(data || 'Registration failed.');
@@ -101,7 +138,6 @@ const Register: React.FC = () => {
     } catch (error) {
       setMessage('An error occurred. Please try again.');
     } finally {
-      // 4. STOP LOADING
       stopLoading();
     }
   };
@@ -166,15 +202,35 @@ const Register: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
+            {/* --- GOOGLE SIGNUP BUTTON --- */}
             <Button
               fullWidth
               variant="outlined"
-              startIcon={<GoogleIcon />}
+              onClick={() => googleSignup()}
+              startIcon={
+                <img 
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                  alt="Google" 
+                  style={{ width: 20, height: 20 }} 
+                />
+              }
               sx={{ 
-                py: 1.5, mb: 3, color: '#555', borderColor: '#ddd', textTransform: 'none', fontWeight: 600,
-                '&:hover': { bgcolor: '#f5f5f5', borderColor: '#ccc' }
+                py: 1.5, mb: 3, 
+                color: '#3c4043', 
+                bgcolor: '#fff',
+                borderColor: '#dadce0', 
+                textTransform: 'none', 
+                fontWeight: 500,
+                fontSize: '1rem',
+                borderRadius: '8px',
+                boxShadow: '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': { 
+                  bgcolor: '#f7f8f8', 
+                  borderColor: '#dadce0',
+                  boxShadow: '0 1px 3px 0 rgba(60,64,67,0.30), 0 4px 8px 3px rgba(60,64,67,0.15)'
+                }
               }}
-              onClick={() => setMessage('Social login coming soon!')}
             >
               Sign up with Google
             </Button>
@@ -188,8 +244,8 @@ const Register: React.FC = () => {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <Box sx={{ 
                     p: 2, mb: 2, borderRadius: 2,
-                    bgcolor: message.includes('Success') ? 'success.light' : 'error.light', 
-                    color: message.includes('Success') ? 'success.contrastText' : 'error.contrastText',
+                    bgcolor: message.includes('Success') || message.includes('Redirecting') ? 'success.light' : 'error.light', 
+                    color: message.includes('Success') || message.includes('Redirecting') ? 'success.contrastText' : 'error.contrastText',
                   }}>
                     <Typography variant="body2" fontWeight={500}>{message}</Typography>
                   </Box>
@@ -286,14 +342,7 @@ const Register: React.FC = () => {
       </Grid>
 
       {/* RIGHT SIDE: IMAGE */}
-      <Grid 
-        item xs={false} md={6} 
-        sx={{ 
-          display: { xs: 'none', md: 'block' },
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
+      <Grid item xs={false} md={6} sx={{ display: { xs: 'none', md: 'block' }, position: 'relative', overflow: 'hidden' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={formData.role} 
@@ -310,19 +359,8 @@ const Register: React.FC = () => {
           />
         </AnimatePresence>
         
-        <Box
-          sx={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%)',
-            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', p: 8, color: 'white'
-          }}
-        >
-          <motion.div
-            key={tagline}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-          >
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', p: 8, color: 'white' }}>
+          <motion.div key={tagline} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }}>
             <Typography variant="h3" fontWeight={800} gutterBottom sx={{ lineHeight: 1.2 }}>
               {tagline}
             </Typography>
