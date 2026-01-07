@@ -37,6 +37,18 @@ import AvailabilityCalendar from './pages/teacher/AvailabilityCalendar';
 
 // --- UTILITY COMPONENTS ---
 
+// 1. NEW: ScrollToTop Component
+// This listens for route changes and scrolls the window to (0,0)
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function AuthGate() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -110,7 +122,9 @@ function App() {
     <>
       <AuthGate />
       
-      {}
+      {/* 2. ADDED: ScrollToTop here so it runs on every route change */}
+      <ScrollToTop />
+      
       {isDashboardRoute ? (
         appRoutes
       ) : (

@@ -18,7 +18,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import SchoolIcon from '@mui/icons-material/School'; // ORIGINAL LOGO ICON
+import SchoolIcon from '@mui/icons-material/School'; 
 
 const Header: React.FC = () => {
   const theme = useTheme();
@@ -69,36 +69,27 @@ const Header: React.FC = () => {
       mx: 0.5,
       '&:hover': { color: theme.palette.primary.main, bgcolor: 'transparent' },
     },
-    // --- ORIGINAL SEARCH BAR STYLING ---
     searchField: {
       '& .MuiOutlinedInput-root': {
         borderRadius: 50,
-        backgroundColor: '#f8f9fa', // Very light grey
+        backgroundColor: '#f8f9fa', 
         height: 48,
         paddingRight: 1,
         border: '1px solid transparent',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        
         '& fieldset': { border: 'none' },
-
-        // Hover State
         '&:hover': { 
             backgroundColor: '#fff',
             border: '1px solid #d1d7dc',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         },
-
-        // Focused State
         '&.Mui-focused': {
           backgroundColor: '#fff',
           border: `1px solid ${theme.palette.primary.main}`,
           boxShadow: `0 0 0 4px ${theme.palette.primary.main}15`,
         },
       },
-      '& input': {
-          fontSize: '0.95rem',
-          color: '#333'
-      }
+      '& input': { fontSize: '0.95rem', color: '#333' }
     },
     menuPaper: {
       mt: 1.5, 
@@ -123,26 +114,40 @@ const Header: React.FC = () => {
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
+      
+      {/* 1. IMPORT THE STYLISH FONT */}
+      <style>
+        {`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');`}
+      </style>
+
       <AppBar 
         position="fixed" 
         elevation={0} 
-        sx={{ 
-            ...styles.appBar,
-            // Ensure Navbar is high, but we will make Drawer higher
-            zIndex: 1100
-        }}
+        sx={{ ...styles.appBar, zIndex: 1100 }}
       >
         <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* 1. BRANDING (Original Logo Icon, New Name) */}
+          {/* --- BRANDING (Updated) --- */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <SchoolIcon sx={{ color: theme.palette.primary.main, fontSize: 32, mr: 1 }} />
-              <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ letterSpacing: '-0.5px' }}>
-                Masomo Soko
+              {/* Icon is now Orange to match */}
+              <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />
+              
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                    fontFamily: "'Playfair Display', serif", // The "Word-like" stylish font
+                    fontWeight: 900, 
+                    color: '#ea580c', // A rich, deep Orange/Gold
+                    letterSpacing: '-0.5px',
+                    fontSize: '1.7rem',
+                    fontStyle: 'italic' // Slight italic for extra style
+                }}
+              >
+                Masomo Soko.
               </Typography>
           </Box>
 
-          {/* 2. DESKTOP SEARCH (Original Styling) */}
+          {/* 2. DESKTOP SEARCH */}
           {!isMobile && (
             <Box component="form" onSubmit={handleSearch} sx={{ flex: 1, mx: 6, maxWidth: 500 }}>
               <TextField
@@ -164,8 +169,6 @@ const Header: React.FC = () => {
 
           {/* 3. NAVIGATION & ACTIONS */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-            
-            {/* Mobile Search Trigger */}
             {isMobile && (
               <IconButton onClick={() => setSearchOpen(true)}>
                 <SearchIcon />
@@ -179,7 +182,7 @@ const Header: React.FC = () => {
             )}
 
             {isLoggedIn ? (
-              // --- LOGGED IN STATE ---
+              // --- LOGGED IN ---
               <>
                 {!isMobile && (
                   <>
@@ -188,13 +191,11 @@ const Header: React.FC = () => {
                            Teach
                         </Button>
                      )}
-                     
                      <Tooltip title="Shopping Cart">
                         <IconButton component={RouterLink} to="/cart" size="small">
                             <ShoppingCartOutlinedIcon />
                         </IconButton>
                      </Tooltip>
-
                      <Tooltip title="Notifications">
                         <IconButton size="small">
                             <Badge color="error" variant="dot">
@@ -205,17 +206,10 @@ const Header: React.FC = () => {
                   </>
                 )}
                 
-                {/* USER AVATAR */}
                 <IconButton 
                     onClick={handleAvatarClick} 
                     size="small"
-                    sx={{ 
-                        ml: 1, 
-                        p: 0.5,
-                        border: `1px solid ${theme.palette.divider}`,
-                        transition: '0.2s',
-                        '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }
-                    }}
+                    sx={{ ml: 1, p: 0.5, border: `1px solid ${theme.palette.divider}` }}
                 >
                   <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32, fontSize: '0.9rem', fontWeight: 700 }}>
                     {userInitial}
@@ -232,19 +226,10 @@ const Header: React.FC = () => {
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
                   <MenuItem component={RouterLink} to={dashboardRoute} sx={{ py: 1.5, px: 2.5 }}>
-                      <ListItemIcon>
-                          <DashboardIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                          primary="Dashboard" 
-                          primaryTypographyProps={{ fontWeight: 700 }}
-                          secondary="Manage your activity"
-                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
-                      />
+                      <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
+                      <ListItemText primary="Dashboard" />
                   </MenuItem>
-                  
                   <Divider />
-
                   <MenuItem component={RouterLink} to="/profile" sx={{ py: 1.5 }}>
                       <ListItemIcon><PersonOutlineIcon fontSize="small"/></ListItemIcon> 
                       Public Profile
@@ -253,9 +238,7 @@ const Header: React.FC = () => {
                       <ListItemIcon><SettingsOutlinedIcon fontSize="small"/></ListItemIcon> 
                       Account Settings
                   </MenuItem>
-                  
                   <Divider />
-                  
                   <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: 'error.main' }}>
                       <ListItemIcon><LogoutIcon fontSize="small" color="error"/></ListItemIcon> 
                       Log out
@@ -263,7 +246,7 @@ const Header: React.FC = () => {
                 </Menu>
               </>
             ) : (
-              // --- LOGGED OUT STATE ---
+              // --- LOGGED OUT ---
               !isMobile && (
                 <>
                   <Button component={RouterLink} to="/login" sx={{ ...styles.navLink, fontWeight: 700 }}>Log in</Button>
@@ -272,11 +255,7 @@ const Header: React.FC = () => {
                     to="/register" 
                     variant="contained" 
                     sx={{ 
-                        borderRadius: 50, 
-                        textTransform: 'none', 
-                        fontWeight: 700,
-                        px: 3,
-                        boxShadow: 'none'
+                        borderRadius: 50, textTransform: 'none', fontWeight: 700, px: 3, boxShadow: 'none'
                     }}
                   >
                     Sign up
@@ -285,7 +264,6 @@ const Header: React.FC = () => {
               )
             )}
 
-            {/* Mobile Hamburger */}
             {isMobile && (
               <IconButton edge="end" onClick={() => setDrawerOpen(true)}>
                 <MenuIcon />
@@ -294,18 +272,27 @@ const Header: React.FC = () => {
           </Box>
         </Toolbar>
 
-        {/* ---------------- MOBILE DRAWER (With Close Button) ---------------- */}
+        {/* ---------------- MOBILE DRAWER ---------------- */}
         <Drawer
           anchor="right"
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          // FIX: High zIndex to appear ON TOP of Navbar
-          sx={{ zIndex: 1200 }}
+          sx={{ zIndex: 1200 }} // Over Navbar
           PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
         >
           <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-            <Typography variant="h6" fontWeight={800} color="primary">Masomo Soko</Typography>
-            {/* Added Close Button */}
+            {/* Branding in Mobile Menu */}
+            <Typography 
+                variant="h6" 
+                sx={{ 
+                    fontFamily: "'Playfair Display', serif", 
+                    fontWeight: 900, 
+                    color: '#ea580c', 
+                    fontStyle: 'italic'
+                }}
+            >
+                Masomo Soko.
+            </Typography>
             <IconButton onClick={() => setDrawerOpen(false)}>
                 <CloseIcon />
             </IconButton>
@@ -322,9 +309,8 @@ const Header: React.FC = () => {
                         sx={{ bgcolor: theme.palette.primary.main + '15', borderRadius: 2, mb: 1 }}
                     >
                         <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
-                        <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 700, color: 'primary' }} />
+                        <ListItemText primary="Dashboard" />
                     </ListItemButton>
-
                     <ListItemButton component={RouterLink} to="/profile" onClick={() => setDrawerOpen(false)}>
                         <ListItemIcon><PersonOutlineIcon /></ListItemIcon>
                         <ListItemText primary="Profile" />
@@ -358,7 +344,7 @@ const Header: React.FC = () => {
           </Box>
         </Drawer>
 
-        {/* ---------------- MOBILE SEARCH OVERLAY (Improved) ---------------- */}
+        {/* ---------------- MOBILE SEARCH OVERLAY ---------------- */}
         <Drawer 
             anchor="top" 
             open={searchOpen} 
@@ -373,7 +359,6 @@ const Header: React.FC = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               size="small"
-              // Keep rounded style for mobile input too
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 50, bgcolor: '#f8f9fa' } }}
             />
             <Button onClick={() => setSearchOpen(false)}>Cancel</Button>
@@ -381,8 +366,6 @@ const Header: React.FC = () => {
         </Drawer>
 
       </AppBar>
-
-      {/* Spacer */}
       <Toolbar sx={{ minHeight: 70 }} />
     </Box>
   );
