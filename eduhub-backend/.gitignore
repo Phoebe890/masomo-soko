@@ -19,7 +19,7 @@ target/
 *.jks
 
 # Secrets
-application-prod.properties
+#application-prod.properties
 /secrets/
 
 # IDE
