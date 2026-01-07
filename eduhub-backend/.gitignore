@@ -12,7 +12,23 @@ target/
 .settings
 .springBeans
 .sts4-cache
+# .gitignore
+.env
+.env.local
+*.keystore
+*.jks
 
+# Secrets
+application-prod.properties
+/secrets/
+
+# IDE
+.idea/
+*.iml
+
+# Logs
+logs/
+*.log
 ### IntelliJ IDEA ###
 .idea
 *.iws
