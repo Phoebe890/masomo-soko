@@ -8,7 +8,7 @@ import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../../api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 // Icons
@@ -79,9 +79,9 @@ const AdminDashboard: React.FC = () => {
         const fetchDashboardData = async () => {
             try {
                 const [statsRes, payoutsRes, notifRes] = await Promise.all([
-                    axios.get(`${BACKEND_URL}/api/admin/stats`, { withCredentials: true }),
-                    axios.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true }),
-                    axios.get(`${BACKEND_URL}/api/admin/notifications`, { withCredentials: true }).catch(() => ({ data: [] }))
+                    api.get(`${BACKEND_URL}/api/admin/stats`, { withCredentials: true }),
+                    api.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true }),
+                    api.get(`${BACKEND_URL}/api/admin/notifications`, { withCredentials: true }).catch(() => ({ data: [] }))
                 ]);
 
                 setStats(statsRes.data);
@@ -121,7 +121,7 @@ const AdminDashboard: React.FC = () => {
 
     const handleMarkAllRead = async () => {
         try {
-            await axios.post(`${BACKEND_URL}/api/admin/notifications/clear`, {}, { withCredentials: true });
+            await api.post(`${BACKEND_URL}/api/admin/notifications/clear`, {}, { withCredentials: true });
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (e) { console.error(e); }
     };

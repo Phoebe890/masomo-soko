@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import { api } from '@/api/axios';
 
 // Icons
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
@@ -79,7 +79,7 @@ const TeacherOnboarding: React.FC = () => {
             uploadData.append('profilePic', formData.photoFile);
         }
 
-        await axios.post(`${BACKEND_URL}/api/teacher/onboarding`, uploadData, {
+        await api.post(`${BACKEND_URL}/api/teacher/onboarding`, uploadData, {
             withCredentials: true,
             headers: { 'Content-Type': 'multipart/form-data' }
         });

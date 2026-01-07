@@ -3,7 +3,7 @@ import {
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
     List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, useTheme 
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import TeacherLayout from '../../components/TeacherLayout';
 
@@ -27,11 +27,11 @@ const TeacherDashboard = () => {
         const fetchData = async () => {
             try {
                 // 1. Fetch Dashboard Stats
-                const dashRes = await axios.get(`${BACKEND_URL}/api/teacher/dashboard`, { withCredentials: true });
+                const dashRes = await api.get(`${BACKEND_URL}/api/teacher/dashboard`, { withCredentials: true });
                 setData(dashRes.data);
 
                 // 2. Fetch Analytics (Chart Data)
-                const analyticsRes = await axios.get(`${BACKEND_URL}/api/teacher/analytics`, { withCredentials: true });
+                const analyticsRes = await api.get(`${BACKEND_URL}/api/teacher/analytics`, { withCredentials: true });
                 const rawSales = analyticsRes.data.salesLast30Days || {};
                 
                 // Transform data for Recharts

@@ -5,7 +5,7 @@ import {
     Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import TeacherSidebar from './TeacherSidebar';
 
 // Icons
@@ -65,11 +65,11 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
         const fetchData = async () => {
             try {
                 // Fetch Notifications
-                const notifRes = await axios.get(`${BACKEND_URL}/api/teacher/notifications`, { withCredentials: true });
+                const notifRes = await api.get(`${BACKEND_URL}/api/teacher/notifications`, { withCredentials: true });
                 setNotifications(notifRes.data);
 
                 // NEW: Fetch User Settings to get Name/Pic
-                const settingsRes = await axios.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
+                const settingsRes = await api.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
                 const profile = settingsRes.data.profile;
                 
                 setUserProfile({
@@ -88,7 +88,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     // ... (Keep existing notification handlers: handleMarkAllRead, handleDeleteNotification, handleNotificationClick) ...
     const handleMarkAllRead = async () => {
         try {
-            await axios.post(`${BACKEND_URL}/api/teacher/notifications/clear`, {}, { withCredentials: true });
+            await api.post(`${BACKEND_URL}/api/teacher/notifications/clear`, {}, { withCredentials: true });
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (e) { console.error(e); }
     };
@@ -97,7 +97,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
         e.stopPropagation();
         setNotifications(prev => prev.filter(n => n.id !== id));
         try {
-            await axios.delete(`${BACKEND_URL}/api/teacher/notifications/${id}`, { withCredentials: true });
+            await api.delete(`${BACKEND_URL}/api/teacher/notifications/${id}`, { withCredentials: true });
         } catch (e) { console.error(e); }
     };
 

@@ -4,7 +4,7 @@ import {
     List, ListItemButton, ListItemIcon, ListItemText, Alert, CircularProgress, Stack, 
     useTheme, MenuItem, Select, FormControl, InputLabel, useMediaQuery
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import TeacherLayout from  '../../components/TeacherLayout';
 
 // Icons
@@ -37,7 +37,7 @@ const TeacherSettings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
+                const res = await api.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
                 const { profile } = res.data;
                 
                 setProfileData({
@@ -103,7 +103,7 @@ const TeacherSettings = () => {
             formData.append('paymentNumber', paymentNum);
 
             // POST to onboarding (which handles updates)
-            await axios.post(`${BACKEND_URL}/api/teacher/onboarding`, formData, { 
+            await api.post(`${BACKEND_URL}/api/teacher/onboarding`, formData, { 
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });

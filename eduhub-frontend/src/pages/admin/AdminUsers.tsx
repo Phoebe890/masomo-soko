@@ -4,7 +4,7 @@ import {
     IconButton, CircularProgress, Select, MenuItem, FormControl, Switch, 
     TextField, InputAdornment, Snackbar, Alert, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout'; // Import Layout
 import SearchIcon from '@mui/icons-material/Search';
 import BlockIcon from '@mui/icons-material/Block';
@@ -27,7 +27,7 @@ const AdminUsers: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/admin/users`, { withCredentials: true });
+      const res = await api.get(`${BACKEND_URL}/api/admin/users`, { withCredentials: true });
       setUsers(res.data);
       setFilteredUsers(res.data);
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -51,13 +51,13 @@ const AdminUsers: React.FC = () => {
       try {
           // ... (Keep your existing API logic here, truncated for brevity) ...
            if (confirmAction.type === 'ban') {
-              await axios.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/toggle-status`, {}, { withCredentials: true });
+              await api.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/toggle-status`, {}, { withCredentials: true });
               setUsers(users.map(u => u.id === confirmAction.user.id ? { ...u, enabled: !u.enabled } : u));
           } else if (confirmAction.type === 'delete') {
-              await axios.delete(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}`, { withCredentials: true });
+              await api.delete(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}`, { withCredentials: true });
               setUsers(users.filter(u => u.id !== confirmAction.user.id));
           } else if (confirmAction.type === 'role') {
-              await axios.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/role`, { role: confirmAction.newRole }, { withCredentials: true });
+              await api.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/role`, { role: confirmAction.newRole }, { withCredentials: true });
               setUsers(users.map(u => u.id === confirmAction.user.id ? { ...u, role: confirmAction.newRole } : u));
           }
           setToast({ open: true, msg: "Action successful", type: 'success' });

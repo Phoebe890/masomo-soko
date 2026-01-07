@@ -4,7 +4,7 @@ import {
     IconButton, CircularProgress, Avatar, Chip, Tooltip, Dialog, DialogTitle, DialogContent, 
     DialogActions, Button, Snackbar, Alert, TextField, InputAdornment 
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout'; // Import Layout
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -29,7 +29,7 @@ const AdminResources: React.FC = () => {
     // ... (Keep fetchResources, useEffects) ...
     const fetchResources = async () => {
         try {
-            const res = await axios.get(`${BACKEND_URL}/api/admin/resources`, { withCredentials: true });
+            const res = await api.get(`${BACKEND_URL}/api/admin/resources`, { withCredentials: true });
             setResources(res.data);
             setFilteredResources(res.data);
         } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -43,7 +43,7 @@ const AdminResources: React.FC = () => {
     const confirmTakedown = async () => {
         if(!deleteId) return;
         try {
-            await axios.post(`${BACKEND_URL}/api/admin/resources/${deleteId}/takedown`, { reason: takedownReason }, { withCredentials: true });
+            await api.post(`${BACKEND_URL}/api/admin/resources/${deleteId}/takedown`, { reason: takedownReason }, { withCredentials: true });
             setResources(prev => prev.filter(p => p.id !== deleteId));
             setToast({ open: true, msg: "Removed", type: 'success' });
             setDeleteId(null);

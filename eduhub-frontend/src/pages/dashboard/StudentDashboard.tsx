@@ -5,7 +5,7 @@ import {
   CardContent, CardMedia, CardActions, Stack, CircularProgress, Divider, 
   Tooltip, IconButton, alpha, Snackbar, Alert, InputAdornment
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import StudentLayout from '../../components/StudentLayout';
 import ReviewModal from '../../components/ReviewModal';
 
@@ -102,7 +102,7 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
     const [selectedSubject, setSelectedSubject] = useState('All');
 
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/student/purchases`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/student/purchases`, { withCredentials: true })
             .then(res => {
                 const data = res.data.resources || [];
                 setResources(data);
@@ -221,7 +221,7 @@ function HistorySection() {
     const [orders, setOrders] = useState<any[]>([]);
     
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/student/order-history`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/student/order-history`, { withCredentials: true })
             .then(res => setOrders(res.data.orders || []))
             .catch(err => console.error(err));
     }, []);
@@ -276,7 +276,7 @@ function AccountSettingsSection() {
     const [toast, setToast] = useState<{open: boolean, msg: string, type: 'success'|'error'}>({ open: false, msg: '', type: 'success' });
 
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/student/account-settings`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/student/account-settings`, { withCredentials: true })
             .then(res => { 
                 setName(res.data.name || ''); 
                 setEmail(res.data.email || ''); 
@@ -291,7 +291,7 @@ function AccountSettingsSection() {
         const params = new URLSearchParams();
         params.append('name', name);
         
-        axios.post(`${BACKEND_URL}/api/student/account-settings`, params, { withCredentials: true })
+        api.post(`${BACKEND_URL}/api/student/account-settings`, params, { withCredentials: true })
             .then(() => setToast({ open: true, msg: 'Profile updated successfully!', type: 'success' }))
             .catch(() => setToast({ open: true, msg: 'Failed to save changes.', type: 'error' }))
             .finally(() => setSaving(false));
@@ -342,7 +342,7 @@ const StudentDashboard = () => {
     const [selectedReviewResource, setSelectedReviewResource] = useState<{id: number, title: string} | null>(null);
 
     useEffect(() => {
-        axios.get(`${BACKEND_URL}/api/student/dashboard`, { withCredentials: true })
+        api.get(`${BACKEND_URL}/api/student/dashboard`, { withCredentials: true })
             .then(res => setData(res.data))
             .catch(() => {})
             .finally(() => setLoading(false));

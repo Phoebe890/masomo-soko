@@ -5,7 +5,7 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
     InputAdornment, Alert, Snackbar, useTheme, alpha
 } from '@mui/material';
-import axios from 'axios';
+import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
 // Icons
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -30,7 +30,7 @@ const TeacherEarnings = () => {
     const fetchWallet = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${BACKEND_URL}/api/wallet/summary`, { withCredentials: true });
+            const res = await api.get(`${BACKEND_URL}/api/wallet/summary`, { withCredentials: true });
             setBalance(res.data.balance || 0.0);
             setMpesaNumber(res.data.mpesaNumber || '');
             setHistory(res.data.history || []);
@@ -48,7 +48,7 @@ const TeacherEarnings = () => {
         try {
             const params = new URLSearchParams();
             params.append('amount', amount.toString());
-            await axios.post(`${BACKEND_URL}/api/wallet/withdraw`, params, { withCredentials: true });
+            await api.post(`${BACKEND_URL}/api/wallet/withdraw`, params, { withCredentials: true });
             setToast({ open: true, msg: "Request Submitted!", type: 'success' });
             setWithdrawOpen(false);
             setWithdrawAmount('');
