@@ -14,7 +14,7 @@ import BrowseResources from './pages/BrowseResources';
 import ResourceDetail from './pages/ResourceDetail';
 import PurchaseConfirmation from './pages/PurchaseConfirmation';
 import SellerLanding from './pages/seller/SellerLanding';
-
+import NotFound from './pages/NotFound.tsx';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -117,6 +117,7 @@ function App() {
       <Route path="/admin/payouts" element={<AdminPayouts />} />
       <Route path="/admin/users" element={<AdminUsers />} />
       <Route path="/admin/resources" element={<AdminResources />} />
+       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 
