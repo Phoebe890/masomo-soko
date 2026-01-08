@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthService {
@@ -19,23 +20,40 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // Strict Email Regex
+    private static final String EMAIL_PATTERN = 
+        "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+    
+    private static final Pattern pattern = Pattern.compile(EMAIL_PATTERN);
+
     public String signup(SignUpRequest request) {
-        // FIX: Use getEmail()
-        if (request.getEmail() == null || request.getPassword() == null) {
-            return "Email and Password are required.";
+        // 1. Check for Nulls
+        if (request.getEmail() == null || request.getPassword() == null || request.getName() == null) {
+            return "All fields (Name, Email, Password) are required.";
         }
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
+
+        // 2. Validate Email Format
+        if (!pattern.matcher(normalizedEmail).matches()) {
+            return "Invalid email address format.";
+        }
         
+        // 3. Check for Duplicate Email
         if (userRepository.existsByEmail(normalizedEmail)) {
-            return "Email already in use.";
+            return "Email is already in use. Please login instead.";
         }
 
+        // 4. Create User
         User user = new User();
-        user.setName(request.getName()); // FIX: Use getName()
+        user.setName(request.getName());
         user.setEmail(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // FIX: Use getPassword()
-        user.setRole(request.getRole().toUpperCase()); // FIX: Use getRole()
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        
+        // Ensure Role is uppercase and defaults to STUDENT if missing
+        String role = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
+        user.setRole(role);
+        
         user.setEnabled(true);
 
         userRepository.save(user);
@@ -43,8 +61,7 @@ public class AuthService {
     }
 
     public User login(LoginRequest request) {
-        // FIX: Use getEmail()
-        if (request.getEmail() == null) return null;
+        if (request.getEmail() == null || request.getPassword() == null) return null;
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
         Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
@@ -53,7 +70,6 @@ public class AuthService {
             return null;
 
         User user = userOpt.get();
-        // FIX: Use getPassword()
         if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return user;
         } else {

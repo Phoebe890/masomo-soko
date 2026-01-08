@@ -17,11 +17,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.session.web.http.CookieSerializer;
+import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
 
-    @Value("${cors.allowed-origins:}") 
+    @Value("${cors.allowed-origins:}")
     private String allowedOrigins;
 
     @Bean
@@ -40,7 +41,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Explicitly define the AuthenticationProvider
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -49,7 +49,6 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    // Standard way to expose AuthenticationManager in Spring Boot 3
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
@@ -60,28 +59,45 @@ public class SecurityConfig {
         return new HttpSessionSecurityContextRepository();
     }
 
+    /**
+     * CRITICAL FOR COOKIES: 
+     * This forces the session cookie to be compatible with Cross-Subdomain (api.domain.com <-> domain.com)
+     * and Cross-Site (Secure; SameSite=None).
+     */
+    @Bean
+    public CookieSerializer cookieSerializer() {
+        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+        serializer.setSameSite("None"); 
+        serializer.setUseSecureCookie(true); // Must be true for HTTPS (Production)
+        serializer.setCookiePath("/");
+        // Setting domain name allows cookie sharing between api.masomosoko.co.ke and masomosoko.co.ke
+        // Use your root domain here.
+        serializer.setDomainName("masomosoko.co.ke"); 
+        return serializer;
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = new ArrayList<>();
         
-        origins.add("http://localhost:5173");
-        origins.add("http://localhost:3000");
-        origins.add("http://127.0.0.1:5173");
-        origins.add("http://127.0.0.1:3000");
-        origins.add("https://masomo-soko.vercel.app");
-        origins.add("https://masomosoko.co.ke");
-        origins.add("https://www.masomosoko.co.ke");
-
-        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
-            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
-        }
+        // Explicitly list all frontend URLs. Do NOT use "*"
+        List<String> origins = Arrays.asList(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "https://masomo-soko.vercel.app",
+            "https://masomosoko.co.ke",
+            "https://www.masomosoko.co.ke"
+        );
 
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
+        
+        // This is required for Cookies to be sent
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie"));
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -93,12 +109,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) 
-                
-                // CRITICAL: Link the authentication provider explicitly
+                .csrf(csrf -> csrf.disable())
                 .authenticationProvider(authenticationProvider())
-                
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
+                
+                // IMPORTANT: Ensure session is created if required
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
                 
@@ -110,18 +125,18 @@ public class SecurityConfig {
                 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public Endpoints
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/teacher/top-contributors",
                                 "/api/payment/callback",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/api/teacher/resources",     // Allow browsing resources without login
+                                "/api/teacher/resources/**"
                         ).permitAll()
                         
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll()
-
-                        .requestMatchers("/api/payment/pay", "/api/payment/status/**").authenticated() 
-                        
+                        // Protected Endpoints
+                        .requestMatchers("/api/payment/pay", "/api/payment/status/**").authenticated()
                         .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER")
                         .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**").hasAnyAuthority("ROLE_TEACHER")

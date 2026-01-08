@@ -31,6 +31,31 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Helper function to validate email format on frontend
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleAuthSuccess = (data: any) => {
+    // 1. Save critical data to LocalStorage
+    localStorage.setItem('email', data.email);
+    localStorage.setItem('role', data.role);
+    
+    // CRITICAL: Save the token for Axios Interceptor
+    if (data.token) {
+        localStorage.setItem('token', data.token);
+    }
+    
+    // 2. Redirect based on Role
+    setTimeout(() => {
+        const userRole = data.role?.toUpperCase();
+        if (userRole === 'TEACHER') navigate('/dashboard/teacher/onboarding');
+        else if (userRole === 'STUDENT') navigate('/dashboard/student');
+        else if (userRole === 'ADMIN') navigate('/admin/dashboard');
+        else navigate('/');
+    }, 1000);
+  };
+
   const googleSignup = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();
@@ -41,17 +66,8 @@ const Register: React.FC = () => {
             role: formData.role.toUpperCase() 
         });
 
-        const data = res.data;
-        localStorage.setItem('email', data.email);
-        localStorage.setItem('role', data.role);
-        
         setMessage('Google Signup Successful! Redirecting...');
-        setTimeout(() => {
-            const userRole = data.role?.toUpperCase();
-            if (userRole === 'TEACHER') navigate('/dashboard/teacher/onboarding');
-            else if (userRole === 'STUDENT') navigate('/dashboard/student');
-            else navigate('/');
-        }, 1000);
+        handleAuthSuccess(res.data);
       } catch (err: any) {
         setMessage('Google authentication failed. ' + (err.response?.data || ''));
       } finally {
@@ -65,6 +81,11 @@ const Register: React.FC = () => {
     e.preventDefault();
     setMessage(null);
 
+    // 1. Frontend Validation
+    if (!isValidEmail(formData.email)) {
+        setMessage('Please enter a valid email address.');
+        return;
+    }
     if (formData.password !== formData.confirmPassword) {
       setMessage('Passwords do not match.');
       return;
@@ -76,6 +97,7 @@ const Register: React.FC = () => {
 
     startLoading();
     try {
+      // 2. Call Backend API
       await api.post('/api/auth/signup', {
         name: formData.name,
         email: formData.email,
@@ -83,9 +105,19 @@ const Register: React.FC = () => {
         role: formData.role
       });
 
-      setMessage('Account created! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 1500);
+      // 3. Note: The backend AuthController now performs Auto-Login on signup.
+      // Ideally, the backend should return the Token/Role here too.
+      // If your backend returns "User registered successfully", we redirect to Login
+      // to allow the session cookie to set properly if using form login flow.
+      
+      setMessage('Account created! Logging you in...');
+      
+      // Perform a quick login behind the scenes to get the token if signup doesn't return it
+      // OR immediately redirect to login page
+      setTimeout(() => navigate('/login'), 1000);
+
     } catch (error: any) {
+      // Show specific error from backend (e.g., "Email already in use")
       setMessage(error.response?.data || 'Registration failed.');
     } finally {
       stopLoading();
@@ -117,13 +149,21 @@ const Register: React.FC = () => {
           <Divider sx={{ mb: 3 }}><Typography variant="caption" color="text.secondary">OR WITH EMAIL</Typography></Divider>
           <Box component="form" onSubmit={handleSubmit}>
             {message && (
-              <Box sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: message.includes('created') ? 'success.light' : 'error.light', color: 'white' }}>
+              <Box sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: message.includes('created') || message.includes('Successful') ? 'success.light' : 'error.light', color: 'white' }}>
                 <Typography variant="body2" fontWeight={500}>{message}</Typography>
               </Box>
             )}
             <Stack spacing={2.5}>
               <TextField fullWidth label="Full Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-              <TextField fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+              <TextField 
+                fullWidth 
+                label="Email Address" 
+                type="email" 
+                value={formData.email} 
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                required 
+                error={formData.email.length > 0 && !isValidEmail(formData.email)}
+              />
               <TextField fullWidth label="Password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
               <TextField fullWidth label="Confirm Password" type="password" value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
             </Stack>
