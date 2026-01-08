@@ -26,7 +26,7 @@ const TEXT_MUTED = '#475569';
 const BG_LIGHT = '#F8FAFC';       
 const DARK_SECTION = '#1e293b';   
 
-// --- SVG 1: DASHBOARD (For Section 5) ---
+// --- SVG 1: DASHBOARD ---
 const DashboardIllustration = () => (
   <Box sx={{ width: '100%', maxWidth: 500, mx: 'auto', p: 2 }}>
     <svg viewBox="0 0 500 340" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0px 20px 30px rgba(0,0,0,0.3))', width: '100%', height: 'auto', display: 'block' }}>
@@ -64,31 +64,22 @@ const DashboardIllustration = () => (
   </Box>
 );
 
-// --- SVG 2: REVENUE (Fixed for Mobile) ---
+// --- SVG 2: REVENUE ---
 const RevenueIllustration = () => (
   <Box sx={{ width: '100%', maxWidth: 500, mx: 'auto', p: 2 }}>
     <svg 
       viewBox="0 0 400 300" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      // IMPORTANT: This style ensures the SVG scales correctly inside flex/grid items on mobile
       style={{ width: '100%', height: 'auto', display: 'block' }}
     >
-      {/* Background shape */}
       <circle cx="200" cy="150" r="140" fill="#ecfdf5" />
-      
-      {/* Phone Body */}
       <rect x="120" y="40" width="160" height="240" rx="20" fill="white" stroke="#e2e8f0" strokeWidth="4" />
       <rect x="130" y="20" width="140" height="260" rx="16" fill="white" />
-      
-      {/* Phone Screen UI */}
       <rect x="135" y="55" width="130" height="210" rx="12" fill="#f8fafc" />
-      
-      {/* Chart */}
       <path d="M145 180 L165 160 L185 170 L220 130 L255 120" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M145 180 L255 120 V200 H145 V180 Z" fill="url(#revGradientGreen)" opacity="0.2" />
       
-      {/* Notification Bubble */}
       <g filter="url(#revShadow)">
         <rect x="80" y="100" width="180" height="60" rx="12" fill="white" />
         <circle cx="110" cy="130" r="15" fill="#10b981" />
@@ -99,7 +90,6 @@ const RevenueIllustration = () => (
       </g>
 
       <defs>
-        {/* Unique IDs for gradients/filters to prevent mobile rendering conflicts */}
         <linearGradient id="revGradientGreen" x1="200" y1="120" x2="200" y2="200" gradientUnits="userSpaceOnUse">
           <stop stopColor="#10b981" />
           <stop offset="1" stopColor="#10b981" stopOpacity="0" />
@@ -120,15 +110,12 @@ const RevenueIllustration = () => (
 
 const SellerLanding: React.FC = () => {
   const theme = useTheme();
-  // We use this to disable complex animations on mobile
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', bgcolor: '#fff' }}>
       
-      {/* =========================================
-          SECTION 1: HERO
-      ========================================= */}
+      {/* SECTION 1: HERO */}
       <Box 
         component="section"
         sx={{ 
@@ -142,7 +129,6 @@ const SellerLanding: React.FC = () => {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 5, md: 8 }} alignItems="center">
             
-            {/* Left: Text Content */}
             <Grid item xs={12} md={6}>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
                 <Typography 
@@ -181,7 +167,7 @@ const SellerLanding: React.FC = () => {
                     variant="contained"
                     size="large"
                     component={RouterLink}
-                    to="/register"
+                    to="/register?role=teacher"
                     endIcon={<ArrowForwardIcon />}
                     sx={{ 
                       py: 1.8, 
@@ -202,7 +188,6 @@ const SellerLanding: React.FC = () => {
               </Box>
             </Grid>
 
-            {/* Right: Hero Image */}
             <Grid item xs={12} md={6}>
               <Box 
                 sx={{
@@ -234,14 +219,10 @@ const SellerLanding: React.FC = () => {
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 2: TRUST SIGNALS (Stats)
-      ========================================= */}
+      {/* SECTION 2: TRUST SIGNALS */}
       <Box sx={{ bgcolor: BG_LIGHT, py: { xs: 6, md: 8 }, borderBottom: '1px solid #E2E8F0' }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} justifyContent="center" alignItems="flex-start">
-            
-            {/* Stat 1 */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
               <Stack alignItems="center" spacing={1}>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
@@ -253,8 +234,6 @@ const SellerLanding: React.FC = () => {
                 </Typography>
               </Stack>
             </Grid>
-
-            {/* Stat 2 */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
                <Stack alignItems="center" spacing={1}>
                 <SecurityIcon sx={{ fontSize: 40, color: '#0056D2', mb: 1 }} /> 
@@ -270,8 +249,6 @@ const SellerLanding: React.FC = () => {
                 </Typography>
               </Stack>
             </Grid>
-
-            {/* Stat 3 */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
               <Stack alignItems="center" spacing={1}>
                 <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
@@ -283,14 +260,11 @@ const SellerLanding: React.FC = () => {
                 </Typography>
               </Stack>
             </Grid>
-
           </Grid>
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 3: WHY SELL HERE
-      ========================================= */}
+      {/* SECTION 3: WHY SELL HERE */}
       <Box component="section" sx={{ py: { xs: 8, md: 12 }, overflow: 'hidden' }}>
         <Container maxWidth="lg">
           <Typography 
@@ -308,7 +282,6 @@ const SellerLanding: React.FC = () => {
             Everything you need to grow your teaching business
           </Typography>
           
-          {/* Feature 1: REACH */}
           <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" sx={{ mb: { xs: 8, md: 12 } }}>
             <Grid item xs={12} md={6}>
               <Box>
@@ -333,7 +306,6 @@ const SellerLanding: React.FC = () => {
             </Grid>
           </Grid>
 
-          {/* Feature 2: MONEY */}
           <Grid 
             container 
             spacing={{ xs: 4, md: 8 }} 
@@ -342,7 +314,6 @@ const SellerLanding: React.FC = () => {
             sx={{ mb: { xs: 8, md: 12 } }}
           >
             <Grid item xs={12} md={6}>
-               {/* This SVG will now display correctly on mobile */}
                <RevenueIllustration />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -360,7 +331,6 @@ const SellerLanding: React.FC = () => {
             </Grid>
           </Grid>
 
-          {/* Feature 3: INSIGHTS */}
           <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center">
             <Grid item xs={12} md={6}>
               <Box>
@@ -384,13 +354,10 @@ const SellerLanding: React.FC = () => {
               />
             </Grid>
           </Grid>
-
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 4: HOW IT WORKS
-      ========================================= */}
+      {/* SECTION 4: HOW IT WORKS */}
       <Box component="section" sx={{ bgcolor: BG_LIGHT, py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Box sx={{ maxWidth: 700, mx: 'auto', textAlign: 'center', mb: { xs: 6, md: 8 } }}>
@@ -465,19 +432,13 @@ const SellerLanding: React.FC = () => {
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 5: HIGH CONTRAST FEATURE
-      ========================================= */}
+      {/* SECTION 5: HIGH CONTRAST FEATURE */}
       <Box sx={{ bgcolor: DARK_SECTION, color: '#fff', py: { xs: 8, md: 10 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
-             
-             {/* Left: SVG Illustration */}
              <Grid item xs={12} md={6}>
                 <DashboardIllustration />
              </Grid>
-
-             {/* Right: Text */}
              <Grid item xs={12} md={6}>
                 <Typography variant="h3" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
                   You are in control
@@ -504,9 +465,7 @@ const SellerLanding: React.FC = () => {
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 6: BOTTOM CTA
-      ========================================= */}
+      {/* SECTION 6: BOTTOM CTA */}
       <Box sx={{ bgcolor: '#fff', py: { xs: 8, md: 12 }, textAlign: 'center' }}>
         <Container maxWidth="sm">
           <Typography 
@@ -528,7 +487,7 @@ const SellerLanding: React.FC = () => {
             color="primary"
             size="large"
             component={RouterLink}
-            to="/register"
+            to="/register?role=teacher"
             sx={{ 
               py: 2, 
               px: 6, 
@@ -544,9 +503,6 @@ const SellerLanding: React.FC = () => {
         </Container>
       </Box>
 
-      {/* =========================================
-          SECTION 7: FOOTER
-      ========================================= */}
       <Footer />
     </Box>
   );

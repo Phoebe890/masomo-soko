@@ -88,6 +88,9 @@ const Home: React.FC = () => {
   ];
 
   useEffect(() => {
+    // FIX: Set document title to remove "Vite + TS"
+    document.title = "Masomo Soko - Kenya's Best Education Marketplace";
+
     const interval = setInterval(() => {
       if (!isPaused) {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -118,7 +121,8 @@ const Home: React.FC = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
+    // ADDED: overflowX: 'hidden' to fix mobile whitespace issue
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
       
      {/* --- HERO SECTION --- */}
       <Box 
@@ -184,7 +188,8 @@ const Home: React.FC = () => {
                         ) : (
                             <Button 
                               component={RouterLink} 
-                              to="/register?role=teacher" 
+                              // UPDATED LINK: Now goes to Seller Landing Page
+                              to="/seller" 
                               variant="contained" 
                               size="large" 
                               endIcon={<ArrowForwardIcon />} 
@@ -197,8 +202,7 @@ const Home: React.FC = () => {
                 </Box>
              )
           ))}
-          {/* UPDATED: Changed bottom from 40 to 15, added zIndex 3 */}
-          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: 1, left: 0, right: 0, zIndex: 3 }}>
+          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: 15, left: 0, right: 0, zIndex: 3 }}>
              {slides.map((_, idx) => (
                  <Box key={idx} onClick={() => setCurrentSlide(idx)} sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: currentSlide === idx ? 'white' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
              ))}
@@ -209,7 +213,8 @@ const Home: React.FC = () => {
       {/* --- TRUST BAR --- */}
       <Box sx={{ bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', py: 4 }}>
         <Container maxWidth="xl">
-          <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 4, md: 8 }} sx={{ opacity: 0.8 }}>
+          {/* UPDATED: Reduced spacing on mobile to prevent overflow */}
+          <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 2, md: 8 }} sx={{ opacity: 0.8 }}>
              <Grid item><Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>50K+ Resources</Typography></Grid>
              <Grid item>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -368,7 +373,9 @@ const Home: React.FC = () => {
                     <Typography variant="overline" sx={{ color: ACCENT_ORANGE, fontWeight: 700, letterSpacing: 2 }}>FOR TEACHERS</Typography>
                     <Typography variant="h3" fontWeight={800} gutterBottom>Sell Your Resources</Typography>
                     <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, opacity: 0.9 }}>Teachers from around the country upload their notes, exams, and guides for thousands of students to buy on Masomo Soko. Turn your hard work into income.</Typography>
-                    <Button variant="contained" size="large" component={RouterLink} to="/register?role=teacher" sx={{ bgcolor: 'white', color: '#1e293b', borderRadius: 50, fontWeight: 700, px: 4, py: 1.5, '&:hover': { bgcolor: '#f1f5f9' } }}>Start selling today</Button>
+                    
+                    {/* UPDATED LINK: Now goes to /seller */}
+                    <Button variant="contained" size="large" component={RouterLink} to="/seller" sx={{ bgcolor: 'white', color: '#1e293b', borderRadius: 50, fontWeight: 700, px: 4, py: 1.5, '&:hover': { bgcolor: '#f1f5f9' } }}>Start selling today</Button>
                 </Grid>
                 <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
                      <Box sx={{ width: '100%', height: 300, bgcolor: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}><TeacherIllustration /></Box>
