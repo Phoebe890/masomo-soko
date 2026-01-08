@@ -30,16 +30,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
+            String requestPath = request.getRequestURI();
+            
+            // Only debug admin endpoints to avoid cluttering logs
+            boolean isDebugTarget = requestPath.startsWith("/api/admin");
+
+            if (isDebugTarget) {
+                System.out.println(">>> DEBUG AUTH: Processing request to " + requestPath);
+                System.out.println(">>> DEBUG AUTH: JWT Token present? " + (jwt != null));
+            }
+
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                
+                if (isDebugTarget) {
+                    System.out.println(">>> DEBUG AUTH: User found: " + username);
+                    // THIS IS THE IMPORTANT LINE: It shows what Spring Security actually sees
+                    System.out.println(">>> DEBUG AUTH: Authorities loaded: " + userDetails.getAuthorities());
+                }
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else if (isDebugTarget) {
+                System.out.println(">>> DEBUG AUTH: JWT was null or invalid.");
             }
         } catch (Exception e) {
             System.err.println("Cannot set user authentication: " + e);
