@@ -5,19 +5,14 @@ import {
     DialogActions, Button, Snackbar, Alert, TextField, InputAdornment 
 } from '@mui/material';
 import { api } from '@/api/axios';
-import AdminLayout from './AdminLayout'; // Import Layout
+import AdminLayout from './AdminLayout';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
-const BACKEND_URL = "http://localhost:8081";
-
-// ... (Keep Interfaces) ...
-
 const AdminResources: React.FC = () => {
-    // ... (Keep State: resources, loading, searchTerm, deleteId, etc.) ...
     const [resources, setResources] = useState<any[]>([]);
     const [filteredResources, setFilteredResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,14 +21,15 @@ const AdminResources: React.FC = () => {
     const [takedownReason, setTakedownReason] = useState('');
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
-    // ... (Keep fetchResources, useEffects) ...
     const fetchResources = async () => {
         try {
-            const res = await api.get(`${BACKEND_URL}/api/admin/resources`, { withCredentials: true });
+            // FIXED: Using relative path
+            const res = await api.get('/api/admin/resources');
             setResources(res.data);
             setFilteredResources(res.data);
         } catch (err) { console.error(err); } finally { setLoading(false); }
     };
+
     useEffect(() => { fetchResources(); }, []);
 
     useEffect(() => {
@@ -43,11 +39,12 @@ const AdminResources: React.FC = () => {
     const confirmTakedown = async () => {
         if(!deleteId) return;
         try {
-            await api.post(`${BACKEND_URL}/api/admin/resources/${deleteId}/takedown`, { reason: takedownReason }, { withCredentials: true });
+            // FIXED: Using relative path
+            await api.post(`/api/admin/resources/${deleteId}/takedown`, { reason: takedownReason });
             setResources(prev => prev.filter(p => p.id !== deleteId));
-            setToast({ open: true, msg: "Removed", type: 'success' });
+            setToast({ open: true, msg: "Resource removed successfully", type: 'success' });
             setDeleteId(null);
-        } catch (e) { setToast({ open: true, msg: "Error", type: 'error' }); }
+        } catch (e) { setToast({ open: true, msg: "Failed to remove resource", type: 'error' }); }
     };
 
     return (
@@ -107,7 +104,7 @@ const AdminResources: React.FC = () => {
                     <Button onClick={confirmTakedown} variant="contained" color="error">Remove</Button>
                 </DialogActions>
             </Dialog>
-            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type}>{toast.msg}</Alert></Snackbar>
+            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
         </AdminLayout>
     );
 };

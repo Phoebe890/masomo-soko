@@ -12,7 +12,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import HistoryIcon from '@mui/icons-material/History';
 
-const BACKEND_URL = "http://localhost:8081";
+// FIXED: Removed hardcoded BACKEND_URL constant
 
 const TeacherEarnings = () => {
     const theme = useTheme();
@@ -30,7 +30,8 @@ const TeacherEarnings = () => {
     const fetchWallet = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`${BACKEND_URL}/api/wallet/summary`, { withCredentials: true });
+            // FIXED: Using relative path via api instance
+            const res = await api.get('/api/wallet/summary');
             setBalance(res.data.balance || 0.0);
             setMpesaNumber(res.data.mpesaNumber || '');
             setHistory(res.data.history || []);
@@ -48,7 +49,8 @@ const TeacherEarnings = () => {
         try {
             const params = new URLSearchParams();
             params.append('amount', amount.toString());
-            await api.post(`${BACKEND_URL}/api/wallet/withdraw`, params, { withCredentials: true });
+            // FIXED: Using relative path via api instance
+            await api.post('/api/wallet/withdraw', params);
             setToast({ open: true, msg: "Request Submitted!", type: 'success' });
             setWithdrawOpen(false);
             setWithdrawAmount('');
@@ -139,7 +141,6 @@ const TeacherEarnings = () => {
                 </Grid>
             )}
 
-            {/* WITHDRAWAL DIALOG */}
             <Dialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} maxWidth="xs" fullWidth>
                 <DialogTitle sx={{ fontWeight: 800 }}>Withdraw Funds</DialogTitle>
                 <DialogContent>
@@ -156,7 +157,7 @@ const TeacherEarnings = () => {
                 </DialogActions>
             </Dialog>
 
-            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type}>{toast.msg}</Alert></Snackbar>
+            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
         </TeacherLayout>
     );
 };

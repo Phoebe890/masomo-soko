@@ -5,14 +5,9 @@ import {
     TextField, InputAdornment, Snackbar, Alert, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from '@mui/material';
 import { api } from '@/api/axios';
-import AdminLayout from './AdminLayout'; // Import Layout
+import AdminLayout from './AdminLayout';
 import SearchIcon from '@mui/icons-material/Search';
-import BlockIcon from '@mui/icons-material/Block';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-
-const BACKEND_URL = "http://localhost:8081";
 
 type User = { id: number; email: string; name: string; role: string; enabled: boolean; };
 
@@ -27,7 +22,8 @@ const AdminUsers: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get(`${BACKEND_URL}/api/admin/users`, { withCredentials: true });
+      // FIXED: Using relative path
+      const res = await api.get('/api/admin/users');
       setUsers(res.data);
       setFilteredUsers(res.data);
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -49,15 +45,17 @@ const AdminUsers: React.FC = () => {
       if (!confirmAction) return;
       setConfirmOpen(false);
       try {
-          // ... (Keep your existing API logic here, truncated for brevity) ...
            if (confirmAction.type === 'ban') {
-              await api.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/toggle-status`, {}, { withCredentials: true });
+              // FIXED: Using relative path
+              await api.post(`/api/admin/users/${confirmAction.user.id}/toggle-status`, {});
               setUsers(users.map(u => u.id === confirmAction.user.id ? { ...u, enabled: !u.enabled } : u));
           } else if (confirmAction.type === 'delete') {
-              await api.delete(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}`, { withCredentials: true });
+              // FIXED: Using relative path
+              await api.delete(`/api/admin/users/${confirmAction.user.id}`);
               setUsers(users.filter(u => u.id !== confirmAction.user.id));
           } else if (confirmAction.type === 'role') {
-              await api.post(`${BACKEND_URL}/api/admin/users/${confirmAction.user.id}/role`, { role: confirmAction.newRole }, { withCredentials: true });
+              // FIXED: Using relative path
+              await api.post(`/api/admin/users/${confirmAction.user.id}/role`, { role: confirmAction.newRole });
               setUsers(users.map(u => u.id === confirmAction.user.id ? { ...u, role: confirmAction.newRole } : u));
           }
           setToast({ open: true, msg: "Action successful", type: 'success' });
@@ -133,7 +131,7 @@ const AdminUsers: React.FC = () => {
                 <Button onClick={handleConfirm} variant="contained" color="error">Confirm</Button>
             </DialogActions>
         </Dialog>
-        <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type}>{toast.msg}</Alert></Snackbar>
+        <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
     </AdminLayout>
   );
 };

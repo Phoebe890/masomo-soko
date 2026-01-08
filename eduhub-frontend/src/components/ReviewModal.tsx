@@ -4,14 +4,14 @@ import {
     Button, TextField, Rating, Typography, Box, Alert, 
     Fade, IconButton, Stack, Avatar 
 } from '@mui/material';
-import { api } from '@/api/axios';
+import { api } from '@/api/axios'; // FIXED: Using pre-configured Axios instance
 
 // Icons
 import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from '@mui/icons-material/Star';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 
-const BACKEND_URL = "http://localhost:8081";
+// FIXED: Removed hardcoded BACKEND_URL
 
 interface ReviewModalProps {
     open: boolean;
@@ -53,20 +53,18 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
             formData.append('rating', rating.toString());
             formData.append('comment', comment);
 
-            await api.post(`${BACKEND_URL}/api/student/review`, formData, { 
-                withCredentials: true,
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            // FIXED: Using relative path. Axios handles baseURL, credentials, and multipart headers automatically.
+            await api.post('/api/student/review', formData);
 
-            // Show success state instead of alert
+            // Show success state
             setStep('success');
             setTimeout(() => {
-                onSuccess(); // Refresh parent
+                onSuccess(); // Refresh parent data
                 handleClose();
             }, 2000);
 
         } catch (err: any) {
-            // Clean Error Message
+            // Clean Error Message from Backend
             const msg = err.response?.data || "Unable to submit review. Please try again later.";
             setError(typeof msg === 'string' ? msg : "An unexpected error occurred.");
         } finally {
@@ -120,7 +118,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
                                     value={rating}
                                     onChange={(event, newValue) => {
                                         setRating(newValue);
-                                        if(error) setError(''); // Clear error on interaction
+                                        if(error) setError(''); 
                                     }}
                                     size="large"
                                     sx={{ fontSize: '3rem' }}

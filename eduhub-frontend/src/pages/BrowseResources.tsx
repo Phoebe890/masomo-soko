@@ -12,8 +12,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import SchoolIcon from '@mui/icons-material/School';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+// FIXED: Import Axios instance
+import { api } from '@/api/axios';
 
-// --- Constants ---
 const CATEGORIES = ['Exams', 'Notes', 'Schemes of Work', 'Revision Materials'];
 const LEVELS = ['Junior Secondary', 'Senior Secondary', 'KCPE', 'KCSE'];
 const CLASSES = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Grade 7', 'Grade 8'];
@@ -27,7 +28,6 @@ const TEXT_DARK = '#0f172a';
 const TEXT_MUTED = '#64748b';
 const BORDER_COLOR = '#e2e8f0';
 
-// Helper for consistent card colors
 const getRandomColor = (id: number) => {
   const colors = ['#0f172a', '#334155', '#475569', '#1e293b'];
   return colors[id % colors.length];
@@ -39,15 +39,11 @@ const BrowseResources = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState<any[]>([]);
-  
-  // Accordion State (Control which filters are open)
   const [expanded, setExpanded] = useState<string | false>('Category'); 
 
-  // Filter State
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [level, setLevel] = useState('');
@@ -60,7 +56,6 @@ const BrowseResources = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  // --- Fetching Logic ---
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchParam = params.get('search') || '';
@@ -68,7 +63,7 @@ const BrowseResources = () => {
     setSearch(searchParam);
     if(catParam) {
         setCategory(catParam);
-        setExpanded('Category'); // Auto-open category if linked
+        setExpanded('Category'); 
     }
   }, [location.search]);
 
@@ -81,16 +76,15 @@ const BrowseResources = () => {
 
   const fetchData = () => {
     setLoading(true);
-    fetch('/api/teacher/resources')
-      .then(res => res.json())
-      .then(data => {
-        setResources(data.resources || []);
+    // FIXED: Use Axios instance to prevent 404s on custom domain
+    api.get('/api/teacher/resources')
+      .then(res => {
+        setResources(res.data.resources || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   };
 
-  // --- Filtering & Sorting ---
   const filtered = resources.filter((res: any) => {
     const s = search.toLowerCase();
     const matchesSearch = res.title?.toLowerCase().includes(s) || res.description?.toLowerCase().includes(s);
@@ -115,9 +109,6 @@ const BrowseResources = () => {
     setSearch(''); setCategory(''); setLevel(''); setClassForm(''); setSubject(''); setTerm('');
   };
 
-  // --- Components ---
-
-  // Reusable Filter Section (Controlled Accordion)
   const FilterSection = ({ title, value, onChange, options }: any) => (
     <Accordion 
         expanded={expanded === title} 
@@ -179,7 +170,6 @@ const BrowseResources = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4, minHeight: '80vh' }}>
       
-      {/* --- Top Search & Sort Bar --- */}
       <Box sx={{ mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
            <Grid item xs={12} md={9}>
@@ -227,14 +217,12 @@ const BrowseResources = () => {
       </Box>
 
       <Grid container>
-        {/* --- Sidebar (Desktop) --- */}
         {!isMobile && (
           <Grid item md={3} lg={2.5}>
              <FilterPanel />
           </Grid>
         )}
 
-        {/* --- Mobile Drawer --- */}
         <Drawer anchor="left" open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
             <Box sx={{ p: 3, width: 300 }}>
                 <FilterPanel />
@@ -244,7 +232,6 @@ const BrowseResources = () => {
             </Box>
         </Drawer>
 
-        {/* --- Results Grid --- */}
         <Grid item xs={12} md={9} lg={9.5}>
             <Typography variant="h6" fontWeight={700} sx={{ mb: 2, color: TEXT_DARK }}>{filtered.length} results found</Typography>
             
@@ -264,35 +251,23 @@ const BrowseResources = () => {
                         </Grid>
                     ) : (
                         sorted.map((res: any, idx: number) => {
-                            // --- IMAGE FIX: Check ALL possible image properties ---
                             const displayImage = res.coverImageUrl || res.previewImageUrl || res.thumbnail;
 
                             return (
                                 <Grid item xs={12} sm={6} lg={4} key={res.id || idx}>
                                     <Card
                                       sx={{ 
-                                        height: '100%', 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        borderRadius: 2, 
-                                        boxShadow: 'none',
-                                        border: `1px solid ${BORDER_COLOR}`,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
+                                        height: '100%', display: 'flex', flexDirection: 'column', 
+                                        borderRadius: 2, boxShadow: 'none', border: `1px solid ${BORDER_COLOR}`,
+                                        cursor: 'pointer', transition: 'all 0.2s',
                                         '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
                                         '&:hover .title': { color: theme.palette.primary.main }
                                       }}
                                       onClick={() => navigate(`/resource/${res.id}`)}
                                     >
-                                      {/* Thumbnail Area */}
                                       <Box sx={{ position: 'relative', pt: '56.25%', bgcolor: getRandomColor(idx), borderBottom: `1px solid ${BORDER_COLOR}`, overflow: 'hidden' }}>
                                          {displayImage ? (
-                                            <CardMedia 
-                                                component="img" 
-                                                image={displayImage}
-                                                alt={res.title}
-                                                sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
-                                            />
+                                            <CardMedia component="img" image={displayImage} alt={res.title} sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                                          ) : (
                                             <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                                                 <SchoolIcon sx={{ fontSize: 40, opacity: 0.5 }} />
@@ -301,44 +276,21 @@ const BrowseResources = () => {
                                       </Box>
 
                                       <CardContent sx={{ flexGrow: 1, p: 2, pb: '16px !important' }}>
-                                        <Typography 
-                                            className="title" 
-                                            variant="subtitle1" 
-                                            fontWeight={700} 
-                                            sx={{ 
-                                                lineHeight: 1.4, 
-                                                mb: 0.5, 
-                                                display: '-webkit-box', 
-                                                WebkitLineClamp: 2, 
-                                                WebkitBoxOrient: 'vertical', 
-                                                overflow: 'hidden', 
-                                                height: '2.8em',
-                                                color: TEXT_DARK,
-                                                transition: 'color 0.2s'
-                                            }}
-                                        >
+                                        <Typography className="title" variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.4, mb: 0.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.8em', color: TEXT_DARK, transition: 'color 0.2s' }}>
                                             {res.title}
                                         </Typography>
-                                        
                                         <Typography variant="body2" sx={{ color: TEXT_MUTED, fontSize: '0.85rem', mb: 1 }}>
                                             {res.teacherName || 'Instructor'}
                                         </Typography>
-                                        
                                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                                            <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>
-                                                {(res.rating || 4.5).toFixed(1)}
-                                            </Typography>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>{(res.rating || 4.5).toFixed(1)}</Typography>
                                             <Rating value={res.rating || 4.5} precision={0.5} size="small" readOnly sx={{ fontSize: '1rem', color: '#fbbf24' }} />
-                                            <Typography variant="caption" sx={{ color: TEXT_MUTED, ml: 0.5 }}>
-                                                ({Math.floor(Math.random() * 50) + 5})
-                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: TEXT_MUTED, ml: 0.5 }}>({Math.floor(Math.random() * 50) + 5})</Typography>
                                         </Box>
-                                        
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto' }}>
                                             <Typography variant="h6" fontWeight={700} sx={{ color: TEXT_DARK, fontSize: '1.1rem' }}>
                                                 {res.price > 0 ? `KES ${res.price}` : 'Free'}
                                             </Typography>
-                                            {/* Tag */}
                                             {res.classForm && (
                                                 <Typography variant="caption" fontWeight={600} sx={{ bgcolor: '#f1f5f9', color: TEXT_MUTED, px: 1, py: 0.5, borderRadius: 1 }}>
                                                     {res.classForm}
@@ -352,8 +304,6 @@ const BrowseResources = () => {
                         })
                     )}
                 </Grid>
-                
-                {/* Visual Pagination */}
                 {sorted.length > 0 && (
                     <Stack spacing={2} alignItems="center" sx={{ mt: 6 }}>
                         <Pagination count={Math.ceil(sorted.length / 12) || 1} size="large" shape="rounded" color="primary" />

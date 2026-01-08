@@ -15,7 +15,7 @@ import StarIcon from '@mui/icons-material/Star';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
-const BACKEND_URL = "http://localhost:8081";
+// FIXED: Removed hardcoded BACKEND_URL constant
 
 const TeacherDashboard = () => {
     const theme = useTheme();
@@ -26,15 +26,14 @@ const TeacherDashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Dashboard Stats
-                const dashRes = await api.get(`${BACKEND_URL}/api/teacher/dashboard`, { withCredentials: true });
+                // 1. Fetch Dashboard Stats - FIXED: Using relative path
+                const dashRes = await api.get('/api/teacher/dashboard');
                 setData(dashRes.data);
 
-                // 2. Fetch Analytics (Chart Data)
-                const analyticsRes = await api.get(`${BACKEND_URL}/api/teacher/analytics`, { withCredentials: true });
+                // 2. Fetch Analytics (Chart Data) - FIXED: Using relative path
+                const analyticsRes = await api.get('/api/teacher/analytics');
                 const rawSales = analyticsRes.data.salesLast30Days || {};
                 
-                // Transform data for Recharts
                 const formattedChart = Object.keys(rawSales).sort().map(dateKey => ({
                     date: new Date(dateKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                     sales: rawSales[dateKey]
@@ -50,7 +49,6 @@ const TeacherDashboard = () => {
         fetchData();
     }, []);
 
-    // Helper: Calculate Avg Rating
     const getAvgRating = () => {
         if (!data?.resources) return "0.0";
         let total = 0, count = 0;
@@ -87,7 +85,6 @@ const TeacherDashboard = () => {
                 <Typography variant="body1" color="text.secondary">Here is an overview of your performance.</Typography>
             </Box>
 
-            {/* 1. STATS GRID */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatWidget title="Total Earnings" value={`KES ${data?.currentBalance?.toLocaleString()}`} icon={<AttachMoneyIcon fontSize="large" />} color="#10B981" />
@@ -104,7 +101,6 @@ const TeacherDashboard = () => {
             </Grid>
 
             <Grid container spacing={3}>
-                {/* 2. CHART */}
                 <Grid item xs={12} md={8}>
                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 400 }}>
                         <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Revenue Analytics</Typography>
@@ -126,12 +122,10 @@ const TeacherDashboard = () => {
                     </Paper>
                 </Grid>
 
-                {/* 3. RECENT ACTIVITY */}
                 <Grid item xs={12} md={4}>
                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: '100%', maxHeight: 400, overflow: 'auto' }}>
                         <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Activity</Typography>
                         <List disablePadding>
-                            {/* Assuming notifications are part of data or fetched separately. using static/empty check for now based on your logic */}
                             <ListItem>
                                 <ListItemAvatar>
                                     <Avatar sx={{ bgcolor: '#EEF2FF', color: '#3B82F6' }}><NotificationsActiveIcon fontSize="small" /></Avatar>

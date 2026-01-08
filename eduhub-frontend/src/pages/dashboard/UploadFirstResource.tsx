@@ -49,8 +49,9 @@ const UploadFirstResource = () => {
         if (formData.thumbnailFile) data.append('thumbnail', formData.thumbnailFile);
 
         try {
-            await api.post('http://localhost:8081/api/teacher/resources', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }, withCredentials: true 
+            // FIXED: Using relative path via axios instance
+            await api.post('/api/teacher/resources', data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             setSnackbar({ open: true, msg: "Resource Published!", type: 'success' });
             setTimeout(() => navigate('/dashboard/teacher'), 1500);
@@ -135,7 +136,7 @@ const UploadFirstResource = () => {
                     </Grid>
                 </Grid>
             </Box>
-            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({...snackbar, open: false})}><Alert severity={snackbar.type}>{snackbar.msg}</Alert></Snackbar>
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({...snackbar, open: false})}><Alert severity={snackbar.type} variant="filled">{snackbar.msg}</Alert></Snackbar>
         </TeacherLayout>
     );
 };

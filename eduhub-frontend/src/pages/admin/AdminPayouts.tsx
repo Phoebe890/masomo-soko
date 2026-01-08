@@ -4,12 +4,10 @@ import {
     Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
     Stack, Alert, CircularProgress, Snackbar 
 } from '@mui/material';
-import { api } from '@/api/axios';
-import AdminLayout from './AdminLayout'; // Import Layout
+import { api } from '@/api/axios'; // FIXED: api instance is already configured with baseURL
+import AdminLayout from './AdminLayout';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-
-const BACKEND_URL = "http://localhost:8081";
 
 const AdminPayouts = () => {
     const [payouts, setPayouts] = useState<any[]>([]);
@@ -24,7 +22,8 @@ const AdminPayouts = () => {
     });
 
     const fetchPayouts = () => {
-        api.get(`${BACKEND_URL}/api/admin/payouts`, { withCredentials: true })
+        // FIXED: Using relative path. Axios handles the domain and credentials.
+        api.get('/api/admin/payouts')
             .then(res => setPayouts(res.data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
@@ -43,9 +42,8 @@ const AdminPayouts = () => {
         if (!selectedPayout) return;
         setProcessing(true);
         try {
-            await api.post(`${BACKEND_URL}/api/admin/payouts/${selectedPayout.id}/${actionType}`, 
-                { notes }, { withCredentials: true }
-            );
+            // FIXED: Using relative path
+            await api.post(`/api/admin/payouts/${selectedPayout.id}/${actionType}`, { notes });
             setOpen(false);
             fetchPayouts();
             setToast({ open: true, message: 'Action processed successfully.', severity: 'success' });
@@ -61,7 +59,7 @@ const AdminPayouts = () => {
             <Paper sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                 {loading ? <Box sx={{ p: 5, textAlign: 'center' }}><CircularProgress /></Box> : (
                     <TableContainer sx={{ overflowX: 'auto' }}>
-                        <Table sx={{ minWidth: 800 }}> {/* Ensures table doesn't squash on mobile */}
+                        <Table sx={{ minWidth: 800 }}>
                             <TableHead sx={{ bgcolor: '#F9FAFB' }}>
                                 <TableRow>
                                     <TableCell sx={{ fontWeight: 700 }}>Teacher</TableCell>
@@ -104,7 +102,6 @@ const AdminPayouts = () => {
                 )}
             </Paper>
 
-            {/* Dialogs and Snackbars remain the same, just keeping code clean */}
             <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>{actionType === 'approve' ? 'Confirm Payout' : 'Reject Request'}</DialogTitle>
                 <DialogContent>
@@ -120,7 +117,7 @@ const AdminPayouts = () => {
             </Dialog>
 
             <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({ ...toast, open: false })}>
-                <Alert severity={toast.severity}>{toast.message}</Alert>
+                <Alert severity={toast.severity} variant="filled">{toast.message}</Alert>
             </Snackbar>
         </AdminLayout>
     );

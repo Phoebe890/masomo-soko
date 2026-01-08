@@ -21,7 +21,8 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import StarIcon from '@mui/icons-material/Star';
 
-const BACKEND_URL = "http://localhost:8081";
+// FIXED: Use environment variable for image paths and fallback
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 // Helper for time
 const getTimeAgo = (dateString: string) => {
@@ -53,7 +54,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
 
     // Data State
     const [notifications, setNotifications] = useState<any[]>([]);
-    // NEW: Store User Profile Data here
     const [userProfile, setUserProfile] = useState({
         name: '',
         email: '',
@@ -64,12 +64,11 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch Notifications
-                const notifRes = await api.get(`${BACKEND_URL}/api/teacher/notifications`, { withCredentials: true });
+                // FIXED: Using relative paths with the 'api' instance
+                const notifRes = await api.get('/api/teacher/notifications');
                 setNotifications(notifRes.data);
 
-                // NEW: Fetch User Settings to get Name/Pic
-                const settingsRes = await api.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
+                const settingsRes = await api.get('/api/teacher/settings');
                 const profile = settingsRes.data.profile;
                 
                 setUserProfile({
@@ -85,10 +84,9 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
         fetchData();
     }, []);
 
-    // ... (Keep existing notification handlers: handleMarkAllRead, handleDeleteNotification, handleNotificationClick) ...
     const handleMarkAllRead = async () => {
         try {
-            await api.post(`${BACKEND_URL}/api/teacher/notifications/clear`, {}, { withCredentials: true });
+            await api.post('/api/teacher/notifications/clear');
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (e) { console.error(e); }
     };
@@ -97,7 +95,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
         e.stopPropagation();
         setNotifications(prev => prev.filter(n => n.id !== id));
         try {
-            await api.delete(`${BACKEND_URL}/api/teacher/notifications/${id}`, { withCredentials: true });
+            await api.delete(`/api/teacher/notifications/${id}`);
         } catch (e) { console.error(e); }
     };
 
@@ -112,11 +110,10 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Helper to format Image URL (in case backend sends relative path)
     const getAvatarSrc = (path: string) => {
         if (!path) return undefined;
         if (path.startsWith('http')) return path;
-        return `${BACKEND_URL}${path}`; // Prepend backend URL if it's a relative path
+        return `${BACKEND_URL}${path}`; 
     };
 
     return (
@@ -153,7 +150,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                                 </Badge>
                             </IconButton>
 
-                            {/* UPDATED PROFILE SECTION */}
                             <Box 
                                 onClick={(e) => setAnchorEl(e.currentTarget)}
                                 sx={{ 
@@ -181,7 +177,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </Toolbar>
                 </AppBar>
 
-                {/* ... Keep Notifications Popover code exactly as is ... */}
                 <Popover
                     open={Boolean(notifAnchorEl)}
                     anchorEl={notifAnchorEl}
@@ -249,7 +244,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </List>
                 </Popover>
 
-                {/* PROFILE MENU */}
                 <Menu 
                     anchorEl={anchorEl} 
                     open={Boolean(anchorEl)} 

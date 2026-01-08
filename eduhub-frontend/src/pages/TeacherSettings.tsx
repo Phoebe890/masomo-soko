@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Box, Typography, Button, Paper, Grid, CircularProgress, Alert, Avatar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/api/axios'; // FIXED: Use Axios instance
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DisconnectIcon from '@mui/icons-material/LinkOff';
 import InfoIcon from '@mui/icons-material/Info';
@@ -15,33 +16,27 @@ const TeacherSettings = () => {
     const [disconnecting, setDisconnecting] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // The function to initiate the Zoom OAuth flow
+    // FIXED: Dynamic Zoom Redirect URI
     const handleZoomConnect = () => {
-        const clientID = '8YDG3EW2S0aVSE9PrveiNQ'; // Your actual Client ID
-        const redirectUri = 'http://localhost:8089/api/auth/zoom/callback'; // Your backend callback URL
+        const clientID = '8YDG3EW2S0aVSE9PrveiNQ';
+        // Gets the backend URL from your Axios base or environment
+        const backendBase = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        const redirectUri = `${backendBase}/api/auth/zoom/callback`; 
+        
         const zoomAuthUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}`;
         window.location.href = zoomAuthUrl;
     };
 
-    // Function to disconnect Zoom
     const handleZoomDisconnect = async () => {
         setDisconnecting(true);
         try {
-            const response = await fetch('http://localhost:8089/api/teacher/zoom/disconnect', {
-                method: 'POST',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                setZoomConnected(false);
-                setMessage({ type: 'success', text: 'Zoom account disconnected successfully!' });
-                setDisconnectDialogOpen(false);
-            } else {
-                const errorData = await response.json();
-                setMessage({ type: 'error', text: errorData.error || 'Failed to disconnect Zoom account' });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Network error while disconnecting Zoom account' });
+            // FIXED: Using relative path via axios instance
+            await api.post('/api/teacher/zoom/disconnect');
+            setZoomConnected(false);
+            setMessage({ type: 'success', text: 'Zoom account disconnected successfully!' });
+            setDisconnectDialogOpen(false);
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to disconnect Zoom account' });
         } finally {
             setDisconnecting(false);
         }
@@ -59,23 +54,18 @@ const TeacherSettings = () => {
         const fetchTeacherData = async () => {
             setLoading(true);
             try {
-                const response = await fetch('http://localhost:8089/api/teacher/settings', { 
-                    credentials: 'include' 
-                });
-                if (!response.ok) throw new Error('Failed to fetch settings data.');
-                
-                const data = await response.json();
+                // FIXED: Using relative path via axios instance
+                const response = await api.get('/api/teacher/settings');
+                const data = response.data;
                 setProfile(data.profile);
                 setZoomConnected(data.isZoomConnected);
                 setConnectionStatusChecked(true);
-
             } catch (error) {
                 console.error("Error fetching teacher settings:", error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchTeacherData();
     }, []);
 
@@ -84,19 +74,11 @@ const TeacherSettings = () => {
             <Button onClick={() => navigate('/dashboard/teacher')} sx={{ mb: 2 }}>
                 ← Back to Dashboard
             </Button>
-            <Typography variant="h4" fontWeight={700} gutterBottom>
-                Account Settings
-            </Typography>
+            <Typography variant="h4" fontWeight={700} gutterBottom>Account Settings</Typography>
 
-            {message && (
-                <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
-                    {message.text}
-                </Alert>
-            )}
+            {message && (<Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message.text}</Alert>)}
 
-            {loading ? (
-                <CircularProgress />
-            ) : (
+            {loading ? (<CircularProgress />) : (
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
                         <Paper sx={{ p: 3, borderRadius: 2 }}>
@@ -119,39 +101,19 @@ const TeacherSettings = () => {
                                     <img src="https://seeklogo.com/images/Z/zoom-logo-EFF5D37265-seeklogo.com.png" alt="Zoom logo" style={{ width: '40px', height: '40px' }} />
                                     <Box>
                                         <Typography fontWeight="600">Zoom</Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Connect your Zoom account to automatically create meetings for your coaching sessions.
-                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">Connect your Zoom account to automatically create meetings.</Typography>
                                     </Box>
                                 </Box>
                                 {connectionStatusChecked && (
                                     zoomConnected ? (
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
-                                                <CheckCircleIcon />
-                                                <Typography fontWeight="600">✅ Your Zoom account is connected</Typography>
+                                                <CheckCircleIcon /><Typography fontWeight="600">Connected</Typography>
                                             </Box>
-                                            <Button 
-                                                variant="outlined" 
-                                                color="error" 
-                                                startIcon={<DisconnectIcon />}
-                                                onClick={() => setDisconnectDialogOpen(true)}
-                                            >
-                                                Disconnect
-                                            </Button>
+                                            <Button variant="outlined" color="error" startIcon={<DisconnectIcon />} onClick={() => setDisconnectDialogOpen(true)}>Disconnect</Button>
                                         </Box>
                                     ) : (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'info.main' }}>
-                                                <InfoIcon />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    One-time setup to enable automatic meeting creation
-                                                </Typography>
-                                            </Box>
-                                            <Button variant="contained" color="primary" onClick={handleZoomConnect}>
-                                                Connect to Zoom
-                                            </Button>
-                                        </Box>
+                                        <Button variant="contained" color="primary" onClick={handleZoomConnect}>Connect to Zoom</Button>
                                     )
                                 )}
                             </Box>
@@ -160,24 +122,12 @@ const TeacherSettings = () => {
                 </Grid>
             )}
 
-            {/* Disconnect Confirmation Dialog */}
             <Dialog open={disconnectDialogOpen} onClose={() => setDisconnectDialogOpen(false)}>
                 <DialogTitle>Disconnect Zoom Account</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to disconnect your Zoom account? This will remove the connection and you'll need to reconnect if you want to use Zoom meetings again.
-                    </Typography>
-                </DialogContent>
+                <DialogContent><Typography>Are you sure you want to disconnect your Zoom account?</Typography></DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDisconnectDialogOpen(false)} disabled={disconnecting}>
-                        Cancel
-                    </Button>
-                    <Button 
-                        onClick={handleZoomDisconnect} 
-                        color="error" 
-                        variant="contained"
-                        disabled={disconnecting}
-                    >
+                    <Button onClick={() => setDisconnectDialogOpen(false)} disabled={disconnecting}>Cancel</Button>
+                    <Button onClick={handleZoomDisconnect} color="error" variant="contained" disabled={disconnecting}>
                         {disconnecting ? 'Disconnecting...' : 'Disconnect'}
                     </Button>
                 </DialogActions>

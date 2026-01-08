@@ -3,15 +3,14 @@ import { Box, Typography, Paper, Rating, Stack, Chip, CircularProgress, Avatar, 
 import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
 
-const BACKEND_URL = "http://localhost:8081";
-
 const TeacherReviews = () => {
     const theme = useTheme();
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.get(`${BACKEND_URL}/api/teacher/reviews`, { withCredentials: true })
+        // FIXED: Using relative path via axios instance
+        api.get('/api/teacher/reviews')
             .then(res => setReviews(res.data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
@@ -46,7 +45,7 @@ const TeacherReviews = () => {
                                         
                                         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 150 }}>
                                             <Avatar sx={{ width: 32, height: 32, fontSize: '0.8rem', bgcolor: '#F3F4F6', color: '#6B7280' }}>
-                                                {review.studentName[0]}
+                                                {review.studentName ? review.studentName[0] : 'S'}
                                             </Avatar>
                                             <Box>
                                                 <Typography variant="body2" fontWeight={700}>{review.studentName}</Typography>

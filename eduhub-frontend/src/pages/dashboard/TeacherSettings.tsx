@@ -1,228 +1,138 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Box, Typography, Paper, Grid, TextField, Button, Avatar, 
-    List, ListItemButton, ListItemIcon, ListItemText, Alert, CircularProgress, Stack, 
-    useTheme, MenuItem, Select, FormControl, InputLabel, useMediaQuery
-} from '@mui/material';
-import { api } from '@/api/axios';
-import TeacherLayout from  '../../components/TeacherLayout';
-
-// Icons
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-
-const BACKEND_URL = "http://localhost:8081";
+import { Container, Box, Typography, Button, Paper, Grid, CircularProgress, Alert, Avatar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { api } from '@/api/axios'; // FIXED: Use Axios instance
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DisconnectIcon from '@mui/icons-material/LinkOff';
+import InfoIcon from '@mui/icons-material/Info';
 
 const TeacherSettings = () => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const [activeSection, setActiveSection] = useState('profile');
+    const navigate = useNavigate();
+    const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+    const [zoomConnected, setZoomConnected] = useState(false);
+    const [connectionStatusChecked, setConnectionStatusChecked] = useState(false);
+    const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    // Form States
-    const [profileData, setProfileData] = useState({ name: '', email: '', bio: '', subjects: '', grades: [] as string[] });
-    const [previewImage, setPreviewImage] = useState<string>('');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    // FIXED: Dynamic Zoom Redirect URI
+    const handleZoomConnect = () => {
+        const clientID = '8YDG3EW2S0aVSE9PrveiNQ';
+        // Gets the backend URL from your Axios base or environment
+        const backendBase = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        const redirectUri = `${backendBase}/api/auth/zoom/callback`; 
+        
+        const zoomAuthUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientID}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        window.location.href = zoomAuthUrl;
+    };
+
+    const handleZoomDisconnect = async () => {
+        setDisconnecting(true);
+        try {
+            // FIXED: Using relative path via axios instance
+            await api.post('/api/teacher/zoom/disconnect');
+            setZoomConnected(false);
+            setMessage({ type: 'success', text: 'Zoom account disconnected successfully!' });
+            setDisconnectDialogOpen(false);
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to disconnect Zoom account' });
+        } finally {
+            setDisconnecting(false);
+        }
+    };
     
-    // Payout & Security States (Keeping your existing logic)
-    const [payoutData, setPayoutData] = useState({ method: 'mpesa', mpesaNumber: '', bankName: '', accountNumber: '' });
-    const [securityData, setSecurityData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-
-    // Fetch Settings
     useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const res = await api.get(`${BACKEND_URL}/api/teacher/settings`, { withCredentials: true });
-                const { profile } = res.data;
-                
-                setProfileData({
-                    name: profile?.user?.name || '',
-                    email: profile?.user?.email || '',
-                    bio: profile?.bio || '',
-                    subjects: profile?.subjects ? profile.subjects.join(', ') : '',
-                    grades: profile?.grades || []
-                });
-
-                // Set Preview Image
-                if (profile?.profilePicPath) {
-                    setPreviewImage(profile.profilePicPath.startsWith('http') 
-                        ? profile.profilePicPath 
-                        : `${BACKEND_URL}${profile.profilePicPath}`
-                    );
-                }
-
-                // ... Payout logic (same as before) ...
-                const paymentStr = profile?.paymentNumber || '';
-                if (paymentStr.includes(':')) {
-                    const parts = paymentStr.split(':');
-                    setPayoutData({ method: 'bank', mpesaNumber: '', bankName: parts[0], accountNumber: parts[1] });
-                } else {
-                    setPayoutData({ method: 'mpesa', mpesaNumber: paymentStr, bankName: '', accountNumber: '' });
-                }
-            } catch (err) { console.error(err); } finally { setLoading(false); }
-        };
-        fetchSettings();
+        const queryParams = new URLSearchParams(window.location.search);
+        if (queryParams.get('zoom_connected') === 'true') {
+            setZoomConnected(true);
+            setMessage({ type: 'success', text: 'Zoom account connected successfully!' });
+        }
     }, []);
 
-    // Handle File Selection
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setSelectedFile(file);
-            setPreviewImage(URL.createObjectURL(file)); // Show immediate preview
-        }
-    };
-
-    // Save Profile
-    const handleSaveProfile = async () => {
-        setSaving(true);
-        setStatus(null);
-        try {
-            const formData = new FormData();
-            formData.append('bio', profileData.bio);
-            
-            // Handle Subjects
-            const subjectsArray = profileData.subjects.split(',').map(s => s.trim()).filter(s => s !== '');
-            formData.append('subjects', JSON.stringify(subjectsArray));
-            
-            // Handle Grades (Required by backend)
-            formData.append('grades', JSON.stringify(profileData.grades.length > 0 ? profileData.grades : ["Form 1"])); 
-
-            // Handle Profile Pic
-            if (selectedFile) {
-                formData.append('profilePic', selectedFile);
+    useEffect(() => {
+        const fetchTeacherData = async () => {
+            setLoading(true);
+            try {
+                // FIXED: Using relative path via axios instance
+                const response = await api.get('/api/teacher/settings');
+                const data = response.data;
+                setProfile(data.profile);
+                setZoomConnected(data.isZoomConnected);
+                setConnectionStatusChecked(true);
+            } catch (error) {
+                console.error("Error fetching teacher settings:", error);
+            } finally {
+                setLoading(false);
             }
-
-            // Keep existing payment number (required by backend DTO)
-            const paymentNum = payoutData.method === 'mpesa' ? payoutData.mpesaNumber : `${payoutData.bankName}:${payoutData.accountNumber}`;
-            formData.append('paymentNumber', paymentNum);
-
-            // POST to onboarding (which handles updates)
-            await api.post(`${BACKEND_URL}/api/teacher/onboarding`, formData, { 
-                withCredentials: true,
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            setStatus({ type: 'success', msg: 'Profile updated! Refresh to see changes in sidebar.' });
-            
-            // Optional: Reload page after 1.5s to update the Sidebar/Layout image
-            setTimeout(() => window.location.reload(), 1500);
-
-        } catch (e: any) {
-            console.error(e);
-            setStatus({ type: 'error', msg: 'Failed to update profile.' });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    // ... (Keep handleSavePayout and handleSaveSecurity from previous code) ...
-
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
+        };
+        fetchTeacherData();
+    }, []);
 
     return (
-        <TeacherLayout title="Account Settings" selectedRoute="/teacher/settings">
-            <Grid container spacing={4}>
-                {/* LEFT MENU */}
-                <Grid item xs={12} md={3}>
-                    <Paper elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
-                        <List sx={{ p: 0 }}>
-                            {[
-                                { id: 'profile', label: 'Public Profile', icon: <PersonOutlineIcon /> },
-                                { id: 'payout', label: 'Payouts', icon: <AccountBalanceWalletOutlinedIcon /> },
-                                { id: 'security', label: 'Security', icon: <ShieldOutlinedIcon /> },
-                            ].map((item) => (
-                                <ListItemButton 
-                                    key={item.id} selected={activeSection === item.id} onClick={() => { setActiveSection(item.id); setStatus(null); }}
-                                    sx={{ 
-                                        borderLeft: activeSection === item.id ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
-                                        bgcolor: activeSection === item.id ? '#F9FAFB' : 'transparent',
-                                        '&.Mui-selected': { bgcolor: '#F9FAFB', color: 'primary.main' }
-                                    }}
-                                >
-                                    <ListItemIcon sx={{ color: activeSection === item.id ? 'primary.main' : 'inherit' }}>{item.icon}</ListItemIcon>
-                                    <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: activeSection === item.id ? 700 : 500 }} />
-                                </ListItemButton>
-                            ))}
-                        </List>
-                    </Paper>
-                </Grid>
+        <Container maxWidth="md" sx={{ py: 4 }}>
+            <Button onClick={() => navigate('/dashboard/teacher')} sx={{ mb: 2 }}>
+                ← Back to Dashboard
+            </Button>
+            <Typography variant="h4" fontWeight={700} gutterBottom>Account Settings</Typography>
 
-                {/* RIGHT CONTENT */}
-                <Grid item xs={12} md={9}>
-                    <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-                        {status && <Alert severity={status.type} sx={{ mb: 3 }}>{status.msg}</Alert>}
+            {message && (<Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message.text}</Alert>)}
 
-                        {/* PROFILE FORM */}
-                        {activeSection === 'profile' && (
-                            <Stack spacing={3}>
-                                <Box><Typography variant="h6" fontWeight={700}>Profile Details</Typography><Typography variant="body2" color="text.secondary">Visible to students.</Typography></Box>
-                                
-                                <Stack direction="row" spacing={3} alignItems="center">
-                                    <Avatar 
-                                        src={previewImage} 
-                                        sx={{ width: 80, height: 80, border: '1px solid #eee' }} 
-                                    />
-                                    <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ textTransform: 'none' }}>
-                                        Change Photo
-                                        <input type="file" hidden accept="image/*" onChange={handleFileChange} />
-                                    </Button>
-                                </Stack>
-
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} md={6}><TextField fullWidth label="Name" value={profileData.name} disabled helperText="Managed by account" /></Grid>
-                                    <Grid item xs={12} md={6}><TextField fullWidth label="Email" value={profileData.email} disabled /></Grid>
-                                    <Grid item xs={12}><TextField fullWidth label="Bio" multiline rows={4} value={profileData.bio} onChange={(e) => setProfileData({...profileData, bio: e.target.value})} /></Grid>
-                                    <Grid item xs={12}><TextField fullWidth label="Subjects (comma separated)" value={profileData.subjects} onChange={(e) => setProfileData({...profileData, subjects: e.target.value})} /></Grid>
-                                </Grid>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button 
-                                        variant="contained" 
-                                        onClick={handleSaveProfile} 
-                                        disabled={saving} 
-                                        startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
-                                    >
-                                        Save Changes
-                                    </Button>
+            {loading ? (<CircularProgress />) : (
+                <Grid container spacing={4}>
+                    <Grid item xs={12}>
+                        <Paper sx={{ p: 3, borderRadius: 2 }}>
+                            <Typography variant="h6" gutterBottom>My Profile</Typography>
+                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar src={profile?.profilePicPath || ''} sx={{ width: 80, height: 80 }} />
+                                <Box>
+                                    <Typography variant="h5">{profile?.user?.name}</Typography>
+                                    <Typography color="text.secondary">{profile?.user?.email}</Typography>
                                 </Box>
-                            </Stack>
-                        )}
-
-                        {/* ... (Include your Payout and Security sections here as before) ... */}
-                         {activeSection === 'payout' && (
-                            <Stack spacing={3}>
-                                <Typography variant="h6" fontWeight={700}>Payout Preferences</Typography>
-                                <FormControl fullWidth>
-                                    <InputLabel>Payout Method</InputLabel>
-                                    <Select value={payoutData.method} label="Payout Method" onChange={(e) => setPayoutData({...payoutData, method: e.target.value})}>
-                                        <MenuItem value="mpesa">M-Pesa</MenuItem>
-                                        <MenuItem value="bank">Bank Transfer</MenuItem>
-                                    </Select>
-                                </FormControl>
-                                {payoutData.method === 'mpesa' ? (
-                                    <TextField fullWidth label="M-Pesa Number" value={payoutData.mpesaNumber} onChange={(e) => setPayoutData({...payoutData, mpesaNumber: e.target.value})} />
-                                ) : (
-                                    <>
-                                        <TextField fullWidth label="Bank Name" value={payoutData.bankName} onChange={(e) => setPayoutData({...payoutData, bankName: e.target.value})} />
-                                        <TextField fullWidth label="Account Number" value={payoutData.accountNumber} onChange={(e) => setPayoutData({...payoutData, accountNumber: e.target.value})} />
-                                    </>
+                            </Box>
+                            <Typography sx={{mt: 2}}><strong>Bio:</strong> {profile?.bio}</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Paper sx={{ p: 3, borderRadius: 2 }}>
+                            <Typography variant="h6" gutterBottom>Integrations</Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <img src="https://seeklogo.com/images/Z/zoom-logo-EFF5D37265-seeklogo.com.png" alt="Zoom logo" style={{ width: '40px', height: '40px' }} />
+                                    <Box>
+                                        <Typography fontWeight="600">Zoom</Typography>
+                                        <Typography variant="body2" color="text.secondary">Connect your Zoom account to automatically create meetings.</Typography>
+                                    </Box>
+                                </Box>
+                                {connectionStatusChecked && (
+                                    zoomConnected ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
+                                                <CheckCircleIcon /><Typography fontWeight="600">Connected</Typography>
+                                            </Box>
+                                            <Button variant="outlined" color="error" startIcon={<DisconnectIcon />} onClick={() => setDisconnectDialogOpen(true)}>Disconnect</Button>
+                                        </Box>
+                                    ) : (
+                                        <Button variant="contained" color="primary" onClick={handleZoomConnect}>Connect to Zoom</Button>
+                                    )
                                 )}
-                                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button variant="contained" disabled>Save Payouts</Button>
-                                </Box>
-                            </Stack>
-                        )}
-                    </Paper>
+                            </Box>
+                        </Paper>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </TeacherLayout>
+            )}
+
+            <Dialog open={disconnectDialogOpen} onClose={() => setDisconnectDialogOpen(false)}>
+                <DialogTitle>Disconnect Zoom Account</DialogTitle>
+                <DialogContent><Typography>Are you sure you want to disconnect your Zoom account?</Typography></DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDisconnectDialogOpen(false)} disabled={disconnecting}>Cancel</Button>
+                    <Button onClick={handleZoomDisconnect} color="error" variant="contained" disabled={disconnecting}>
+                        {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Container>
     );
 };
-
 export default TeacherSettings;

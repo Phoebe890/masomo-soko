@@ -8,6 +8,7 @@ import {
   InputAdornment, Grid
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/api/axios'; // FIXED: Using Axios instance
 
 // Icons
 import EditIcon from '@mui/icons-material/Edit';
@@ -19,9 +20,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 // Components
 import TeacherSidebar from '../../components/TeacherSidebar';
-
-// --- CONFIGURATION ---
-const BACKEND_URL = "http://localhost:8081";
 
 // Dropdown Options
 const SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Kiswahili', 'Physics', 'Chemistry', 'Biology', 'CRE', 'Computer Studies', 'Business'];
@@ -72,14 +70,9 @@ const ResourceManagement: React.FC = () => {
   const fetchResources = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/teacher/dashboard`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch resources');
-      const data = await response.json();
-      setResources(data.resources || []);
+      // FIXED: Using relative path via axios instance
+      const response = await api.get('/api/teacher/dashboard');
+      setResources(response.data.resources || []);
     } catch (err) {
       console.error('Failed to fetch resources:', err);
     } finally {
@@ -93,7 +86,6 @@ const ResourceManagement: React.FC = () => {
     navigate('/dashboard/teacher/upload-first-resource');
   };
 
-  // --- DELETE HANDLERS ---
   const handleDeleteClick = (id: number) => {
     setResourceToDelete(id);
     setDeleteDialogOpen(true);
@@ -101,19 +93,11 @@ const ResourceManagement: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (!resourceToDelete) return;
-
     try {
-        const response = await fetch(`${BACKEND_URL}/api/teacher/resources/${resourceToDelete}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
-
-        if(response.ok) {
-            setSnackbar({ open: true, message: 'Resource deleted successfully', severity: 'success' });
-            fetchResources(); 
-        } else {
-            throw new Error("Failed to delete");
-        }
+        // FIXED: Using axios instance
+        await api.delete(`/api/teacher/resources/${resourceToDelete}`);
+        setSnackbar({ open: true, message: 'Resource deleted successfully', severity: 'success' });
+        fetchResources(); 
     } catch (e) {
         setSnackbar({ open: true, message: 'Could not delete resource', severity: 'error' });
     } finally {
@@ -122,9 +106,6 @@ const ResourceManagement: React.FC = () => {
     }
   };
 
-  // --- EDIT HANDLERS ---
-
-  // 1. Open Dialog and Populate Data
   const handleEditClick = (resource: any) => {
     setEditingResource(resource);
     setEditFormData({
@@ -134,26 +115,23 @@ const ResourceManagement: React.FC = () => {
         grade: resource.grade || '',
         curriculum: resource.curriculum || '',
         price: resource.price ? resource.price.toString() : '',
-        resourceFile: null, // Reset files on open
+        resourceFile: null,
         thumbnailFile: null
     });
     setEditDialogOpen(true);
   };
 
-  // 2. Handle Input Changes in Edit Form
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
     const { name, value } = e.target;
     setEditFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 3. Handle File Changes in Edit Form
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'resourceFile' | 'thumbnailFile') => {
     if (e.target.files && e.target.files[0]) {
         setEditFormData(prev => ({ ...prev, [field]: e.target.files![0] }));
     }
   };
 
-  // 4. Submit Update
   const handleUpdateSubmit = async () => {
     if (!editingResource) return;
     setIsUpdating(true);
@@ -165,12 +143,10 @@ const ResourceManagement: React.FC = () => {
     formData.append('grade', editFormData.grade);
     formData.append('curriculum', editFormData.curriculum);
     
-    // Pricing Logic
     const priceVal = parseFloat(editFormData.price);
     formData.append('pricing', priceVal > 0 ? "Paid" : "Free");
     if (priceVal > 0) formData.append('price', editFormData.price);
 
-    // Only append files if user selected new ones
     if (editFormData.resourceFile) {
         formData.append('file', editFormData.resourceFile);
     }
@@ -179,19 +155,12 @@ const ResourceManagement: React.FC = () => {
     }
 
     try {
-        const response = await fetch(`${BACKEND_URL}/api/teacher/resources/${editingResource.id}`, {
-            method: 'PUT',
-            credentials: 'include',
-            body: formData // No Content-Type header when sending FormData
-        });
-
-        if (!response.ok) throw new Error("Update failed");
-
+        // FIXED: Using axios instance for file upload
+        await api.put(`/api/teacher/resources/${editingResource.id}`, formData);
         setSnackbar({ open: true, message: 'Resource updated successfully', severity: 'success' });
         setEditDialogOpen(false);
-        fetchResources(); // Refresh table
+        fetchResources();
     } catch (error) {
-        console.error(error);
         setSnackbar({ open: true, message: 'Failed to update resource', severity: 'error' });
     } finally {
         setIsUpdating(false);
@@ -212,7 +181,6 @@ const ResourceManagement: React.FC = () => {
 
       <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 4 }, width: '100%' }}>
         
-        {/* --- HEADER --- */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {isMobile && (
@@ -229,18 +197,12 @@ const ResourceManagement: React.FC = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleUploadClick}
-            sx={{ 
-                py: 1.5, px: 3, 
-                fontWeight: 600, 
-                borderRadius: 2,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}
+            sx={{ py: 1.5, px: 3, fontWeight: 600, borderRadius: 2 }}
           >
             Upload New Resource
           </Button>
         </Box>
 
-        {/* --- TABLE --- */}
         <Paper elevation={0} sx={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
             {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -303,16 +265,12 @@ const ResourceManagement: React.FC = () => {
             )}
         </Paper>
 
-        {/* --- EDIT DIALOG --- */}
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle sx={{ fontWeight: 700 }}>Edit Resource</DialogTitle>
             <DialogContent dividers>
                 <Grid container spacing={3} sx={{ mt: 0 }}>
                     <Grid item xs={12}>
-                        <TextField 
-                            label="Title" name="title" fullWidth 
-                            value={editFormData.title} onChange={handleEditChange} 
-                        />
+                        <TextField label="Title" name="title" fullWidth value={editFormData.title} onChange={handleEditChange} />
                     </Grid>
                     <Grid item xs={12} md={4}>
                         <FormControl fullWidth>
@@ -339,25 +297,14 @@ const ResourceManagement: React.FC = () => {
                         </FormControl>
                     </Grid>
                     <Grid item xs={12}>
-                        <TextField 
-                            label="Description" name="description" fullWidth multiline rows={4}
-                            value={editFormData.description} onChange={handleEditChange} 
-                        />
+                        <TextField label="Description" name="description" fullWidth multiline rows={4} value={editFormData.description} onChange={handleEditChange} />
                     </Grid>
                     <Grid item xs={12} md={6}>
                         <FormControl fullWidth>
                             <InputLabel>Price (Optional)</InputLabel>
-                            <OutlinedInput
-                                name="price" type="number"
-                                startAdornment={<InputAdornment position="start">KES</InputAdornment>}
-                                label="Price (Optional)"
-                                value={editFormData.price} onChange={handleEditChange}
-                                placeholder="0 for Free"
-                            />
+                            <OutlinedInput name="price" type="number" startAdornment={<InputAdornment position="start">KES</InputAdornment>} label="Price (Optional)" value={editFormData.price} onChange={handleEditChange} placeholder="0 for Free" />
                         </FormControl>
                     </Grid>
-                    
-                    {/* File Update Section */}
                     <Grid item xs={12} md={6}>
                          <Box sx={{ border: '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
                             <Typography variant="body2" sx={{ mb: 1 }}>Update Resource File (Optional)</Typography>
@@ -381,43 +328,25 @@ const ResourceManagement: React.FC = () => {
             <DialogActions sx={{ p: 3 }}>
                 <Button onClick={() => setEditDialogOpen(false)} color="inherit">Cancel</Button>
                 <Button onClick={handleUpdateSubmit} variant="contained" disabled={isUpdating}>
-                    {isUpdating ? <CircularProgress size={24} /> : "Save Changes"}
+                    {isUpdating ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
                 </Button>
             </DialogActions>
         </Dialog>
 
-        {/* --- DELETE CONFIRMATION DIALOG --- */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
                 <WarningAmberIcon /> Confirm Deletion
             </DialogTitle>
-            <DialogContent>
-                <DialogContentText>
-                    Are you sure you want to delete this resource? This action cannot be undone.
-                </DialogContentText>
-            </DialogContent>
+            <DialogContent><DialogContentText>Are you sure you want to delete this resource? This action cannot be undone.</DialogContentText></DialogContent>
             <DialogActions sx={{ p: 3 }}>
-                <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" color="inherit">
-                    Cancel
-                </Button>
-                <Button onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
-                    Delete Resource
-                </Button>
+                <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" color="inherit">Cancel</Button>
+                <Button onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>Delete Resource</Button>
             </DialogActions>
         </Dialog>
 
-        {/* --- SNACKBAR --- */}
-        <Snackbar 
-            open={snackbar.open} 
-            autoHideDuration={4000} 
-            onClose={handleCloseSnackbar}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-            <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-                {snackbar.message}
-            </Alert>
+        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+            <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', fontWeight: 600 }} variant="filled">{snackbar.message}</Alert>
         </Snackbar>
-
       </Box>
     </Container>
   );
