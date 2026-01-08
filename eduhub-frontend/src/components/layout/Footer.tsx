@@ -11,7 +11,7 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom'; // Added RouterLink for logo
+import { Link as RouterLink } from 'react-router-dom'; 
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
@@ -33,22 +33,17 @@ const Footer: React.FC = () => {
       sx={{
         backgroundColor: brandColor,
         color: textColor,
-        pt: 8, // Increased top padding slightly for balance
+        pt: 8, 
         pb: 4,
         mt: 'auto',
       }}
     >
-      {/* 
-         CHANGED: maxWidth="xl" 
-         This allows the footer to spread out on large screens (or when zoomed out),
-         preventing the content from clumping in the middle.
-      */}
       <Container maxWidth="xl">
         <Grid container spacing={5} justifyContent="space-between">
           
           {/* --- Column 1: Brand & Logo --- */}
           <Grid item xs={12} md={4} sx={{ textAlign: 'left' }}>
-            {/* Logo Container - White background to make logo pop */}
+            {/* Logo Container */}
             <Box 
                 component={RouterLink} 
                 to="/"
@@ -65,7 +60,7 @@ const Footer: React.FC = () => {
                 <Box 
                     component="img" 
                     src={logo} 
-                    alt="Mwalimu Soko"
+                    alt="Masomo Soko"
                     sx={{ 
                         height: 45, 
                         width: 'auto', 
@@ -99,11 +94,18 @@ const Footer: React.FC = () => {
               Company
             </Typography>
             <Stack spacing={1.5}>
-              {['About Us', 'Sell Resources', 'Plans & Pricing', 'Careers'].map((item) => (
-                <Link key={item} href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
-                  {item}
-                </Link>
-              ))}
+              <Link component={RouterLink} to="/about" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
+                  About Us
+              </Link>
+              <Link component={RouterLink} to="/register?role=teacher" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
+                  Sell Resources
+              </Link>
+              <Link href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
+                  Plans & Pricing
+              </Link>
+              <Link href="#" underline="none" sx={{ color: textLightColor, fontSize: '0.95rem', transition: '0.2s', '&:hover': { color: accentColor, pl: 0.5 } }}>
+                  Careers
+              </Link>
             </Stack>
           </Grid>
 
@@ -115,11 +117,11 @@ const Footer: React.FC = () => {
             <Stack spacing={2}>
               <Box>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Phone</Typography>
-                <Typography variant="body2" sx={{ color: textLightColor }}>+(254) 712 345 678</Typography>
+                <Typography variant="body2" sx={{ color: textLightColor }}>+(254) 769 053 029</Typography>
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Email</Typography>
-                <Typography variant="body2" sx={{ color: textLightColor }}>support@mwalimusoko.com</Typography>
+                <Typography variant="body2" sx={{ color: textLightColor }}>phoebemuriithi608@gmail.com</Typography>
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Location</Typography>
@@ -153,7 +155,7 @@ const Footer: React.FC = () => {
         {/* --- Bottom Bar --- */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="body2" sx={{ color: textLightColor }}>
-                © {new Date().getFullYear()} Mwalimu Soko Inc. All rights reserved.
+                © {new Date().getFullYear()} Masomo Soko Inc. All rights reserved.
             </Typography>
 
             <Stack direction="row" spacing={3} sx={{ display: { xs: 'none', sm: 'flex' } }}>

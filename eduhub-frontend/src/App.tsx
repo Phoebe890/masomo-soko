@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-
+import About from './components/About'; 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPayouts from './pages/admin/AdminPayouts';
@@ -37,8 +37,7 @@ import AvailabilityCalendar from './pages/teacher/AvailabilityCalendar';
 
 // --- UTILITY COMPONENTS ---
 
-// 1. NEW: ScrollToTop Component
-// This listens for route changes and scrolls the window to (0,0)
+// 1. ScrollToTop Component
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -86,6 +85,9 @@ function App() {
     <Routes>
       {/* Main Public Routes */}
       <Route path="/" element={<Home />} />
+      {/* ---  ABOUT ROUTE HERE --- */}
+      <Route path="/about" element={<About />} />
+      
       <Route path="/browse" element={<BrowseResources />} />
       <Route path="/resource/:id" element={<ResourceDetail />} />
       <Route path="/purchase-confirmation" element={<PurchaseConfirmation />} />
@@ -122,7 +124,7 @@ function App() {
     <>
       <AuthGate />
       
-      {/* 2. ADDED: ScrollToTop here so it runs on every route change */}
+      {/* ScrollToTop here so it runs on every route change */}
       <ScrollToTop />
       
       {isDashboardRoute ? (

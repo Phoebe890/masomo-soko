@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
-// FIXED: Using Axios instance
 import { api } from '@/api/axios';
 
 // Icons
@@ -17,7 +16,6 @@ import ScienceIcon from '@mui/icons-material/Science';
 import LanguageIcon from '@mui/icons-material/Language';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import SearchIcon from '@mui/icons-material/Search';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'; 
 
@@ -70,6 +68,7 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [contributors, setContributors] = useState<any[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [heroSearch, setHeroSearch] = useState('');
   const navigate = useNavigate();
 
@@ -90,14 +89,15 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      if (!isPaused) {
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+      }
     }, 8000); 
     return () => clearInterval(interval);
-  }, [slides.length]);
+  }, [slides.length, isPaused]);
 
   useEffect(() => {
     setLoading(true);
-    // FIXED: Using Axios instance for fetching
     api.get('/api/teacher/resources')
       .then(res => {
         setResources(res.data.resources ? res.data.resources.slice(0, 8) : []);
@@ -173,15 +173,23 @@ const Home: React.FC = () => {
                                     placeholder="Search for notes, exams... (e.g. Form 4 Math)"
                                     value={heroSearch}
                                     onChange={(e) => setHeroSearch(e.target.value)}
+                                    onFocus={() => setIsPaused(true)}
+                                    onBlur={() => setIsPaused(false)}
                                     sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: '50px', pl: 2, pr: 1, height: '64px', fontSize: '1.1rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', '& fieldset': { border: 'none' }, '&:hover': { bgcolor: '#fff' } } }}
                                     InputProps={{
                                         startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: '#64748b', fontSize: 28 }} /></InputAdornment>),
-                                        endAdornment: (<Button type="submit" variant="contained" size="large" sx={{ borderRadius: '50px', height: '48px', px: 4, fontSize: '1rem', fontWeight: 700, textTransform: 'none' }}>Search</Button>)
                                     }}
                                 />
                             </Box>
                         ) : (
-                            <Button component={RouterLink} to="/register?role=teacher" variant="contained" size="large" startIcon={<MonetizationOnIcon />} endIcon={<ArrowForwardIcon />} sx={{ borderRadius: '50px', height: '64px', px: 6, fontSize: '1.2rem', fontWeight: 700, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: '0 8px 25px rgba(0,0,0,0.3)', '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}>
+                            <Button 
+                              component={RouterLink} 
+                              to="/register?role=teacher" 
+                              variant="contained" 
+                              size="large" 
+                              endIcon={<ArrowForwardIcon />} 
+                              sx={{ borderRadius: '50px', height: '64px', px: 6, fontSize: '1.2rem', fontWeight: 700, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: '0 8px 25px rgba(0,0,0,0.3)', '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}
+                            >
                                 Start Selling Now
                             </Button>
                         )}
@@ -189,7 +197,8 @@ const Home: React.FC = () => {
                 </Box>
              )
           ))}
-          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: 40, left: 0, right: 0 }}>
+          {/* UPDATED: Changed bottom from 40 to 15, added zIndex 3 */}
+          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: 1, left: 0, right: 0, zIndex: 3 }}>
              {slides.map((_, idx) => (
                  <Box key={idx} onClick={() => setCurrentSlide(idx)} sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: currentSlide === idx ? 'white' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
              ))}
