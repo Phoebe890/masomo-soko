@@ -19,6 +19,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SchoolIcon from '@mui/icons-material/School'; 
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'; // Icon for About Us
 
 const Header: React.FC = () => {
   const theme = useTheme();
@@ -176,9 +177,15 @@ const Header: React.FC = () => {
             )}
 
             {!isMobile && (
-              <Button component={RouterLink} to="/browse" sx={styles.navLink}>
-                Browse
-              </Button>
+              <>
+                <Button component={RouterLink} to="/browse" sx={styles.navLink}>
+                  Browse
+                </Button>
+                {/* --- ADDED ABOUT LINK HERE --- */}
+                <Button component={RouterLink} to="/about" sx={styles.navLink}>
+                  About Us
+                </Button>
+              </>
             )}
 
             {isLoggedIn ? (
@@ -332,6 +339,12 @@ const Header: React.FC = () => {
                <ListItemButton component={RouterLink} to="/browse" onClick={() => setDrawerOpen(false)}>
                    <ListItemIcon><StorefrontIcon /></ListItemIcon>
                    <ListItemText primary="Browse Resources" />
+               </ListItemButton>
+
+               {/* --- ADDED ABOUT LINK IN MOBILE MENU --- */}
+               <ListItemButton component={RouterLink} to="/about" onClick={() => setDrawerOpen(false)}>
+                   <ListItemIcon><InfoOutlinedIcon /></ListItemIcon>
+                   <ListItemText primary="About Us" />
                </ListItemButton>
                
                {isLoggedIn && (
