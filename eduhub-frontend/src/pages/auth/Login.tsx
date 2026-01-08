@@ -34,10 +34,21 @@ const Login: React.FC = () => {
         });
 
         const data = res.data;
+        
+        // --- CRITICAL FIX START ---
+        // Extract token (handle both naming conventions just in case)
+        const authToken = data.token || data.accessToken;
+        
+        if (authToken) {
+            localStorage.setItem('token', authToken); // <--- This fixes the 403 error
+        }
+        // --- CRITICAL FIX END ---
+
         localStorage.setItem('email', data.email);
         localStorage.setItem('role', data.role);
         
         setMessage('Google Login Successful! Redirecting...');
+        
         setTimeout(() => {
              const userRole = data.role?.toUpperCase();
              if (userRole === 'TEACHER') navigate('/dashboard/teacher');
@@ -61,10 +72,28 @@ const Login: React.FC = () => {
     try {
       const response = await api.post('/api/auth/login', formData);
       const data = response.data;
+
+      // --- CRITICAL FIX START ---
+      // 1. Log the data to ensure we are seeing what the backend sends
+      console.log("Login Success Data:", data);
+
+      // 2. Extract the token safely
+      const authToken = data.token || data.accessToken;
+
+      // 3. Save to LocalStorage so Axios can find it
+      if (authToken) {
+          localStorage.setItem('token', authToken); // <--- REQUIRED for Axios Interceptor
+      } else {
+          console.error("Login succeeded but no token returned:", data);
+          throw new Error("Authentication token missing from server response.");
+      }
+      // --- CRITICAL FIX END ---
+
       localStorage.setItem('email', data.email);
       localStorage.setItem('role', data.role);
       
       setMessage('Welcome back! Redirecting...');
+      
       setTimeout(() => {
         const userRole = data.role?.toUpperCase();
         if (userRole === 'TEACHER') navigate('/dashboard/teacher');
@@ -72,7 +101,9 @@ const Login: React.FC = () => {
         else if (userRole === 'ADMIN') navigate('/admin/dashboard');
         else navigate('/');
       }, 800);
+
     } catch (error: any) {
+      console.error("Login Error:", error);
       setMessage(error.response?.data || 'Invalid email or password.');
     } finally {
       stopLoading();
@@ -91,7 +122,7 @@ const Login: React.FC = () => {
             <Divider sx={{ mb: 3 }}><Typography variant="caption" color="text.secondary">OR WITH EMAIL</Typography></Divider>
             <Box component="form" onSubmit={handleSubmit}>
               {message && (
-                <Box sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: message.includes('Welcome') ? 'success.light' : 'error.light', color: 'white' }}>
+                <Box sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: message.includes('Welcome') || message.includes('Successful') ? 'success.light' : 'error.light', color: 'white' }}>
                   <Typography variant="body2" fontWeight={500}>{message}</Typography>
                 </Box>
               )}
