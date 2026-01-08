@@ -2,6 +2,7 @@ package com.eduhub.eduhub_backend.security;
 
 import com.eduhub.eduhub_backend.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,13 +20,19 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
+
+    // Inject the variable from application.properties / Render Env
+    @Value("${cors.allowed-origins:}") 
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,14 +42,30 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173", 
-            "http://localhost:3000",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:3000"
-        ));
+        
+        // 1. Define the List of Allowed URLs
+        List<String> origins = new ArrayList<>();
+        
+        // A. ALWAYS Allow Localhost (For Dev)
+        origins.add("http://localhost:5173");
+        origins.add("http://localhost:3000");
+        origins.add("http://127.0.0.1:5173");
+        origins.add("http://127.0.0.1:3000");
+        
+        // B. ALWAYS Allow Production Vercel URL (Hardcoded safety net)
+        origins.add("https://masomo-soko.vercel.app");
+
+        // C. Allow Dynamic URLs from Environment Variables (Render)
+        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
+            // Splits "url1,url2" into a list and adds them
+            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
+        }
+
+        configuration.setAllowedOrigins(origins);
+        
+        // 2. Standard CORS Settings
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setMaxAge(3600L);
