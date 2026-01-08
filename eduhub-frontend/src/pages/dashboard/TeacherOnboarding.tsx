@@ -3,12 +3,12 @@ import {
   Box, Typography, Button, TextField, Container, 
   LinearProgress, Grid, Avatar, Chip, Stack, 
   InputAdornment, CardActionArea, 
-  useTheme, alpha, IconButton, Paper, CircularProgress,
+  useTheme, IconButton, Paper, CircularProgress,
   Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/api/axios'; // FIXED: Axios instance
+import { api } from '@/api/axios';
 
 // Icons
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
@@ -64,7 +64,6 @@ const TeacherOnboarding: React.FC = () => {
 
         if (formData.photoFile) uploadData.append('profilePic', formData.photoFile);
 
-        // FIXED: Using axios instance and relative path
         await api.post('/api/teacher/onboarding', uploadData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -155,12 +154,29 @@ const TeacherOnboarding: React.FC = () => {
     </Box>
   );
 
-  const renderSuccess = () => (<Box sx={{ textAlign: 'center', py: 8 }}><Typography variant="h3" fontWeight={800} gutterBottom>You're Ready to Teach!</Typography><Typography variant="h6" color="text.secondary">Your profile is live.</Typography></Box>);
+  const renderSuccess = () => (
+    <Box sx={{ textAlign: 'center', py: 8 }}>
+        {/* ADDED: Safaricom-like Green Checkmark SVG */}
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 10 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" fill="#43B02A" /> {/* Safaricom Green */}
+                    <path d="M28 50L42 66L72 34" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+            </Box>
+        </motion.div>
+        
+        <Typography variant="h3" fontWeight={800} gutterBottom>You're Ready to Teach!</Typography>
+        <Typography variant="h6" color="text.secondary">Your profile is live on Masomo Soko.</Typography>
+    </Box>
+  );
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#fff' }}>
       <Box sx={{ height: 70, borderBottom: '1px solid #f0f0f0', px: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, bgcolor: 'white', zIndex: 10 }}>
-        <Typography variant="h6" fontWeight={800} color="primary">EduHub</Typography><Button onClick={() => navigate('/')} color="inherit">Save & Exit</Button>
+        {/* UPDATED: Changed Brand Name */}
+        <Typography variant="h6" fontWeight={800} sx={{ color: '#ea580c' }}>Masomo Soko</Typography>
+        <Button onClick={() => navigate('/')} color="inherit">Save & Exit</Button>
       </Box>
       <LinearProgress variant="determinate" value={progress} sx={{ height: 4 }} />
       <Container maxWidth="md" sx={{ flex: 1, py: 8 }}>
