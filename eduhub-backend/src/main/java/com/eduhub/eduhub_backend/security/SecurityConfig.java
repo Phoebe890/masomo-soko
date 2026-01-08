@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,12 +26,12 @@ import java.util.Arrays;
 import java.util.List;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
 
-    // Inject the variable from application.properties / Render Env
     @Value("${cors.allowed-origins:}") 
     private String allowedOrigins;
 
@@ -39,48 +40,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        
-        // 1. Define the List of Allowed URLs
-        List<String> origins = new ArrayList<>();
-        
-        // A. ALWAYS Allow Localhost (For Dev)
-        origins.add("http://localhost:5173");
-        origins.add("http://localhost:3000");
-        origins.add("http://127.0.0.1:5173");
-        origins.add("http://127.0.0.1:3000");
-        
-        // B. ALWAYS Allow Production Vercel URL (Hardcoded safety net)
-        origins.add("https://masomo-soko.vercel.app");
-
-        // C. Allow Dynamic URLs from Environment Variables (Render)
-        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
-            // Splits "url1,url2" into a list and adds them
-            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
-        }
-
-        configuration.setAllowedOrigins(origins);
-        
-        // 2. Standard CORS Settings
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-        configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setMaxAge(3600L);
-        
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
+    // Explicitly define the AuthenticationProvider
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -89,9 +49,44 @@ public class SecurityConfig {
         return authProvider;
     }
 
+    // Standard way to expose AuthenticationManager in Spring Boot 3
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
     @Bean
     public SecurityContextRepository securityContextRepository() {
         return new HttpSessionSecurityContextRepository();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        List<String> origins = new ArrayList<>();
+        
+        origins.add("http://localhost:5173");
+        origins.add("http://localhost:3000");
+        origins.add("http://127.0.0.1:5173");
+        origins.add("http://127.0.0.1:3000");
+        origins.add("https://masomo-soko.vercel.app");
+        origins.add("https://masomosoko.co.ke");
+        origins.add("https://www.masomosoko.co.ke");
+
+        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
+            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
+        }
+
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
@@ -99,13 +94,19 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable()) 
+                
+                // CRITICAL: Link the authentication provider explicitly
+                .authenticationProvider(authenticationProvider())
+                
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
+                
                 .securityContext(securityContext -> securityContext
                         .securityContextRepository(securityContextRepository()))
-                .authenticationProvider(authenticationProvider())
+                
                 .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(form -> form.disable())
                 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -119,22 +120,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll()
 
-                        .requestMatchers(
-                                "/api/payment/pay",
-                                "/api/payment/status/**"
-                        ).authenticated() 
+                        .requestMatchers("/api/payment/pay", "/api/payment/status/**").authenticated() 
                         
-                        .requestMatchers("/api/admin/**")
-                            .hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-
-                        .requestMatchers("/api/teacher/onboarding")
-                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
-
-                        .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**")
-                            .hasAnyAuthority("TEACHER", "ROLE_TEACHER")
-                        
-                        .requestMatchers("/api/student/**")
-                            .hasAnyAuthority("STUDENT", "ROLE_STUDENT")
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER")
+                        .requestMatchers("/api/teacher/**", "/api/coaching/**", "/api/wallet/**").hasAnyAuthority("ROLE_TEACHER")
+                        .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT")
                         
                         .anyRequest().authenticated()
                 );
