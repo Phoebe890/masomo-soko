@@ -21,7 +21,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import StarIcon from '@mui/icons-material/Star';
 
-// FIXED: Use environment variable for image paths and fallback
+// Environment variable for image paths
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 // Helper for time
@@ -64,7 +64,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // FIXED: Using relative paths with the 'api' instance
                 const notifRes = await api.get('/api/teacher/notifications');
                 setNotifications(notifRes.data);
 
@@ -104,8 +103,15 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     };
 
     const handleLogout = () => {
+        setAnchorEl(null);
         localStorage.clear();
         navigate('/login');
+    };
+
+    const handleProfileClick = () => {
+        setAnchorEl(null);
+        // FIXED: Updated path to match App.js route
+        navigate('/teacher/settings');
     };
 
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -177,6 +183,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </Toolbar>
                 </AppBar>
 
+                {/* Notifications Popover */}
                 <Popover
                     open={Boolean(notifAnchorEl)}
                     anchorEl={notifAnchorEl}
@@ -244,6 +251,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </List>
                 </Popover>
 
+                {/* Profile Menu */}
                 <Menu 
                     anchorEl={anchorEl} 
                     open={Boolean(anchorEl)} 
@@ -257,10 +265,11 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                         <Typography variant="caption" color="text.secondary">{userProfile.email}</Typography>
                     </Box>
                     <Divider />
-                    <MenuItem onClick={() => navigate('/dashboard/teacher/settings')}>
+                    {/* FIXED: Paths updated to /teacher/settings */}
+                    <MenuItem onClick={handleProfileClick}>
                         <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> Profile
                     </MenuItem>
-                    <MenuItem onClick={() => navigate('/dashboard/teacher/settings')}>
+                    <MenuItem onClick={handleProfileClick}>
                         <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon> Settings
                     </MenuItem>
                     <Divider />

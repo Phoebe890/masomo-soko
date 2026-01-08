@@ -48,7 +48,7 @@ const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) =
                     <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 32 }} />
                     <Box>
                         {/* UPDATED BRAND NAME */}
-                        <Typography variant="h6" fontWeight={700} lineHeight={1}>Mwalimu Soko</Typography>
+                        <Typography variant="h6" fontWeight={700} lineHeight={1}>Masomo Soko</Typography>
                         <Typography variant="caption" color="text.secondary">Admin Console</Typography>
                     </Box>
                 </Box>

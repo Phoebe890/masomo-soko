@@ -39,7 +39,7 @@ const StudentSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, activeTab
                         <SchoolIcon sx={{ color: 'white' }} />
                     </Box>
                     {/* CHANGED NAME HERE */}
-                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>Mwalimu Soko</Typography>
+                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>Masomo Soko</Typography>
                 </Box>
                 <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)', display: { xs: 'flex', md: 'none' } }}>
                     <CloseIcon />

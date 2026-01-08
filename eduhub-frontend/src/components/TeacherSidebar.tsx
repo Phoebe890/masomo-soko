@@ -3,7 +3,7 @@ import {
     Drawer, Box, List, ListItemButton, ListItemIcon, 
     ListItemText, Typography, Divider, useTheme, IconButton 
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom'; // FIXED: Imported RouterLink
 
 // Icons
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -30,7 +30,7 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
         { text: 'My Resources', icon: <LibraryBooksIcon />, path: '/dashboard/teacher/resources' },
         { text: 'Upload New', icon: <CloudUploadIcon />, path: '/dashboard/teacher/upload-first-resource' },
         { text: 'Earnings', icon: <MonetizationOnIcon />, path: '/teacher/earnings' },
-        { text: 'Resource Reviews', icon: <StarOutlineIcon />, path: '/teacher/reviews' }, // Changed from Student Reviews
+        { text: 'Resource Reviews', icon: <StarOutlineIcon />, path: '/teacher/reviews' },
         { text: 'Profile Settings', icon: <AccountCircleIcon />, path: '/teacher/settings' },
     ];
 
@@ -39,25 +39,33 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
             
             {/* HEADER (Logo + Close Button) */}
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                
+                {/* BRANDING */}
                 <Box 
-                    onClick={() => navigate('/')} 
-                    sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+                    component={RouterLink} 
+                    to="/" 
+                    sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
                 >
-                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: theme.palette.primary.main, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <SchoolIcon sx={{ color: 'white' }} />
-                    </Box>
-                    {/* UPDATED BRAND NAME */}
-                    <Typography variant="h6" fontWeight={800} sx={{ letterSpacing: 1 }}>Mwalimu Soko</Typography>
+                    <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />
+                    <Typography 
+                        variant="h5" 
+                        sx={{ 
+                            fontFamily: "'Playfair Display', serif",
+                            fontWeight: 900, 
+                            color: '#ea580c', 
+                            letterSpacing: '-0.5px',
+                            fontSize: '1.5rem',
+                            fontStyle: 'italic' 
+                        }}
+                    >
+                        Masomo Soko.
+                    </Typography>
                 </Box>
 
-                {/* Close Button (Visible only on mobile) */}
+                {/* Mobile Close Button (Visible only on mobile) */}
                 <IconButton 
-                    onClick={onClose}
-                    sx={{ 
-                        color: 'rgba(255,255,255,0.7)', 
-                        display: { xs: 'flex', md: 'none' }, 
-                        '&:hover': { color: 'white' }
-                    }}
+                    onClick={onClose} 
+                    sx={{ display: { md: 'none' }, color: 'rgba(255,255,255,0.7)' }}
                 >
                     <CloseIcon />
                 </IconButton>
@@ -90,7 +98,6 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
             {/* USER INFO */}
             <Box sx={{ mt: 'auto', p: 3, bgcolor: 'rgba(0,0,0,0.2)' }}>
                 <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 1 }}>Logged in as</Typography>
-                {/* UPDATED LABEL */}
                 <Typography variant="subtitle2" fontWeight={700}>Teacher Account</Typography>
             </Box>
         </Box>

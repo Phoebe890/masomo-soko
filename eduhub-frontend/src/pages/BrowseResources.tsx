@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Container, Typography, Grid, Card, CardContent, Button, TextField, 
-  MenuItem, Select, InputLabel, FormControl, Drawer, IconButton, 
-  CircularProgress, Divider, useTheme, useMediaQuery, Avatar, 
-  Accordion, AccordionSummary, AccordionDetails, FormControlLabel, Radio, RadioGroup,
-  Pagination, Stack, Rating, InputAdornment, CardMedia
+  MenuItem, Select, FormControl, Drawer, CircularProgress, 
+  useTheme, useMediaQuery, Accordion, AccordionSummary, AccordionDetails, 
+  FormControlLabel, Radio, RadioGroup, Pagination, Stack, Rating, InputAdornment, CardMedia
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SearchIcon from '@mui/icons-material/Search';
 import SchoolIcon from '@mui/icons-material/School';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
-// FIXED: Import Axios instance
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/api/axios';
 
 const CATEGORIES = ['Exams', 'Notes', 'Schemes of Work', 'Revision Materials'];
@@ -76,7 +74,6 @@ const BrowseResources = () => {
 
   const fetchData = () => {
     setLoading(true);
-    // FIXED: Use Axios instance to prevent 404s on custom domain
     api.get('/api/teacher/resources')
       .then(res => {
         setResources(res.data.resources || []);
@@ -101,7 +98,7 @@ const BrowseResources = () => {
     if (sortBy === 'popular') return (b.purchases || 0) - (a.purchases || 0);
     if (sortBy === 'price_asc') return (a.price || 0) - (b.price || 0);
     if (sortBy === 'price_desc') return (b.price || 0) - (a.price || 0);
-    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+    if (sortBy === 'rating') return (b.averageRating || 0) - (a.averageRating || 0);
     return 0;
   });
 
@@ -252,6 +249,10 @@ const BrowseResources = () => {
                     ) : (
                         sorted.map((res: any, idx: number) => {
                             const displayImage = res.coverImageUrl || res.previewImageUrl || res.thumbnail;
+                            
+                            // UPDATED: Logic to use real rating or 0
+                            const ratingValue = res.averageRating || res.rating || 0;
+                            const reviewCount = res.reviewCount || res.numOfReviews || 0;
 
                             return (
                                 <Grid item xs={12} sm={6} lg={4} key={res.id || idx}>
@@ -282,11 +283,24 @@ const BrowseResources = () => {
                                         <Typography variant="body2" sx={{ color: TEXT_MUTED, fontSize: '0.85rem', mb: 1 }}>
                                             {res.teacherName || 'Instructor'}
                                         </Typography>
+                                        
+                                        {/* UPDATED: Rating Section with Real Data */}
                                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                                            <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>{(res.rating || 4.5).toFixed(1)}</Typography>
-                                            <Rating value={res.rating || 4.5} precision={0.5} size="small" readOnly sx={{ fontSize: '1rem', color: '#fbbf24' }} />
-                                            <Typography variant="caption" sx={{ color: TEXT_MUTED, ml: 0.5 }}>({Math.floor(Math.random() * 50) + 5})</Typography>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>
+                                                {ratingValue > 0 ? ratingValue.toFixed(1) : "0.0"}
+                                            </Typography>
+                                            <Rating 
+                                                value={ratingValue} 
+                                                precision={0.5} 
+                                                size="small" 
+                                                readOnly 
+                                                sx={{ fontSize: '1rem', color: '#fbbf24' }} 
+                                            />
+                                            <Typography variant="caption" sx={{ color: TEXT_MUTED, ml: 0.5 }}>
+                                                ({reviewCount})
+                                            </Typography>
                                         </Box>
+
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto' }}>
                                             <Typography variant="h6" fontWeight={700} sx={{ color: TEXT_DARK, fontSize: '1.1rem' }}>
                                                 {res.price > 0 ? `KES ${res.price}` : 'Free'}

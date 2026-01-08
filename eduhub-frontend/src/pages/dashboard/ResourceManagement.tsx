@@ -8,7 +8,7 @@ import {
   InputAdornment, Grid
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/api/axios'; // FIXED: Using Axios instance
+import { api } from '@/api/axios';
 
 // Icons
 import EditIcon from '@mui/icons-material/Edit';
@@ -21,7 +21,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 // Components
 import TeacherSidebar from '../../components/TeacherSidebar';
 
-// Dropdown Options
 const SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Kiswahili', 'Physics', 'Chemistry', 'Biology', 'CRE', 'Computer Studies', 'Business'];
 const GRADES = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Form 1', 'Form 2', 'Form 3', 'Form 4'];
 const CURRICULA = ['CBC', '8-4-4', 'IGCSE', 'KCSE'];
@@ -29,7 +28,8 @@ const CURRICULA = ['CBC', '8-4-4', 'IGCSE', 'KCSE'];
 const ResourceManagement: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Helper for responsive design
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
@@ -44,24 +44,12 @@ const ResourceManagement: React.FC = () => {
   const [editingResource, setEditingResource] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // Edit Form Fields
   const [editFormData, setEditFormData] = useState({
-    title: '',
-    description: '',
-    subject: '',
-    grade: '',
-    curriculum: '',
-    price: '',
-    resourceFile: null as File | null,
-    thumbnailFile: null as File | null
+    title: '', description: '', subject: '', grade: '', curriculum: '', price: '',
+    resourceFile: null as File | null, thumbnailFile: null as File | null
   });
 
-  // --- NOTIFICATION STATE ---
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error'
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   useEffect(() => {
     fetchResources();
@@ -70,8 +58,7 @@ const ResourceManagement: React.FC = () => {
   const fetchResources = async () => {
     setLoading(true);
     try {
-      // FIXED: Using relative path via axios instance
-      const response = await api.get('/api/teacher/dashboard');
+      const response = await api.get('/api/teacher/dashboard'); // Or /api/teacher/resources depending on your backend
       setResources(response.data.resources || []);
     } catch (err) {
       console.error('Failed to fetch resources:', err);
@@ -79,8 +66,6 @@ const ResourceManagement: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // --- HANDLERS ---
 
   const handleUploadClick = () => {
     navigate('/dashboard/teacher/upload-first-resource');
@@ -94,7 +79,6 @@ const ResourceManagement: React.FC = () => {
   const handleConfirmDelete = async () => {
     if (!resourceToDelete) return;
     try {
-        // FIXED: Using axios instance
         await api.delete(`/api/teacher/resources/${resourceToDelete}`);
         setSnackbar({ open: true, message: 'Resource deleted successfully', severity: 'success' });
         fetchResources(); 
@@ -147,15 +131,10 @@ const ResourceManagement: React.FC = () => {
     formData.append('pricing', priceVal > 0 ? "Paid" : "Free");
     if (priceVal > 0) formData.append('price', editFormData.price);
 
-    if (editFormData.resourceFile) {
-        formData.append('file', editFormData.resourceFile);
-    }
-    if (editFormData.thumbnailFile) {
-        formData.append('thumbnail', editFormData.thumbnailFile);
-    }
+    if (editFormData.resourceFile) formData.append('file', editFormData.resourceFile);
+    if (editFormData.thumbnailFile) formData.append('thumbnail', editFormData.thumbnailFile);
 
     try {
-        // FIXED: Using axios instance for file upload
         await api.put(`/api/teacher/resources/${editingResource.id}`, formData);
         setSnackbar({ open: true, message: 'Resource updated successfully', severity: 'success' });
         setEditDialogOpen(false);
@@ -165,10 +144,6 @@ const ResourceManagement: React.FC = () => {
     } finally {
         setIsUpdating(false);
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -181,23 +156,32 @@ const ResourceManagement: React.FC = () => {
 
       <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 4 }, width: '100%' }}>
         
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        {/* HEADER SECTION */}
+        <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' }, 
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'flex-start', sm: 'center' }, 
+            mb: 4,
+            gap: 2
+        }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {isMobile && (
-                <IconButton onClick={() => setSidebarOpen(true)}>
-                <MenuIcon />
-                </IconButton>
-            )}
-            <Typography variant="h4" fontWeight={700} color="text.primary">
-                My Resources
-            </Typography>
+            {isMobile && <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>}
+            <Typography variant="h4" fontWeight={700} color="text.primary">My Resources</Typography>
           </Box>
           
+          {/* UPDATED: Responsive Button */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleUploadClick}
-            sx={{ py: 1.5, px: 3, fontWeight: 600, borderRadius: 2 }}
+            size={isMobile ? "small" : "medium"}
+            sx={{ 
+                fontWeight: 600, 
+                borderRadius: 2,
+                width: { xs: '100%', sm: 'auto' }, // Full width on mobile
+                py: isMobile ? 1 : 1.5 
+            }}
           >
             Upload New Resource
           </Button>
@@ -205,9 +189,7 @@ const ResourceManagement: React.FC = () => {
 
         <Paper elevation={0} sx={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
             {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-                <CircularProgress />
-            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><CircularProgress /></Box>
             ) : (
             <TableContainer>
                 <Table sx={{ minWidth: 650 }}>
@@ -235,11 +217,7 @@ const ResourceManagement: React.FC = () => {
                     resources.map((resource) => (
                         <TableRow key={resource.id} hover>
                         <TableCell sx={{ fontWeight: 500 }}>{resource.title}</TableCell>
-                        <TableCell>
-                            <Box component="span" sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.875rem' }}>
-                                {resource.subject}
-                            </Box>
-                        </TableCell>
+                        <TableCell><Box component="span" sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.875rem' }}>{resource.subject}</Box></TableCell>
                         <TableCell>{resource.grade}</TableCell>
                         <TableCell>{resource.curriculum}</TableCell>
                         <TableCell>
@@ -249,12 +227,8 @@ const ResourceManagement: React.FC = () => {
                             }
                         </TableCell>
                         <TableCell align="right">
-                            <IconButton onClick={() => handleEditClick(resource)} size="small" sx={{ color: theme.palette.primary.main, mr: 1 }}>
-                                <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton onClick={() => handleDeleteClick(resource.id)} size="small" sx={{ color: theme.palette.error.main }}>
-                                <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            <IconButton onClick={() => handleEditClick(resource)} size="small" sx={{ color: theme.palette.primary.main, mr: 1 }}><EditIcon fontSize="small" /></IconButton>
+                            <IconButton onClick={() => handleDeleteClick(resource.id)} size="small" sx={{ color: theme.palette.error.main }}><DeleteIcon fontSize="small" /></IconButton>
                         </TableCell>
                         </TableRow>
                     ))
@@ -265,61 +239,31 @@ const ResourceManagement: React.FC = () => {
             )}
         </Paper>
 
+        {/* Edit Dialog - same as before */}
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle sx={{ fontWeight: 700 }}>Edit Resource</DialogTitle>
             <DialogContent dividers>
                 <Grid container spacing={3} sx={{ mt: 0 }}>
-                    <Grid item xs={12}>
-                        <TextField label="Title" name="title" fullWidth value={editFormData.title} onChange={handleEditChange} />
+                    <Grid item xs={12}><TextField label="Title" name="title" fullWidth value={editFormData.title} onChange={handleEditChange} /></Grid>
+                    <Grid item xs={12} md={4}>
+                        <FormControl fullWidth><InputLabel>Subject</InputLabel><Select name="subject" value={editFormData.subject} label="Subject" onChange={handleEditChange}>{SUBJECTS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}</Select></FormControl>
                     </Grid>
                     <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                            <InputLabel>Subject</InputLabel>
-                            <Select name="subject" value={editFormData.subject} label="Subject" onChange={handleEditChange}>
-                                {SUBJECTS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                            </Select>
-                        </FormControl>
+                        <FormControl fullWidth><InputLabel>Grade</InputLabel><Select name="grade" value={editFormData.grade} label="Grade" onChange={handleEditChange}>{GRADES.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}</Select></FormControl>
                     </Grid>
                     <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                            <InputLabel>Grade</InputLabel>
-                            <Select name="grade" value={editFormData.grade} label="Grade" onChange={handleEditChange}>
-                                {GRADES.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
-                            </Select>
-                        </FormControl>
+                        <FormControl fullWidth><InputLabel>Curriculum</InputLabel><Select name="curriculum" value={editFormData.curriculum} label="Curriculum" onChange={handleEditChange}>{CURRICULA.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}</Select></FormControl>
                     </Grid>
-                    <Grid item xs={12} md={4}>
-                        <FormControl fullWidth>
-                            <InputLabel>Curriculum</InputLabel>
-                            <Select name="curriculum" value={editFormData.curriculum} label="Curriculum" onChange={handleEditChange}>
-                                {CURRICULA.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <TextField label="Description" name="description" fullWidth multiline rows={4} value={editFormData.description} onChange={handleEditChange} />
-                    </Grid>
+                    <Grid item xs={12}><TextField label="Description" name="description" fullWidth multiline rows={4} value={editFormData.description} onChange={handleEditChange} /></Grid>
                     <Grid item xs={12} md={6}>
-                        <FormControl fullWidth>
-                            <InputLabel>Price (Optional)</InputLabel>
-                            <OutlinedInput name="price" type="number" startAdornment={<InputAdornment position="start">KES</InputAdornment>} label="Price (Optional)" value={editFormData.price} onChange={handleEditChange} placeholder="0 for Free" />
-                        </FormControl>
+                        <FormControl fullWidth><InputLabel>Price (Optional)</InputLabel><OutlinedInput name="price" type="number" startAdornment={<InputAdornment position="start">KES</InputAdornment>} label="Price (Optional)" value={editFormData.price} onChange={handleEditChange} placeholder="0 for Free" /></FormControl>
                     </Grid>
                     <Grid item xs={12} md={6}>
                          <Box sx={{ border: '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
-                            <Typography variant="body2" sx={{ mb: 1 }}>Update Resource File (Optional)</Typography>
+                            <Typography variant="body2" sx={{ mb: 1 }}>Update File (Optional)</Typography>
                             <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />} size="small">
                                 {editFormData.resourceFile ? "New File Selected" : "Choose New File"}
                                 <input type="file" hidden accept=".pdf,.doc,.docx,.ppt" onChange={(e) => handleEditFileChange(e, 'resourceFile')} />
-                            </Button>
-                         </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                         <Box sx={{ border: '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
-                            <Typography variant="body2" sx={{ mb: 1 }}>Update Cover Image (Optional)</Typography>
-                            <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />} size="small">
-                                {editFormData.thumbnailFile ? "New Image Selected" : "Choose New Image"}
-                                <input type="file" hidden accept="image/*" onChange={(e) => handleEditFileChange(e, 'thumbnailFile')} />
                             </Button>
                          </Box>
                     </Grid>
@@ -327,16 +271,13 @@ const ResourceManagement: React.FC = () => {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
                 <Button onClick={() => setEditDialogOpen(false)} color="inherit">Cancel</Button>
-                <Button onClick={handleUpdateSubmit} variant="contained" disabled={isUpdating}>
-                    {isUpdating ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
-                </Button>
+                <Button onClick={handleUpdateSubmit} variant="contained" disabled={isUpdating}>{isUpdating ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}</Button>
             </DialogActions>
         </Dialog>
 
+        {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
-                <WarningAmberIcon /> Confirm Deletion
-            </DialogTitle>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}><WarningAmberIcon /> Confirm Deletion</DialogTitle>
             <DialogContent><DialogContentText>Are you sure you want to delete this resource? This action cannot be undone.</DialogContentText></DialogContent>
             <DialogActions sx={{ p: 3 }}>
                 <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" color="inherit">Cancel</Button>
@@ -344,8 +285,8 @@ const ResourceManagement: React.FC = () => {
             </DialogActions>
         </Dialog>
 
-        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-            <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', fontWeight: 600 }} variant="filled">{snackbar.message}</Alert>
+        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+            <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
         </Snackbar>
       </Box>
     </Container>
