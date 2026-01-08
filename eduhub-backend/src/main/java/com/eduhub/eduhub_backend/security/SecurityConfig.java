@@ -53,7 +53,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all standard frontend origins
         List<String> origins = Arrays.asList(
             "http://localhost:5173", 
             "http://localhost:3000",
@@ -62,12 +61,9 @@ public class SecurityConfig {
             "https://masomo-soko.vercel.app"
         );
         configuration.setAllowedOrigins(origins);
-        // Allow all common HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        // Allow necessary headers
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
-        // Expose headers so frontend can read them if needed
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -78,45 +74,35 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Enable CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // 2. Disable CSRF (not needed for stateless JWT)
             .csrf(csrf -> csrf.disable())
-            // 3. Set Session to Stateless
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // 4. Set Authentication Provider
             .authenticationProvider(authenticationProvider())
-            // 5. Add JWT Filter before standard authentication
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             
-            // 6. Define URL Access Rules
             .authorizeHttpRequests(auth -> auth
-                // Allow OPTIONS requests for CORS pre-flight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // Public Endpoints (No Login Required)
                 .requestMatchers(
                         "/api/auth/**",
                         "/api/teacher/top-contributors",
                         "/api/payment/callback",
                         "/uploads/**",
-                        "/api/resources/public/**", // Assuming you have public resource viewing
+                        "/api/resources/public/**",
                         "/api/teacher/resources",
                         "/api/teacher/resources/**"
                 ).permitAll()
 
-                // Admin Endpoints - CRITICAL FIX HERE
-                // Changed "ROLE_ADMIN" to "ADMIN" to match your DB/Frontend
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN")
+                // --- FIXED SECTION START ---
+                // Updated to match logs: "ROLE_ADMIN" instead of "ADMIN"
+                // Using .hasAnyAuthority allows us to specify the exact string seen in logs.
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN")
                 
-                // Teacher Endpoints
-                .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("TEACHER")
-                .requestMatchers("/api/teacher/**").hasAnyAuthority("TEACHER", "ADMIN") // Admins usually can view teacher stuff too
+                // Assuming your UserDetailsService adds "ROLE_" to these as well
+                .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER")
+                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN")
+                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT")
+                // --- FIXED SECTION END ---
                 
-                // Student Endpoints
-                .requestMatchers("/api/student/**").hasAnyAuthority("STUDENT")
-                
-                // All other requests need authentication
                 .anyRequest().authenticated()
             );
 
