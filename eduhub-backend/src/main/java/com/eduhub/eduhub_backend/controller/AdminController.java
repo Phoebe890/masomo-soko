@@ -4,6 +4,9 @@ import com.eduhub.eduhub_backend.entity.*;
 import com.eduhub.eduhub_backend.repository.*;
 import com.eduhub.eduhub_backend.service.EmailProducer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +19,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "https://masomosoko.co.ke"}, allowCredentials = "true")
 public class AdminController {
 
     @Autowired private UserRepository userRepository;
@@ -26,20 +29,25 @@ public class AdminController {
     @Autowired private NotificationRepository notificationRepository;
     @Autowired private TeacherProfileRepository teacherProfileRepository;
     @Autowired private ReviewRepository reviewRepository;
-    @Autowired private PaymentTransactionRepository transactionRepository; // Added this
+    @Autowired private PaymentTransactionRepository transactionRepository;
     @Autowired private EmailProducer emailProducer;
 
-    // 1. DASHBOARD STATS
+    // 1. DASHBOARD STATS (UPDATED to fix Revenue = 0)
     @GetMapping("/stats")
     public ResponseEntity<?> getAdminStats() {
         try {
             long totalUsers = userRepository.count();
             long totalResources = resourceRepository.count();
 
-            double totalVolume = purchaseRepository.findAll().stream()
-                    .mapToDouble(p -> p.getPrice() != null ? p.getPrice() : 0.0)
+            // FIX: Calculate volume from PaymentTransactions (Real money)
+            // We verify the transaction status is SUCCESS or COMPLETED
+            double totalVolume = transactionRepository.findAll().stream()
+                    .filter(t -> t.getStatus() != null && 
+                           ("COMPLETED".equalsIgnoreCase(t.getStatus()) || "SUCCESS".equalsIgnoreCase(t.getStatus())))
+                    .mapToDouble(t -> t.getAmount() != null ? t.getAmount().doubleValue() : 0.0)
                     .sum();
 
+            // Platform Revenue (e.g., 10% commission)
             double platformRevenue = totalVolume * 0.10;
 
             long pendingPayouts = withdrawalRepository.findAll().stream()
@@ -56,7 +64,7 @@ public class AdminController {
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error calculating stats");
+            return ResponseEntity.status(500).body("Error calculating stats: " + e.getMessage());
         }
     }
 
@@ -85,13 +93,13 @@ public class AdminController {
         if ("approve".equals(action)) {
             withdrawal.setStatus("PAID");
             
-            // 1. Notify Teacher
+            // Notify Teacher
             notificationRepository.save(new Notification(
                     withdrawal.getTeacher(),
                     "Withdrawal of KES " + withdrawal.getAmount() + " has been processed.",
                     LocalDateTime.now(), false));
             
-            // 2. Email Teacher
+            // Email Teacher
             try {
                 emailProducer.sendEmail(
                     withdrawal.getTeacher().getEmail(), 
@@ -125,11 +133,28 @@ public class AdminController {
         withdrawalRepository.save(withdrawal);
         return ResponseEntity.ok("Updated");
     }
-    // 3. USER MANAGEMENT (LIST)
+
+    // 3. USER MANAGEMENT (PAGINATED & FILTERED)
     @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        List<Map<String, Object>> result = users.stream().map(u -> {
+    public ResponseEntity<?> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        
+        Boolean enabled = null;
+        if ("ACTIVE".equalsIgnoreCase(status)) enabled = true;
+        else if ("BANNED".equalsIgnoreCase(status)) enabled = false;
+
+        String roleFilter = (role != null && !role.equals("ALL")) ? role : null;
+        String searchFilter = (search != null && !search.isEmpty()) ? search : null;
+
+        Page<User> userPage = userRepository.searchUsers(searchFilter, roleFilter, enabled, pageable);
+        
+        Page<Map<String, Object>> dtoPage = userPage.map(u -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", u.getId());
             map.put("name", u.getName());
@@ -137,11 +162,12 @@ public class AdminController {
             map.put("role", u.getRole());
             map.put("enabled", u.isEnabled());
             return map;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(result);
+        });
+
+        return ResponseEntity.ok(dtoPage);
     }
 
-   // 4. USER MANAGEMENT (BAN/UNBAN WITH EMAIL)
+    // 4. BAN/UNBAN
     @PostMapping("/users/{id}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
         User user = userRepository.findById(id).orElse(null);
@@ -151,7 +177,6 @@ public class AdminController {
         user.setEnabled(newStatus);
         userRepository.save(user);
 
-        // --- SEND EMAIL NOTIFICATION ---
         try {
             String subject = newStatus ? "Account Activated - EduHub" : "Account Suspended - EduHub";
             String body = newStatus 
@@ -163,11 +188,10 @@ public class AdminController {
             System.err.println("Failed to send ban/unban email: " + e.getMessage());
         }
 
-        return ResponseEntity.ok(Map.of(
-                "message", "User status updated",
-                "enabled", user.isEnabled()));
+        return ResponseEntity.ok(Map.of("message", "User status updated", "enabled", user.isEnabled()));
     }
-    // 5. USER MANAGEMENT (CHANGE ROLE)
+
+    // 5. CHANGE ROLE
     @PostMapping("/users/{id}/role")
     public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
         User user = userRepository.findById(id).orElse(null);
@@ -181,7 +205,7 @@ public class AdminController {
         return ResponseEntity.ok("Role updated");
     }
 
-    // 6. DELETE USER (CLEANUP ALL DEPENDENCIES)
+    // 6. DELETE USER
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
@@ -197,7 +221,7 @@ public class AdminController {
                 resourceRepository.deleteAll(resources);
             }
             
-            // B. Clean up STUDENT Data (Purchases & Reviews)
+            // B. Clean up STUDENT Data
             List<Purchase> purchases = purchaseRepository.findByStudent(user);
             if (purchases != null && !purchases.isEmpty()) purchaseRepository.deleteAll(purchases);
             
@@ -208,11 +232,11 @@ public class AdminController {
             List<Withdrawal> withdrawals = withdrawalRepository.findByTeacherOrderByRequestedAtDesc(user);
             if (withdrawals != null && !withdrawals.isEmpty()) withdrawalRepository.deleteAll(withdrawals);
 
-            // D. Clean up PAYMENT TRANSACTIONS (As Student)
+            // D. Clean up TRANSACTIONS
             List<PaymentTransaction> studentTxns = transactionRepository.findByStudent(user);
             if (studentTxns != null && !studentTxns.isEmpty()) transactionRepository.deleteAll(studentTxns);
 
-            // E. Finally Delete User
+            // E. Delete User
             userRepository.delete(user);
             
             return ResponseEntity.ok("User deleted successfully");
@@ -222,7 +246,7 @@ public class AdminController {
         }
     }
 
-    // 7. CONTENT MODERATION (LIST)
+    // 7. GET RESOURCES
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources() {
         List<TeacherResource> resources = resourceRepository.findAll();
@@ -247,7 +271,7 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
-    // 8. CONTENT MODERATION (TAKEDOWN)
+    // 8. TAKEDOWN RESOURCE
     @PostMapping("/resources/{id}/takedown")
     public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {

@@ -53,14 +53,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.asList(
-            "http://localhost:5173", 
-            "http://localhost:3000",
-            "https://masomosoko.co.ke", 
-            "https://www.masomosoko.co.ke",
-            "https://masomo-soko.vercel.app"
-        );
-        configuration.setAllowedOrigins(origins);
+        // Allow ALL origins for dev/prod flexibility (Fixes CORS 403s)
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
@@ -92,16 +86,13 @@ public class SecurityConfig {
                         "/api/teacher/resources/**"
                 ).permitAll()
 
-                // --- FIXED SECTION START ---
-                // Updated to match logs: "ROLE_ADMIN" instead of "ADMIN"
-                // Using .hasAnyAuthority allows us to specify the exact string seen in logs.
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN")
+                // --- THE FIX: Accept ALL variations of the ADMIN role ---
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN", "admin")
                 
-                // Assuming your UserDetailsService adds "ROLE_" to these as well
-                .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER")
-                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "ROLE_ADMIN")
-                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT")
-                // --- FIXED SECTION END ---
+                .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "teacher")
+                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "teacher", "ROLE_ADMIN", "ADMIN")
+                
+                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT", "student")
                 
                 .anyRequest().authenticated()
             );
