@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
-    IconButton, CircularProgress, Avatar, Chip, Tooltip, Dialog, DialogTitle, DialogContent, 
+    IconButton, CircularProgress, Avatar, Chip, Dialog, DialogTitle, DialogContent, 
     DialogActions, Button, Snackbar, Alert, TextField, InputAdornment 
 } from '@mui/material';
 import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout';
+// IMPORT the Modal component
+import FileViewerModal from '@/components/FileViewerModal';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -17,13 +19,16 @@ const AdminResources: React.FC = () => {
     const [filteredResources, setFilteredResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // --- STATE FOR VIEWING FILES ---
+    const [viewFile, setViewFile] = useState<{ url: string, title: string } | null>(null);
+
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [takedownReason, setTakedownReason] = useState('');
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
     const fetchResources = async () => {
         try {
-            // FIXED: Using relative path
             const res = await api.get('/api/admin/resources');
             setResources(res.data);
             setFilteredResources(res.data);
@@ -36,10 +41,24 @@ const AdminResources: React.FC = () => {
         setFilteredResources(resources.filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase())));
     }, [searchTerm, resources]);
 
+    // --- HANDLER TO OPEN VIEWER ---
+    const handleViewResource = (row: any) => {
+        // Construct the full URL for the file
+        // If row.filePath is "/uploads/file.pdf", we need the backend domain
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+        const fullUrl = row.filePath.startsWith('http') 
+            ? row.filePath 
+            : `${baseUrl}${row.filePath.startsWith('/') ? '' : '/'}${row.filePath}`;
+            
+        setViewFile({
+            url: fullUrl,
+            title: row.title
+        });
+    };
+
     const confirmTakedown = async () => {
         if(!deleteId) return;
         try {
-            // FIXED: Using relative path
             await api.post(`/api/admin/resources/${deleteId}/takedown`, { reason: takedownReason });
             setResources(prev => prev.filter(p => p.id !== deleteId));
             setToast({ open: true, msg: "Resource removed successfully", type: 'success' });
@@ -82,7 +101,10 @@ const AdminResources: React.FC = () => {
                                         <TableCell><Chip label={row.subject} size="small" /></TableCell>
                                         <TableCell>KES {row.price}</TableCell>
                                         <TableCell align="right">
-                                            <IconButton color="primary"><VisibilityOutlinedIcon /></IconButton>
+                                            {/* ADDED ONCLICK HERE */}
+                                            <IconButton color="primary" onClick={() => handleViewResource(row)}>
+                                                <VisibilityOutlinedIcon />
+                                            </IconButton>
                                             <IconButton color="error" onClick={() => setDeleteId(row.id)}><DeleteOutlineIcon /></IconButton>
                                         </TableCell>
                                     </TableRow>
@@ -93,6 +115,17 @@ const AdminResources: React.FC = () => {
                 )}
             </Paper>
 
+            {/* --- FILE VIEWER MODAL INTEGRATION --- */}
+            {viewFile && (
+                <FileViewerModal 
+                    open={!!viewFile} 
+                    onClose={() => setViewFile(null)} 
+                    fileUrl={viewFile.url} 
+                    title={viewFile.title} 
+                />
+            )}
+
+            {/* Takedown Dialog */}
             <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#DC2626' }}><WarningAmberIcon /> Confirm Takedown</DialogTitle>
                 <DialogContent>
@@ -104,6 +137,7 @@ const AdminResources: React.FC = () => {
                     <Button onClick={confirmTakedown} variant="contained" color="error">Remove</Button>
                 </DialogActions>
             </Dialog>
+            
             <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
         </AdminLayout>
     );

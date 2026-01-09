@@ -15,9 +15,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
-    // --- NEW: Custom Query for Advanced Filtering & Searching ---
+    // FIX: Using CAST to ensure PostgreSQL treats columns as strings, not bytea
     @Query("SELECT u FROM User u WHERE " +
-           "(:search IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+           "(:search IS NULL OR LOWER(CAST(u.name as string)) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(CAST(u.email as string)) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
            "(:role IS NULL OR u.role = :role) AND " +
            "(:enabled IS NULL OR u.enabled = :enabled)")
     Page<User> searchUsers(

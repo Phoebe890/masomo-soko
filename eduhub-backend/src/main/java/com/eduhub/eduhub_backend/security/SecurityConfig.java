@@ -1,5 +1,6 @@
 package com.eduhub.eduhub_backend.security;
 
+// CRITICAL: You must import the service from its package
 import com.eduhub.eduhub_backend.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -53,10 +53,26 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow ALL origins for dev/prod flexibility (Fixes CORS 403s)
-        configuration.setAllowedOriginPatterns(Arrays.asList("*")); 
+        
+        // Match these exactly to your frontend URLs
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173", 
+            "https://masomosoko.co.ke",
+            "https://www.masomosoko.co.ke"
+        ));
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        
+        // Expanded headers to prevent 403 CORS issues with Axios
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", 
+            "Cache-Control", 
+            "Content-Type", 
+            "Accept", 
+            "X-Requested-With", 
+            "Origin"
+        ));
+        
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         
@@ -78,21 +94,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                         "/api/auth/**",
-                        "/api/teacher/top-contributors",
                         "/api/payment/callback",
                         "/uploads/**",
-                        "/api/resources/public/**",
-                        "/api/teacher/resources",
-                        "/api/teacher/resources/**"
+                        "/api/resources/public/**"
                 ).permitAll()
 
-                // --- THE FIX: Accept ALL variations of the ADMIN role ---
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN", "admin")
-                
-                .requestMatchers("/api/teacher/onboarding").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "teacher")
-                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "teacher", "ROLE_ADMIN", "ADMIN")
-                
-                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT", "student")
+                // Roles mapped via CustomUserDetailsService [ROLE_ADMIN]
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "ROLE_ADMIN", "ADMIN")
+                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT")
                 
                 .anyRequest().authenticated()
             );
