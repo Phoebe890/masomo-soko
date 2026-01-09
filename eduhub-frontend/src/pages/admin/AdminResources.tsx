@@ -2,17 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
     IconButton, CircularProgress, Avatar, Chip, Dialog, DialogTitle, DialogContent, 
-    DialogActions, Button, Snackbar, Alert, TextField, InputAdornment 
+    DialogActions, Button, Snackbar, Alert, TextField, InputAdornment, Tooltip 
 } from '@mui/material';
 import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout';
-// IMPORT the Modal component
-import FileViewerModal from '@/components/FileViewerModal';
+import FileViewerModal from '@/components/FileViewerModal'; 
+
+// Icons
 import SearchIcon from '@mui/icons-material/Search';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
+import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import FolderZipRoundedIcon from '@mui/icons-material/FolderZipRounded';
+
+const THEME_COLORS = {
+    teal: '#2DD4BF',
+    navy: '#0F172A',
+    slate: '#94A3B8',
+    danger: '#F87171'
+};
 
 const AdminResources: React.FC = () => {
     const [resources, setResources] = useState<any[]>([]);
@@ -32,23 +41,39 @@ const AdminResources: React.FC = () => {
             const res = await api.get('/api/admin/resources');
             setResources(res.data);
             setFilteredResources(res.data);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
+        } catch (err) { 
+            console.error("Fetch Error:", err); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     useEffect(() => { fetchResources(); }, []);
 
     useEffect(() => {
-        setFilteredResources(resources.filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase())));
+        setFilteredResources(resources.filter(r => 
+            r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
     }, [searchTerm, resources]);
 
-    // --- HANDLER TO OPEN VIEWER ---
+    // --- FIXED: Handler to prevent 'startsWith' crash ---
     const handleViewResource = (row: any) => {
-        // Construct the full URL for the file
-        // If row.filePath is "/uploads/file.pdf", we need the backend domain
+        // Use the correct key from your database (file_path)
+        const path = row.file_path || row.filePath;
+
+        if (!path) {
+            setToast({ open: true, msg: "No file path associated with this resource", type: 'error' });
+            return;
+        }
+
         const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
-        const fullUrl = row.filePath.startsWith('http') 
-            ? row.filePath 
-            : `${baseUrl}${row.filePath.startsWith('/') ? '' : '/'}${row.filePath}`;
+        
+        // Safety check to ensure path is a string before calling startsWith
+        const pathStr = String(path);
+        const fullUrl = pathStr.startsWith('http') 
+            ? pathStr 
+            : `${baseUrl}${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
             
         setViewFile({
             url: fullUrl,
@@ -63,59 +88,124 @@ const AdminResources: React.FC = () => {
             setResources(prev => prev.filter(p => p.id !== deleteId));
             setToast({ open: true, msg: "Resource removed successfully", type: 'success' });
             setDeleteId(null);
-        } catch (e) { setToast({ open: true, msg: "Failed to remove resource", type: 'error' }); }
+            setTakedownReason('');
+        } catch (e) { 
+            setToast({ open: true, msg: "Failed to remove resource", type: 'error' }); 
+        }
     };
 
     return (
         <AdminLayout title="Content Moderation" selectedRoute="/admin/resources">
-            <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+            
+            {/* SEARCH BOX */}
+            <Paper elevation={0} sx={{ 
+                p: 2, mb: 3, borderRadius: 3, 
+                bgcolor: 'white', border: '1px solid #E2E8F0',
+                display: 'flex', alignItems: 'center'
+            }}>
                 <TextField 
-                    fullWidth placeholder="Search resources..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }} size="small"
+                    fullWidth 
+                    placeholder="Search resources by title or subject..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    variant="standard"
+                    InputProps={{ 
+                        disableUnderline: true,
+                        startAdornment: <SearchIcon sx={{ color: THEME_COLORS.slate, mr: 1 }} /> 
+                    }} 
                 />
             </Paper>
 
-            <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
-                {loading ? <Box sx={{ p: 5, textAlign: 'center' }}><CircularProgress /></Box> : (
-                    <TableContainer sx={{ overflowX: 'auto' }}>
+            {/* MAIN TABLE */}
+            <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+                {loading ? (
+                    <Box sx={{ p: 10, textAlign: 'center' }}><CircularProgress sx={{ color: THEME_COLORS.teal }} /></Box>
+                ) : (
+                    <TableContainer>
                         <Table sx={{ minWidth: 700 }}>
-                            <TableHead sx={{ bgcolor: '#F9FAFB' }}>
+                            <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                                 <TableRow>
-                                    <TableCell sx={{ fontWeight: 700 }}>Resource</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Teacher</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Subject</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Price</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: THEME_COLORS.navy }}>Resource Details</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: THEME_COLORS.navy }}>Teacher</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: THEME_COLORS.navy }}>Category</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, color: THEME_COLORS.navy }}>Price</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 700, color: THEME_COLORS.navy }}>Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {filteredResources.map((row) => (
-                                    <TableRow key={row.id} hover>
-                                        <TableCell>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <Avatar variant="rounded" src={row.previewImageUrl} sx={{ bgcolor: '#F3F4F6', color: '#9CA3AF' }}><PictureAsPdfIcon /></Avatar>
-                                                <Typography variant="body2" fontWeight={600}>{row.title}</Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>{row.user?.name || row.teacherName}</TableCell>
-                                        <TableCell><Chip label={row.subject} size="small" /></TableCell>
-                                        <TableCell>KES {row.price}</TableCell>
-                                        <TableCell align="right">
-                                            {/* ADDED ONCLICK HERE */}
-                                            <IconButton color="primary" onClick={() => handleViewResource(row)}>
-                                                <VisibilityOutlinedIcon />
-                                            </IconButton>
-                                            <IconButton color="error" onClick={() => setDeleteId(row.id)}><DeleteOutlineIcon /></IconButton>
+                                {filteredResources.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                                            <Typography color="text.secondary">No resources found matching your search.</Typography>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    filteredResources.map((row) => (
+                                        <TableRow key={row.id} hover sx={{ '&:hover': { bgcolor: '#F1F5F9' }, transition: '0.2s' }}>
+                                            <TableCell>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                    <Avatar 
+                                                        variant="rounded" 
+                                                        src={row.cover_image_url || row.previewImageUrl} 
+                                                        sx={{ width: 45, height: 45, borderRadius: 2, bgcolor: '#E2E8F0' }}
+                                                    >
+                                                        <PictureAsPdfRoundedIcon sx={{ color: THEME_COLORS.slate }} />
+                                                    </Avatar>
+                                                    <Box>
+                                                        <Typography variant="body2" fontWeight={700} color={THEME_COLORS.navy}>
+                                                            {row.title}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            ID: #{row.id} • {row.curriculum || 'General'}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight={500}>{row.user?.name || row.teacherName || 'Unknown Teacher'}</Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip 
+                                                    label={row.subject} 
+                                                    size="small" 
+                                                    sx={{ bgcolor: '#F0FDFA', color: '#0D9488', fontWeight: 600, borderRadius: 1.5 }} 
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight={700} color={THEME_COLORS.navy}>
+                                                    KES {row.price}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                                                    <Tooltip title="View Content">
+                                                        <IconButton 
+                                                            onClick={() => handleViewResource(row)}
+                                                            sx={{ color: THEME_COLORS.teal, bgcolor: '#F0FDFA', '&:hover': { bgcolor: '#CCFBF1' } }}
+                                                        >
+                                                            <VisibilityRoundedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Takedown (Violation)">
+                                                        <IconButton 
+                                                            onClick={() => setDeleteId(row.id)}
+                                                            sx={{ color: THEME_COLORS.danger, bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' } }}
+                                                        >
+                                                            <DeleteOutlineRoundedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
                 )}
             </Paper>
 
-            {/* --- FILE VIEWER MODAL INTEGRATION --- */}
+            {/* --- FILE VIEWER MODAL --- */}
             {viewFile && (
                 <FileViewerModal 
                     open={!!viewFile} 
@@ -125,20 +215,53 @@ const AdminResources: React.FC = () => {
                 />
             )}
 
-            {/* Takedown Dialog */}
-            <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#DC2626' }}><WarningAmberIcon /> Confirm Takedown</DialogTitle>
+            {/* --- TAKEDOWN DIALOG --- */}
+            <Dialog 
+                open={!!deleteId} 
+                onClose={() => setDeleteId(null)}
+                PaperProps={{ sx: { borderRadius: 3, width: '400px' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: THEME_COLORS.danger }}>
+                    <WarningAmberRoundedIcon /> Confirm Takedown
+                </DialogTitle>
                 <DialogContent>
-                    <Typography sx={{ mb: 2 }}>Reason for removal:</Typography>
-                    <TextField fullWidth value={takedownReason} onChange={(e) => setTakedownReason(e.target.value)} />
+                    <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                        Removing this resource will notify the teacher. Please provide a brief reason for this moderation action.
+                    </Typography>
+                    <TextField 
+                        fullWidth 
+                        autoFocus
+                        placeholder="e.g. Copyright infringement, Incorrect curriculum..." 
+                        value={takedownReason} 
+                        onChange={(e) => setTakedownReason(e.target.value)} 
+                        size="small"
+                    />
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-                    <Button onClick={confirmTakedown} variant="contained" color="error">Remove</Button>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteId(null)} sx={{ color: THEME_COLORS.slate }}>Cancel</Button>
+                    <Button 
+                        onClick={confirmTakedown} 
+                        variant="contained" 
+                        color="error" 
+                        disableElevation
+                        disabled={!takedownReason}
+                        sx={{ borderRadius: 2 }}
+                    >
+                        Confirm Removal
+                    </Button>
                 </DialogActions>
             </Dialog>
-            
-            <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
+
+            <Snackbar 
+                open={toast.open} 
+                autoHideDuration={4000} 
+                onClose={() => setToast({...toast, open: false})}
+            >
+                <Alert severity={toast.type} variant="filled" sx={{ borderRadius: 2 }}>
+                    {toast.msg}
+                </Alert>
+            </Snackbar>
+
         </AdminLayout>
     );
 };
