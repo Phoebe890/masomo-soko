@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Box, Container, Typography, Button, Card, CardContent, CardMedia,
-  Grid, CircularProgress, Avatar, Divider, Chip, Stack, Rating, 
+  Grid, CircularProgress, Avatar, Chip, Stack, Rating, 
   InputAdornment, TextField
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
 import { api } from '@/api/axios';
-import { alpha } from '@mui/material/styles';
 
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
@@ -24,7 +23,7 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 
-// Assets
+// --- RESTORED ORIGINAL ASSETS ---
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg'; 
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg'; 
 
@@ -40,68 +39,19 @@ const getRandomColor = (id: number) => {
   return colors[id % colors.length];
 };
 
-// --- DATA: CATEGORIES WITH GRADIENTS ---
+// --- DATA: CATEGORIES ---
 const CATEGORIES = [
-  { 
-    label: 'Junior School', 
-    sub: 'Grades 7-9', 
-    id: 'junior-school', 
-    icon: <MenuBookIcon />, 
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' // Deep Purple
-  }, 
-  { 
-    label: 'Senior School', 
-    sub: 'Grades 10-12', 
-    id: 'senior-school', 
-    icon: <SchoolIcon />, 
-    gradient: 'linear-gradient(135deg, #6B73FF 0%, #000DFF 100%)' // Royal Blue
-  },
-  { 
-    label: 'STEM Pathway', 
-    sub: 'Sci, Tech, Eng, Math', 
-    id: 'stem', 
-    icon: <ScienceIcon />, 
-    gradient: 'linear-gradient(135deg, #2AF598 0%, #009EFD 100%)' // Cyan-Blue
-  },
-  { 
-    label: 'Social Sciences', 
-    sub: 'Humanities & Biz', 
-    id: 'social-sciences', 
-    icon: <Diversity3Icon />, 
-    gradient: 'linear-gradient(135deg, #FDBB2D 0%, #3A1C71 100%)' // Gold-Purple
-  },
-  { 
-    label: 'Arts & Sports', 
-    sub: 'Creative & Physical', 
-    id: 'arts-sports', 
-    icon: <SportsCricketIcon />, 
-    gradient: 'linear-gradient(135deg, #FCCF31 0%, #F55555 100%)' // Orange-Red
-  },
-  { 
-    label: 'Pre-Technical', 
-    sub: 'Technical Skills', 
-    id: 'pre-tech', 
-    icon: <ComputerIcon />, 
-    gradient: 'linear-gradient(135deg, #CE9FFC 0%, #7367F0 100%)' // Lavender
-  },
-  { 
-    label: 'Agriculture', 
-    sub: 'Farming & Bio', 
-    id: 'agriculture', 
-    icon: <AgricultureIcon />, 
-    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' // Emerald
-  },
-  { 
-    label: 'KCSE Revision', 
-    sub: 'Exam Prep', 
-    id: 'kcse', 
-    icon: <EngineeringIcon />, 
-    gradient: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%)' // Pink Pastel
-  },
+  { label: 'Junior School', sub: 'Grades 7-9', id: 'junior-school', icon: <MenuBookIcon />, gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }, 
+  { label: 'Senior School', sub: 'Grades 10-12', id: 'senior-school', icon: <SchoolIcon />, gradient: 'linear-gradient(135deg, #6B73FF 0%, #000DFF 100%)' },
+  { label: 'STEM Pathway', sub: 'Sci & Tech', id: 'stem', icon: <ScienceIcon />, gradient: 'linear-gradient(135deg, #2AF598 0%, #009EFD 100%)' },
+  { label: 'Social Sciences', sub: 'Humanities', id: 'social-sciences', icon: <Diversity3Icon />, gradient: 'linear-gradient(135deg, #FDBB2D 0%, #3A1C71 100%)' },
+  { label: 'Arts & Sports', sub: 'Creative', id: 'arts-sports', icon: <SportsCricketIcon />, gradient: 'linear-gradient(135deg, #FCCF31 0%, #F55555 100%)' },
+  { label: 'Pre-Technical', sub: 'Skills', id: 'pre-tech', icon: <ComputerIcon />, gradient: 'linear-gradient(135deg, #CE9FFC 0%, #7367F0 100%)' },
+  { label: 'Agriculture', sub: 'Farming', id: 'agriculture', icon: <AgricultureIcon />, gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
+  { label: 'KCSE Revision', sub: 'Exam Prep', id: 'kcse', icon: <EngineeringIcon />, gradient: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%)' },
 ];
 
 // --- COMPONENT: ABSTRACT BACKGROUND SVG ---
-// This creates the "EdTech Shape" behind the icons
 const CardBackground = () => (
     <Box sx={{ position: 'absolute', right: -20, bottom: -40, opacity: 0.2, transform: 'rotate(-15deg)' }}>
         <svg width="150" height="150" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -123,7 +73,6 @@ const TeacherIllustration = () => (
       <circle cx="240" cy="40" r="16" fill="#1976d2" />
       <path d="M234 40 L238 44 L246 36" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
       <circle cx="220" cy="140" r="25" fill="#90caf9" />
-      <path d="M195 190 C195 165 245 165 245 190" fill="#1565c0" />
     </svg>
   </Box>
 );
@@ -162,7 +111,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-
+    // Mimic API calls - ensure your axios interceptor handles base URL
     api.get('/api/teacher/resources')
       .then(res => {
         let data = [];
@@ -198,8 +147,8 @@ const Home: React.FC = () => {
         sx={{ 
           position: 'relative', 
           width: '100%', 
-          height: { xs: '90vh', md: '80vh' }, 
-          minHeight: '650px',
+          height: { xs: '85vh', md: '80vh' }, 
+          minHeight: '600px',
           overflow: 'hidden', 
           display: 'flex', 
           alignItems: 'center',
@@ -216,7 +165,7 @@ const Home: React.FC = () => {
               position: 'absolute', inset: 0,
               backgroundImage: `url(${slide.image})`, 
               backgroundSize: 'cover', 
-              backgroundPosition: 'center',
+              backgroundPosition: 'center', // Reverted to center for local images
               transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
               opacity: currentSlide === index ? 1 : 0, 
               transition: 'opacity 1.5s ease-in-out, transform 8s linear', 
@@ -224,9 +173,10 @@ const Home: React.FC = () => {
             }}
           />
         ))}
+        {/* Dark overlay for readability */}
         <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0.75) 100%)', zIndex: 1 }} />
 
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, textAlign: 'center', color: 'white' }}>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, textAlign: 'center', color: 'white', mt: 4 }}>
           {slides.map((slide, index) => (
              currentSlide === index && (
                 <Box key={index} sx={{ maxWidth: '900px', mx: 'auto', animation: 'fadeIn 0.8s ease-out' }}>
@@ -239,15 +189,15 @@ const Home: React.FC = () => {
                     
                     <Box sx={{ minHeight: '80px', display: 'flex', justifyContent: 'center' }}>
                         {slide.type === 'student' ? (
-                            <Box component="form" onSubmit={handleHeroSearch} sx={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
+                            <Box component="form" onSubmit={handleHeroSearch} sx={{ position: 'relative', width: '100%', maxWidth: '600px', px: 2 }}>
                                 <TextField
                                     fullWidth
-                                    placeholder="Search (e.g. Grade 9 Integrated Science)"
+                                    placeholder="Search resources (e.g. Grade 9 Agriculture)"
                                     value={heroSearch}
                                     onChange={(e) => setHeroSearch(e.target.value)}
                                     onFocus={() => setIsPaused(true)}
                                     onBlur={() => setIsPaused(false)}
-                                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: '50px', pl: 2, pr: 1, height: '64px', fontSize: '1.1rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', '& fieldset': { border: 'none' }, '&:hover': { bgcolor: '#fff' } } }}
+                                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'white', borderRadius: '50px', pl: 2, pr: 1, height: '60px', fontSize: '1.1rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', '& fieldset': { border: 'none' }, '&:hover': { bgcolor: '#fff' } } }}
                                     InputProps={{
                                         startAdornment: (<InputAdornment position="start"><SearchIcon sx={{ color: '#64748b', fontSize: 28 }} /></InputAdornment>),
                                     }}
@@ -262,8 +212,8 @@ const Home: React.FC = () => {
                               size="large" 
                               endIcon={<ArrowForwardIcon />} 
                               sx={{ 
-                                borderRadius: '50px', height: '64px', px: 6, 
-                                fontSize: '1.2rem', fontWeight: 800, textTransform: 'none', 
+                                borderRadius: '50px', height: '60px', px: 6, 
+                                fontSize: '1.1rem', fontWeight: 800, textTransform: 'none', 
                                 boxShadow: '0 8px 25px rgba(234, 88, 12, 0.4)',
                                 '&:hover': { transform: 'scale(1.02)' } 
                               }}
@@ -275,7 +225,7 @@ const Home: React.FC = () => {
                 </Box>
              )
           ))}
-          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: 15, left: 0, right: 0, zIndex: 3 }}>
+          <Stack direction="row" spacing={1} justifyContent="center" sx={{ position: 'absolute', bottom: -60, left: 0, right: 0, zIndex: 3 }}>
              {slides.map((_, idx) => (
                  <Box key={idx} onClick={() => setCurrentSlide(idx)} sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: currentSlide === idx ? 'white' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
              ))}
@@ -284,87 +234,92 @@ const Home: React.FC = () => {
       </Box>
 
       {/* --- TRUST BAR --- */}
-      <Box sx={{ bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', py: 4 }}>
+      <Box sx={{ bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', py: 3, position: 'relative', zIndex: 2 }}>
         <Container maxWidth="xl">
-          <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 2, md: 8 }} sx={{ opacity: 0.8 }}>
-             <Grid item><Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>CBC Aligned</Typography></Grid>
-             <Grid item>
+          <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 2, md: 8 }} sx={{ opacity: 0.9 }}>
+             <Grid item xs={12} md="auto" sx={{ textAlign: 'center' }}><Typography variant="h6" fontWeight={600} color={TEXT_MUTED} sx={{ fontSize: '1rem' }}>CBC Aligned Curriculum</Typography></Grid>
+             <Grid item xs={6} md="auto" sx={{ display: 'flex', justifyContent: 'center' }}>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                 <VerifiedIcon sx={{ mr: 1, color: SAFARICOM_GREEN }} />
-                 <Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>Verified Resources</Typography>
+                 <VerifiedIcon sx={{ mr: 1, color: SAFARICOM_GREEN, fontSize: 20 }} />
+                 <Typography variant="h6" fontWeight={600} color={TEXT_MUTED} sx={{ fontSize: '1rem' }}>Verified Resources</Typography>
                </Box>
              </Grid>
-             <Grid item>
+             <Grid item xs={6} md="auto" sx={{ display: 'flex', justifyContent: 'center' }}>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" alt="M-PESA" style={{ height: 35, marginRight: 12 }} loading="lazy" />
-                 <Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>Secured Payments</Typography>
+                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" alt="M-PESA" style={{ height: 30, marginRight: 10 }} loading="lazy" />
+                 <Typography variant="h6" fontWeight={600} color={TEXT_MUTED} sx={{ fontSize: '1rem' }}>Secure Payments</Typography>
                </Box>
              </Grid>
           </Grid>
         </Container>
       </Box>
 
-      {/* --- MODERN BROWSE CURRICULUM SECTION --- */}
-      <Container maxWidth="xl" sx={{ mt: 8, mb: 4 }}>
+      {/* --- BROWSE CURRICULUM SECTION (IMPROVED FLOW) --- */}
+      <Container maxWidth="xl" sx={{ mt: { xs: 6, md: 8 }, mb: { xs: 6, md: 8 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 3 }}>
            <Box>
               <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>PATHWAYS & LEVELS</Typography>
-              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5 }}>Browse Curriculum</Typography>
+              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5, fontSize: { xs: '1.8rem', md: '3rem' } }}>Browse Curriculum</Typography>
            </Box>
            <Button component={RouterLink} to="/browse" endIcon={<KeyboardArrowRightIcon />} sx={{ display: { xs: 'none', sm: 'flex' }, fontWeight: 700, textTransform: 'none' }}>View All</Button>
         </Box>
-        <Grid container spacing={3}>
+        
+        {/* Changed Grid spacing to be tighter on mobile */}
+        <Grid container spacing={{ xs: 1.5, md: 3 }}>
           {CATEGORIES.map((cat) => (
-            <Grid item xs={12} sm={6} md={3} key={cat.id}>
-              {/* MODERN EDTECH CARD */}
+            /* 
+               MOBILE FIX: Changed xs={12} to xs={6} so they appear side-by-side.
+               sm={4} and md={3} handle tablet and desktop.
+            */
+            <Grid item xs={6} sm={4} md={3} key={cat.id}>
               <Card 
                 component={RouterLink}
                 to={`/browse?category=${cat.id}`}
                 sx={{ 
                     textDecoration: 'none',
-                    borderRadius: 4, 
+                    borderRadius: { xs: 3, md: 4 }, 
                     position: 'relative',
                     overflow: 'hidden',
-                    background: cat.gradient, // Use the Gradient
+                    background: cat.gradient, 
                     color: 'white',
                     boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    height: 140, // Shorter, wider cards
+                    height: { xs: 120, md: 140 }, // Slightly smaller height on mobile
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
-                    px: 3,
+                    px: { xs: 1.5, md: 3 }, // Reduced padding on mobile
                     '&:hover': { 
                         transform: 'translateY(-5px) scale(1.02)',
                         boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
                     }
                 }}
               >
-                  {/* Abstract Background SVG */}
                   <CardBackground />
                   
                   <Box sx={{ position: 'relative', zIndex: 1 }}>
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                        {/* Glassmorphism Icon Bubble */}
+                    <Stack direction="row" alignItems="center" spacing={{ xs: 1, md: 2 }}>
+                        {/* Glassmorphism Icon Bubble - Smaller on Mobile */}
                         <Box sx={{ 
                             bgcolor: 'rgba(255,255,255,0.2)', 
                             backdropFilter: 'blur(10px)',
-                            width: 50, 
-                            height: 50, 
-                            borderRadius: 3, 
+                            width: { xs: 35, md: 50 }, 
+                            height: { xs: 35, md: 50 }, 
+                            borderRadius: { xs: 2, md: 3 }, 
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            border: '1px solid rgba(255,255,255,0.3)'
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            flexShrink: 0
                         }}>
-                            {React.cloneElement(cat.icon as React.ReactElement, { sx: { color: 'white', fontSize: 28 } })}
+                            {React.cloneElement(cat.icon as React.ReactElement, { sx: { color: 'white', fontSize: { xs: 20, md: 28 } } })}
                         </Box>
                         
-                        <Box>
-                            <Typography fontWeight={800} sx={{ fontSize: '1.1rem', lineHeight: 1.2 }}>
+                        <Box sx={{ minWidth: 0 }}> {/* minWidth 0 allows text truncation if needed */}
+                            <Typography fontWeight={800} sx={{ fontSize: { xs: '0.9rem', md: '1.1rem' }, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {cat.label}
                             </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                            <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, fontSize: { xs: '0.7rem', md: '0.75rem' }, display: 'block' }}>
                                 {cat.sub}
                             </Typography>
                         </Box>
@@ -376,13 +331,14 @@ const Home: React.FC = () => {
         </Grid>
       </Container>
 
-      {/* --- FEATURED RESOURCES --- */}
-      <Box sx={{ bgcolor: '#f8fafc', py: 8 }}>
+      {/* --- FEATURED RESOURCES (Background Flow Fix) --- */}
+      {/* Ensure full width background extends cleanly */}
+      <Box sx={{ bgcolor: '#f8fafc', py: { xs: 6, md: 10 } }}>
         <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 4 }}>
              <Box>
                 <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>FRESH UPLOADS</Typography>
-                <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5 }}>Featured Resources</Typography>
+                <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5, fontSize: { xs: '1.8rem', md: '3rem' } }}>Featured Resources</Typography>
                 <Typography variant="body1" color={TEXT_MUTED} sx={{ mt: 1, maxWidth: 600 }}>Curriculum-approved materials for Junior and Senior School.</Typography>
              </Box>
              <Button component={RouterLink} to="/browse" variant="outlined" endIcon={<KeyboardArrowRightIcon />} sx={{ display: { xs: 'none', sm: 'flex' }, borderRadius: 50, fontWeight: 700, textTransform: 'none' }}>Explore All</Button>
@@ -460,13 +416,13 @@ const Home: React.FC = () => {
         </Container>
       </Box>
 
-      {/* --- HOW IT WORKS --- */}
-      <Box id="how-it-works" sx={{ bgcolor: 'white', py: 10 }}>
+      {/* --- HOW IT WORKS (Consistent Spacing) --- */}
+      <Box id="how-it-works" sx={{ bgcolor: 'white', py: { xs: 8, md: 10 } }}>
         <Container maxWidth="xl">
            <Box sx={{ textAlign: 'center', mb: 8 }}>
              <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>EASY STEPS</Typography>
-             <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: TEXT_DARK }}>Start learning in 3 minutes</Typography>
-             <Typography variant="h6" sx={{ color: TEXT_MUTED }} fontWeight={400}>Everything you need to excel in your CBC assessment is just a click away.</Typography>
+             <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: TEXT_DARK, fontSize: { xs: '1.8rem', md: '3rem' } }}>Start learning in 3 minutes</Typography>
+             <Typography variant="h6" sx={{ color: TEXT_MUTED, fontSize: { xs: '1rem', md: '1.25rem' } }} fontWeight={400}>Everything you need to excel in your CBC assessment is just a click away.</Typography>
            </Box>
 
            <Grid container spacing={4}>
@@ -502,12 +458,12 @@ const Home: React.FC = () => {
       </Box>
 
       {/* --- VALUE PROPOSITION BANNER --- */}
-      <Box sx={{ bgcolor: '#1e293b', color: 'white', py: 8 }}>
+      <Box sx={{ bgcolor: '#1e293b', color: 'white', py: { xs: 8, md: 10 } }}>
          <Container maxWidth="xl">
             <Grid container spacing={6} alignItems="center">
                 <Grid item xs={12} md={6}>
                     <Typography variant="overline" color="secondary" sx={{ fontWeight: 700, letterSpacing: 2 }}>FOR TEACHERS</Typography>
-                    <Typography variant="h3" fontWeight={800} gutterBottom>Sell Your Resources</Typography>
+                    <Typography variant="h3" fontWeight={800} gutterBottom sx={{ fontSize: { xs: '1.8rem', md: '3rem' } }}>Sell Your Resources</Typography>
                     <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, opacity: 0.9 }}>Teachers from around Kenya upload their CBC notes, projects, and guides. Help students excel in the new curriculum and earn extra income.</Typography>
                     
                     <Button 
@@ -533,12 +489,12 @@ const Home: React.FC = () => {
       </Box>
 
      {/* --- TOP CONTRIBUTORS --- */}
-      <Container maxWidth="xl" sx={{ py: 6, mb: 6 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 6, md: 8 }, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 4 }}>
            <Box>
               {/* ORANGE TEXT */}
               <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>COMMUNITY</Typography>
-              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK }}>Popular Teachers</Typography>
+              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, fontSize: { xs: '1.8rem', md: '3rem' } }}>Popular Teachers</Typography>
            </Box>
         </Box>
         <Grid container spacing={3}>

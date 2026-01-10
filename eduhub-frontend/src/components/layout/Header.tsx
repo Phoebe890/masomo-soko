@@ -68,7 +68,10 @@ const Header: React.FC = () => {
       fontSize: '0.95rem',
       color: '#4b5563', 
       mx: 0.5,
-      '&:hover': { color: theme.palette.primary.main, bgcolor: 'transparent' },
+      '&:hover': { 
+        color: '#ea580c', // Orange on hover (DESKTOP ONLY)
+        bgcolor: 'transparent' 
+      },
     },
     searchField: {
       '& .MuiOutlinedInput-root': {
@@ -116,9 +119,9 @@ const Header: React.FC = () => {
   return (
     <Box component="header" sx={{ width: '100%' }}>
       
-      {/* 1. IMPORT THE STYLISH FONT */}
+      {/* 1. IMPORT CHEWY FONT (Replaced Playfair Display) */}
       <style>
-        {`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');`}
+        {`@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');`}
       </style>
 
       <AppBar 
@@ -128,7 +131,7 @@ const Header: React.FC = () => {
       >
         <Toolbar sx={{ minHeight: 70, px: { xs: 2, md: 3 }, justifyContent: 'space-between' }}>
           
-          {/* --- BRANDING (Updated) --- */}
+          {/* --- BRANDING (Updated with Chewy font) --- */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               {/* Icon is now Orange to match */}
               <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />
@@ -136,12 +139,12 @@ const Header: React.FC = () => {
               <Typography 
                 variant="h5" 
                 sx={{ 
-                    fontFamily: "'Playfair Display', serif", // The "Word-like" stylish font
-                    fontWeight: 900, 
-                    color: '#ea580c', // A rich, deep Orange/Gold
+                    fontFamily: "'Chewy', cursive", // CHANGED: Using Chewy font
+                    fontWeight: 400, // Chewy only has regular weight
+                    color: '#ea580c', // Orange color for entire text
                     letterSpacing: '-0.5px',
-                    fontSize: '1.7rem',
-                    fontStyle: 'italic' // Slight italic for extra style
+                    fontSize: '2rem', // Slightly larger for Chewy font
+                    lineHeight: 1,
                 }}
               >
                 Masomo Soko.
@@ -292,13 +295,14 @@ const Header: React.FC = () => {
             <Typography 
                 variant="h6" 
                 sx={{ 
-                    fontFamily: "'Playfair Display', serif", 
-                    fontWeight: 900, 
-                    color: '#ea580c', 
-                    fontStyle: 'italic'
+                    fontFamily: "'Chewy', cursive", // CHANGED: Using Chewy font
+                    fontWeight: 400, 
+                    color: '#ea580c', // Orange color
+                    fontSize: '1.8rem',
+                    lineHeight: 1,
                 }}
             >
-                Masomo Soko.
+                masomo soko.
             </Typography>
             <IconButton onClick={() => setDrawerOpen(false)}>
                 <CloseIcon />
