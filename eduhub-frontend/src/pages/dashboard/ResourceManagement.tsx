@@ -5,18 +5,22 @@ import {
   CircularProgress, useTheme, useMediaQuery, Snackbar, Alert,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
   TextField, FormControl, InputLabel, Select, MenuItem, OutlinedInput, 
-  InputAdornment, Grid
+  InputAdornment, Grid, Chip, Tooltip, alpha, Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 
 // Icons
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import MenuIcon from '@mui/icons-material/Menu';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloudUploadIcon from '@mui/icons-material/CloudUploadOutlined';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import FileDownloadIcon from '@mui/icons-material/FileDownloadOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 // Components
 import TeacherSidebar from '../../components/TeacherSidebar';
@@ -33,6 +37,11 @@ const ResourceManagement: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // --- FILTER & SEARCH STATE (New) ---
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSubject, setFilterSubject] = useState('All');
+  const [filterGrade, setFilterGrade] = useState('All');
 
   // --- DELETE STATE ---
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -65,6 +74,14 @@ const ResourceManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // --- FILTER LOGIC ---
+  const filteredResources = resources.filter(resource => {
+    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSubject = filterSubject === 'All' || resource.subject === filterSubject;
+    const matchesGrade = filterGrade === 'All' || resource.grade === filterGrade;
+    return matchesSearch && matchesSubject && matchesGrade;
+  });
 
   const handleUploadClick = () => {
     navigate('/dashboard/teacher/upload-first-resource');
@@ -130,13 +147,10 @@ const ResourceManagement: React.FC = () => {
     formData.append('pricing', priceVal > 0 ? "Paid" : "Free");
     if (priceVal > 0) formData.append('price', editFormData.price);
 
-    // Only append files if new ones were selected
     if (editFormData.resourceFile) formData.append('file', editFormData.resourceFile);
     if (editFormData.thumbnailFile) formData.append('thumbnail', editFormData.thumbnailFile);
 
     try {
-        // CRITICAL FIX: Changed to POST and added explicit Content-Type header
-        // Using POST for multipart updates is much more stable in Spring Boot
         await api.post(`/api/teacher/resources/update/${editingResource.id}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
@@ -162,86 +176,266 @@ const ResourceManagement: React.FC = () => {
         onClose={() => setSidebarOpen(false)} 
       />
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 4 }, width: '100%' }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 5 }, width: '100%' }}>
         
-        {/* HEADER SECTION */}
+        {/* PAGE HEADER */}
         <Box sx={{ 
             display: 'flex', 
-            flexDirection: { xs: 'column', sm: 'row' }, 
             justifyContent: 'space-between', 
-            alignItems: { xs: 'flex-start', sm: 'center' }, 
-            mb: 4,
-            gap: 2
+            alignItems: 'center', 
+            mb: 4
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {isMobile && <IconButton onClick={() => setSidebarOpen(true)}><MenuIcon /></IconButton>}
-            <Typography variant="h4" fontWeight={700} color="text.primary">My Resources</Typography>
+            <Box>
+                <Typography variant="h5" fontWeight={700} sx={{ color: '#111827' }}>My Resources</Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">Teacher</Typography>
+                  <Typography variant="caption" color="text.secondary">•</Typography>
+                  <Typography variant="body2" color="text.secondary">Content Management</Typography>
+                </Box>
+            </Box>
           </Box>
           
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleUploadClick}
-            size={isMobile ? "small" : "medium"}
-            sx={{ fontWeight: 600, borderRadius: 2, width: { xs: '100%', sm: 'auto' }, py: isMobile ? 1 : 1.5 }}
+            sx={{ 
+                bgcolor: '#2563EB', // The specific blue from the image button
+                textTransform: 'none',
+                fontWeight: 600, 
+                borderRadius: 1.5, 
+                boxShadow: 'none',
+                px: 3,
+                '&:hover': { bgcolor: '#1D4ED8', boxShadow: 'none' }
+            }}
           >
-            Upload New Resource
+            New Resource
           </Button>
         </Box>
 
-        <Paper elevation={0} sx={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
-            {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><CircularProgress /></Box>
-            ) : (
-            <TableContainer>
-                <Table sx={{ minWidth: 650 }}>
-                <TableHead sx={{ bgcolor: '#fafafa' }}>
-                    <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Subject</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Grade</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Curriculum</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Price</TableCell>
-                    <TableCell sx={{ fontWeight: 600, textAlign: 'right' }}>Actions</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {resources.length === 0 ? (
-                    <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                                <Typography variant="h6" color="text.secondary">No resources found</Typography>
-                                <Button variant="outlined" onClick={handleUploadClick}>Upload Now</Button>
-                            </Box>
-                        </TableCell>
-                    </TableRow>
-                    ) : (
-                    resources.map((resource) => (
-                        <TableRow key={resource.id} hover>
-                        <TableCell sx={{ fontWeight: 500 }}>{resource.title}</TableCell>
-                        <TableCell><Box component="span" sx={{ bgcolor: '#e3f2fd', color: '#1976d2', px: 1, py: 0.5, borderRadius: 1, fontSize: '0.875rem' }}>{resource.subject}</Box></TableCell>
-                        <TableCell>{resource.grade}</TableCell>
-                        <TableCell>{resource.curriculum}</TableCell>
-                        <TableCell>
-                            {resource.price && parseFloat(resource.price) > 0 
-                                ? `KES ${resource.price}` 
-                                : <Box component="span" sx={{ color: 'green', fontWeight: 600 }}>Free</Box>
-                            }
-                        </TableCell>
-                        <TableCell align="right">
-                            <IconButton onClick={() => handleEditClick(resource)} size="small" sx={{ color: theme.palette.primary.main, mr: 1 }}><EditIcon fontSize="small" /></IconButton>
-                            <IconButton onClick={() => handleDeleteClick(resource.id)} size="small" sx={{ color: theme.palette.error.main }}><DeleteIcon fontSize="small" /></IconButton>
-                        </TableCell>
-                        </TableRow>
-                    ))
-                    )}
-                </TableBody>
-                </Table>
-            </TableContainer>
-            )}
+        {/* TOOLBAR & FILTERS */}
+        <Paper 
+            elevation={0} 
+            sx={{ 
+                border: '1px solid #E5E7EB',
+                borderBottom: 'none',
+                borderTopLeftRadius: 12, 
+                borderTopRightRadius: 12,
+                p: 2,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                bgcolor: '#fff'
+            }}
+        >
+            <Box sx={{ display: 'flex', gap: 2, flex: 1, minWidth: 300 }}>
+                {/* Search Bar */}
+                <OutlinedInput
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    startAdornment={<InputAdornment position="start"><SearchIcon sx={{ color: '#9CA3AF' }} /></InputAdornment>}
+                    sx={{ 
+                        height: 40, 
+                        bgcolor: '#fff',
+                        borderRadius: 1,
+                        fieldset: { borderColor: '#E5E7EB' },
+                        '&:hover fieldset': { borderColor: '#D1D5DB' },
+                        '&.Mui-focused fieldset': { borderColor: '#2563EB' },
+                        width: { xs: '100%', sm: 250 }
+                    }}
+                />
+
+                {/* Filter Subjects */}
+                <Select
+                    value={filterSubject}
+                    onChange={(e) => setFilterSubject(e.target.value)}
+                    displayEmpty
+                    sx={{ 
+                        height: 40, 
+                        minWidth: 120, 
+                        fontSize: '0.875rem',
+                        bgcolor: '#fff',
+                        fieldset: { borderColor: '#E5E7EB' },
+                        '& .MuiSelect-select': { py: 1 }
+                    }}
+                    renderValue={(selected) => {
+                        if (selected === 'All') return <Box sx={{ display: 'flex', gap: 1, color: '#6B7280' }}>Filter Subject</Box>;
+                        return selected;
+                    }}
+                >
+                    <MenuItem value="All">All Subjects</MenuItem>
+                    {SUBJECTS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                </Select>
+
+                 {/* Filter Grades */}
+                 <Select
+                    value={filterGrade}
+                    onChange={(e) => setFilterGrade(e.target.value)}
+                    displayEmpty
+                    sx={{ 
+                        height: 40, 
+                        minWidth: 120, 
+                        fontSize: '0.875rem',
+                        bgcolor: '#fff',
+                        fieldset: { borderColor: '#E5E7EB' },
+                        '& .MuiSelect-select': { py: 1 }
+                    }}
+                    renderValue={(selected) => {
+                        if (selected === 'All') return <Box sx={{ display: 'flex', gap: 1, color: '#6B7280' }}>Filter Grade</Box>;
+                        return selected;
+                    }}
+                >
+                    <MenuItem value="All">All Grades</MenuItem>
+                    {GRADES.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
+                </Select>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                 <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' } }}>
+                    Displaying {filteredResources.length} results
+                 </Typography>
+                 
+                 <Button 
+                    variant="outlined" 
+                    startIcon={<FileDownloadIcon />}
+                    size="small"
+                    sx={{ 
+                        borderColor: '#E5E7EB', 
+                        color: '#374151', 
+                        textTransform: 'none',
+                        height: 40,
+                        '&:hover': { bgcolor: '#F9FAFB', borderColor: '#D1D5DB' }
+                    }}
+                 >
+                    Export
+                 </Button>
+                 
+                 <IconButton 
+                    size="small" 
+                    sx={{ 
+                        border: '1px solid #E5E7EB', 
+                        borderRadius: 1, 
+                        p: 1,
+                        height: 40,
+                        width: 40
+                    }}
+                 >
+                    <MoreVertIcon fontSize="small" />
+                 </IconButton>
+            </Box>
         </Paper>
 
-        {/* Edit Dialog */}
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+            <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+                {/* Changed header background to light gray as per request */}
+                <TableRow sx={{ bgcolor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Resource Name</TableCell>
+                <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Subject</TableCell>
+                <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Grade</TableCell>
+                <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Curriculum</TableCell>
+                <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Status</TableCell>
+                <TableCell align="right" sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', py: 2 }}>Action</TableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {loading ? (
+                    <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
+                            <CircularProgress size={30} thickness={4} />
+                        </TableCell>
+                    </TableRow>
+                ) : filteredResources.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                        <Typography variant="body2" color="text.secondary">No resources found matching your filters.</Typography>
+                    </TableCell>
+                </TableRow>
+                ) : (
+                filteredResources.map((resource) => (
+                    <TableRow 
+                        key={resource.id} 
+                        hover
+                        sx={{ 
+                            '&:hover': { bgcolor: '#F9FAFB' },
+                            borderBottom: '1px solid #F3F4F6'
+                        }}
+                    >
+                    <TableCell sx={{ fontWeight: 500, color: '#111827' }}>
+                        {resource.title}
+                    </TableCell>
+                    <TableCell>
+                        {/* Styled to look like the image chips */}
+                        <Chip 
+                            label={resource.subject} 
+                            size="small" 
+                            sx={{ 
+                                bgcolor: alpha('#6366F1', 0.1), 
+                                color: '#4338ca', 
+                                fontWeight: 600, 
+                                borderRadius: 1,
+                                height: 24,
+                                fontSize: '0.75rem'
+                            }} 
+                        />
+                    </TableCell>
+                    <TableCell sx={{ color: '#374151' }}>{resource.grade}</TableCell>
+                    <TableCell sx={{ color: '#374151' }}>{resource.curriculum}</TableCell>
+                    <TableCell>
+                        {resource.price && parseFloat(resource.price) > 0 
+                            ? <Chip 
+                                label={`KES ${resource.price}`} 
+                                size="small" 
+                                sx={{ 
+                                    bgcolor: alpha('#F59E0B', 0.1), 
+                                    color: '#B45309', 
+                                    fontWeight: 600, 
+                                    borderRadius: 1,
+                                    height: 24
+                                }} 
+                              />
+                            : <Chip 
+                                label="Free" 
+                                size="small" 
+                                sx={{ 
+                                    bgcolor: alpha('#10B981', 0.1), 
+                                    color: '#059669', 
+                                    fontWeight: 600, 
+                                    borderRadius: 1,
+                                    height: 24
+                                }} 
+                              />
+                        }
+                    </TableCell>
+                    <TableCell align="right">
+                        <IconButton 
+                            onClick={() => handleEditClick(resource)} 
+                            size="small" 
+                            sx={{ color: '#9CA3AF', '&:hover': { color: '#2563EB' } }}
+                        >
+                            <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton 
+                            onClick={() => handleDeleteClick(resource.id)} 
+                            size="small" 
+                            sx={{ color: '#9CA3AF', '&:hover': { color: '#EF4444' } }}
+                        >
+                            <DeleteIcon fontSize="small" />
+                        </IconButton>
+                    </TableCell>
+                    </TableRow>
+                ))
+                )}
+            </TableBody>
+            </Table>
+        </TableContainer>
+
+        {/* Edit Dialog - Kept Logic */}
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle sx={{ fontWeight: 700 }}>Edit Resource</DialogTitle>
             <DialogContent dividers>
@@ -277,9 +471,9 @@ const ResourceManagement: React.FC = () => {
             </DialogActions>
         </Dialog>
 
-        {/* Delete Dialog */}
+        {/* Delete Dialog - Kept Logic */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}><WarningAmberIcon /> Confirm Deletion</DialogTitle>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#DC2626' }}><WarningAmberIcon /> Confirm Deletion</DialogTitle>
             <DialogContent><DialogContentText>Are you sure you want to delete this resource?</DialogContentText></DialogContent>
             <DialogActions sx={{ p: 3 }}>
                 <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" color="inherit">Cancel</Button>

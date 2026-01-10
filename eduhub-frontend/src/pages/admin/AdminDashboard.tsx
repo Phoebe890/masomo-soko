@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    alpha, useTheme, IconButton
+    alpha, useTheme, IconButton, Avatar
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
@@ -12,10 +12,12 @@ import AdminLayout from './AdminLayout';
 // Icons
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PeopleIcon from '@mui/icons-material/PeopleOutline';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; // For Resources
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote'; // For Payouts
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; 
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'; 
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 interface DashboardStats {
     totalUsers: number;
@@ -40,6 +42,10 @@ const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [recentWithdrawals, setRecentWithdrawals] = useState<Withdrawal[]>([]);
     const [chartData, setChartData] = useState<any[]>([]);
+
+    // Brand Colors
+    const BRAND_BLUE = '#2563EB'; 
+    const BRAND_ORANGE = '#F97316'; 
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -86,23 +92,60 @@ const AdminDashboard: React.FC = () => {
         return Array.from(last7Days, ([name, amount]) => ({ name, amount }));
     };
 
-    // Reusable Widget Component (Matches TeacherDashboard style)
-    const StatWidget = ({ title, value, icon, color }: any) => (
+    // Vibrant Stat Widget (Matches Teacher/Student Dashboard)
+    const StatWidget = ({ title, value, icon, gradient }: any) => (
         <Paper
-            elevation={0}
+            elevation={3}
             sx={{
-                p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                border: `1px solid ${theme.palette.divider}`, borderRadius: 4,
-                transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)' }
+                p: { xs: 2, md: 3 }, 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'space-between',
+                borderRadius: 4,
+                background: gradient, 
+                color: 'white',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'transform 0.2s', 
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }
             }}
         >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ p: 1.5, borderRadius: 3, bgcolor: alpha(color, 0.1), color: color }}>{icon}</Box>
-                <Chip icon={<ArrowUpwardIcon sx={{ width: 14 }} />} label="+12%" size="small" sx={{ bgcolor: alpha(color, 0.1), color: color, fontWeight: 700, borderRadius: 1 }} />
+            {/* Background Decoration */}
+            <Box sx={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, zIndex: 1 }}>
+                <Box sx={{ 
+                    p: 1.5, 
+                    borderRadius: 3, 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    backdropFilter: 'blur(5px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    {React.cloneElement(icon, { style: { color: 'white' } })}
+                </Box>
+                <Chip 
+                    icon={<ArrowUpwardIcon sx={{ width: 14, color: 'white !important' }} />} 
+                    label="Live" 
+                    size="small" 
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 700, borderRadius: 1 }} 
+                />
             </Box>
-            <Box>
-                <Typography variant="h4" fontWeight={800} sx={{ color: '#111827' }}>{value}</Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
+            <Box sx={{ zIndex: 1 }}>
+                <Typography 
+                    fontWeight={800} 
+                    sx={{ 
+                        fontSize: { xs: '1.25rem', md: '2rem' }, 
+                        mb: 0.5, 
+                        letterSpacing: '-0.5px',
+                        lineHeight: 1.2
+                    }}
+                >
+                    {value}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
+                    {title}
+                </Typography>
             </Box>
         </Paper>
     );
@@ -111,47 +154,55 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <AdminLayout title="Overview" selectedRoute="/admin/dashboard">
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight={800} sx={{ color: '#111827' }}>
-                    Admin Console
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Platform overview and financial statistics.
-                </Typography>
+            
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
+                <Box>
+                    <Typography variant="h4" fontWeight={800} sx={{ color: '#111827', mb: 1, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
+                        Admin <span style={{ color: BRAND_BLUE }}>Console</span>
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Platform overview and financial statistics.
+                    </Typography>
+                </Box>
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                    <Avatar sx={{ bgcolor: alpha(BRAND_ORANGE, 0.1), color: BRAND_ORANGE, width: 48, height: 48 }}>
+                        <AdminPanelSettingsIcon />
+                    </Avatar>
+                </Box>
             </Box>
 
-            {/* 1. STATS GRID */}
+            {/* 1. STATS GRID (Vibrant & Responsive) */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={6} sm={6} md={3}>
                     <StatWidget 
                         title="Platform Revenue" 
                         value={`KES ${stats?.platformRevenue.toLocaleString() || 0}`} 
-                        icon={<AttachMoneyIcon fontSize="large" />} 
-                        color="#10B981" // Green
+                        icon={<AttachMoneyIcon />} 
+                        gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)" // Green
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={6} sm={6} md={3}>
                     <StatWidget 
                         title="Total Users" 
                         value={stats?.totalUsers.toLocaleString() || 0} 
-                        icon={<PeopleIcon fontSize="large" />} 
-                        color="#3B82F6" // Blue
+                        icon={<PeopleIcon />} 
+                        gradient="linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)" // Blue
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={6} sm={6} md={3}>
                     <StatWidget 
                         title="Total Resources" 
                         value={stats?.totalResources || 0} 
-                        icon={<LibraryBooksIcon fontSize="large" />} 
-                        color="#8B5CF6" // Purple
+                        icon={<LibraryBooksIcon />} 
+                        gradient="linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)" // Purple
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={6} sm={6} md={3}>
                     <StatWidget 
                         title="Pending Payouts" 
                         value={stats?.pendingPayouts || 0} 
-                        icon={<RequestQuoteIcon fontSize="large" />} 
-                        color="#F59E0B" // Orange
+                        icon={<RequestQuoteIcon />} 
+                        gradient="linear-gradient(135deg, #F97316 0%, #EA580C 100%)" // Orange
                     />
                 </Grid>
             </Grid>
@@ -159,47 +210,55 @@ const AdminDashboard: React.FC = () => {
             <Grid container spacing={3}>
                 {/* 2. CHART SECTION */}
                 <Grid item xs={12} md={8}>
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 400, mb: 3 }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Payout Volume (Last 7 Days)</Typography>
-        
-        {/* --- FIX: Wrap ResponsiveContainer in a div with explicit dimensions --- */}
-        <div style={{ width: '100%', height: '300px' }}> 
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                    <defs>
-                        <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
-                            <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                    <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                    <RechartsTooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                    <Area type="monotone" dataKey="amount" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorVol)" />
-                </AreaChart>
-            </ResponsiveContainer>
-        </div>
-        {/* --- END FIX --- */}
-        
-    </Paper>
-</Grid>
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 420, mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(BRAND_ORANGE, 0.1), color: BRAND_ORANGE, mr: 2 }}>
+                                <TrendingUpIcon />
+                            </Box>
+                            <Typography variant="h6" fontWeight={700}>Payout Volume (Last 7 Days)</Typography>
+                        </Box>
+                        
+                        <Box sx={{ width: '100%', height: '300px' }}> 
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={BRAND_ORANGE} stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor={BRAND_ORANGE} stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" tick={{fontSize: 12, fill: '#6B7280'}} axisLine={false} tickLine={false} dy={10} />
+                                    <YAxis tick={{fontSize: 12, fill: '#6B7280'}} axisLine={false} tickLine={false} />
+                                    <RechartsTooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} />
+                                    <Area type="monotone" dataKey="amount" stroke={BRAND_ORANGE} strokeWidth={4} fillOpacity={1} fill="url(#colorVol)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </Box>
+                    </Paper>
+                </Grid>
 
                 {/* 3. RECENT PAYOUTS TABLE */}
                 <Grid item xs={12} md={4}>
                     <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
-                        <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" fontWeight={700}>Recent Requests</Typography>
-                            <IconButton size="small" onClick={() => navigate('/admin/payouts')}><VisibilityOutlinedIcon /></IconButton>
+                        <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F9FAFB' }}>
+                            <Typography variant="h6" fontWeight={700} sx={{ color: '#111827' }}>Recent Requests</Typography>
+                            <IconButton 
+                                size="small" 
+                                onClick={() => navigate('/admin/payouts')}
+                                sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}
+                            >
+                                <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
                         </Box>
                         
                         <TableContainer>
                             <Table size="small">
-                                <TableHead sx={{ bgcolor: '#F9FAFB' }}>
+                                <TableHead sx={{ bgcolor: 'white' }}>
                                     <TableRow>
-                                        <TableCell sx={{ fontWeight: 600 }}>Teacher</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 600 }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Teacher</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary' }}>Amount</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary' }}>Status</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -207,15 +266,18 @@ const AdminDashboard: React.FC = () => {
                                         <TableRow><TableCell colSpan={3} align="center" sx={{ py: 3, color: 'text.secondary' }}>No recent requests</TableCell></TableRow>
                                     )}
                                     {recentWithdrawals.map((row) => (
-                                        <TableRow key={row.id} hover>
-                                            <TableCell>{row.teacherName}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700 }}>{row.amount}</TableCell>
+                                        <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                            <TableCell sx={{ fontWeight: 500 }}>{row.teacherName}</TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#111827' }}>{row.amount.toLocaleString()}</TableCell>
                                             <TableCell align="center">
                                                 <Chip 
                                                     label={row.status} 
                                                     size="small" 
-                                                    color={row.status === 'PENDING' ? 'warning' : 'success'}
-                                                    sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }}
+                                                    sx={{ 
+                                                        height: 24, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5,
+                                                        bgcolor: row.status === 'PENDING' ? alpha('#F59E0B', 0.1) : alpha('#10B981', 0.1),
+                                                        color: row.status === 'PENDING' ? '#B45309' : '#059669'
+                                                    }}
                                                 />
                                             </TableCell>
                                         </TableRow>
