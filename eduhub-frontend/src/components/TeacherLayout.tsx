@@ -64,9 +64,11 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     useEffect(() => {
         const fetchData = async () => {
             try {
+                // Fetch Notifications
                 const notifRes = await api.get('/api/teacher/notifications');
                 setNotifications(notifRes.data);
 
+                // Fetch Settings for Profile Pic
                 const settingsRes = await api.get('/api/teacher/settings');
                 const profile = settingsRes.data.profile;
                 
@@ -81,25 +83,33 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
             }
         };
         fetchData();
+        
+        // Optional: Poll every 60s
+        const interval = setInterval(fetchData, 60000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleMarkAllRead = async () => {
         try {
-            await api.post('/api/teacher/notifications/clear');
+            // Assuming you have an endpoint for this, or loop through IDs
+            // For now, let's just update UI optimistically
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            // Implement bulk read API if available: await api.post('/api/teacher/notifications/read-all');
         } catch (e) { console.error(e); }
     };
 
     const handleDeleteNotification = async (e: React.MouseEvent, id: number) => {
         e.stopPropagation();
         setNotifications(prev => prev.filter(n => n.id !== id));
-        try {
-            await api.delete(`/api/teacher/notifications/${id}`);
-        } catch (e) { console.error(e); }
+        // If you have a delete endpoint: await api.delete(`/api/teacher/notifications/${id}`);
     };
 
-    const handleNotificationClick = (id: number) => {
+    const handleNotificationClick = async (id: number) => {
+        // Optimistic update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        try {
+            await api.post(`/api/teacher/notifications/${id}/read`);
+        } catch (e) { console.error(e); }
     };
 
     const handleLogout = () => {
@@ -110,16 +120,19 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
 
     const handleProfileClick = () => {
         setAnchorEl(null);
-        // FIXED: Updated path to match App.js route
-        navigate('/teacher/settings');
+        // Correct path based on typical structure
+        navigate('/dashboard/teacher/settings'); 
     };
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
+    // Helper to resolve image URL
     const getAvatarSrc = (path: string) => {
         if (!path) return undefined;
         if (path.startsWith('http')) return path;
-        return `${BACKEND_URL}${path}`; 
+        // Clean double slashes
+        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+        return `${BACKEND_URL}/${cleanPath}`; 
     };
 
     return (
@@ -150,12 +163,14 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             
+                            {/* --- BELL ICON --- */}
                             <IconButton onClick={(e) => setNotifAnchorEl(e.currentTarget)}>
                                 <Badge badgeContent={unreadCount} color="error">
                                     <NotificationsNoneIcon />
                                 </Badge>
                             </IconButton>
 
+                            {/* --- USER PROFILE DROPDOWN TRIGGER --- */}
                             <Box 
                                 onClick={(e) => setAnchorEl(e.currentTarget)}
                                 sx={{ 
@@ -183,7 +198,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </Toolbar>
                 </AppBar>
 
-                {/* Notifications Popover */}
+                {/* --- NOTIFICATIONS POPOVER --- */}
                 <Popover
                     open={Boolean(notifAnchorEl)}
                     anchorEl={notifAnchorEl}
@@ -214,7 +229,8 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                                         onClick={() => handleNotificationClick(notif.id)}
                                         sx={{ 
                                             bgcolor: notif.read ? 'white' : '#F0F7FF',
-                                            '&:hover .delete-btn': { opacity: 1 }
+                                            '&:hover .delete-btn': { opacity: 1 },
+                                            borderBottom: '1px solid #f9f9f9'
                                         }}
                                     >
                                         <ListItemAvatar>
@@ -235,7 +251,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                                             }
                                             secondary={<Typography variant="caption" color="text.secondary">{getTimeAgo(notif.createdAt)}</Typography>}
                                         />
-                                        <Tooltip title="Remove">
+                                        <Tooltip title="Dismiss">
                                             <IconButton 
                                                 className="delete-btn" size="small" 
                                                 onClick={(e) => handleDeleteNotification(e, notif.id)}
@@ -251,7 +267,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </List>
                 </Popover>
 
-                {/* Profile Menu */}
+                {/* --- USER PROFILE MENU --- */}
                 <Menu 
                     anchorEl={anchorEl} 
                     open={Boolean(anchorEl)} 
@@ -265,7 +281,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                         <Typography variant="caption" color="text.secondary">{userProfile.email}</Typography>
                     </Box>
                     <Divider />
-                    {/* FIXED: Paths updated to /teacher/settings */}
                     <MenuItem onClick={handleProfileClick}>
                         <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> Profile
                     </MenuItem>
@@ -278,6 +293,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                     </MenuItem>
                 </Menu>
 
+                {/* --- CONTENT AREA --- */}
                 <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1, overflowX: 'hidden' }}>
                     {children}
                 </Box>

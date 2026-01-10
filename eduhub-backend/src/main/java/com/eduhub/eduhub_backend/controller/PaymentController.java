@@ -1,10 +1,14 @@
 package com.eduhub.eduhub_backend.controller;
 
-import com.eduhub.eduhub_backend.entity.*;
-import com.eduhub.eduhub_backend.repository.*;
-import com.eduhub.eduhub_backend.service.EmailProducer;
+import com.eduhub.eduhub_backend.entity.PaymentTransaction;
+import com.eduhub.eduhub_backend.entity.Purchase;
+import com.eduhub.eduhub_backend.entity.TeacherResource;
+import com.eduhub.eduhub_backend.entity.User;
+import com.eduhub.eduhub_backend.repository.PaymentTransactionRepository;
+import com.eduhub.eduhub_backend.repository.PurchaseRepository;
+import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
+import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.service.MpesaService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,169 +16,111 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal; // <--- CRITICAL IMPORT
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payment")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000" }, allowCredentials = "true")
 public class PaymentController {
 
     @Autowired private MpesaService mpesaService;
-    @Autowired private UserRepository userRepository;
-    @Autowired private TeacherResourceRepository resourceRepository;
     @Autowired private PaymentTransactionRepository transactionRepository;
+    @Autowired private TeacherResourceRepository resourceRepository;
+    @Autowired private UserRepository userRepository;
     @Autowired private PurchaseRepository purchaseRepository;
-    @Autowired private NotificationRepository notificationRepository;
-    @Autowired private TeacherProfileRepository teacherProfileRepository;
-    @Autowired private EmailProducer emailProducer;
 
-    // 1. INITIATE PAYMENT
     @PostMapping("/pay")
     public ResponseEntity<?> initiatePayment(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam String phone,
-            @RequestParam Long resourceId) {
+            @RequestBody Map<String, Object> request) {
+        
         try {
-            User student = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            TeacherResource resource = resourceRepository.findById(resourceId).orElseThrow();
+            if (userDetails == null) return ResponseEntity.status(401).body("Unauthorized");
             
-            boolean alreadyOwned = purchaseRepository.findByStudent(student).stream()
-                    .anyMatch(p -> p.getResource().getId().equals(resourceId));
-            if(alreadyOwned) return ResponseEntity.badRequest().body("You already own this resource.");
+            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+            
+            // 1. Get Inputs safely
+            Long resourceId = Long.valueOf(request.get("resourceId").toString());
+            String phoneNumber = request.get("phoneNumber").toString();
+            
+            // FIX: Convert request amount (String/Double) to BigDecimal explicitly
+            BigDecimal amountVal = new BigDecimal(request.get("amount").toString());
+            
+            TeacherResource resource = resourceRepository.findById(resourceId)
+                    .orElseThrow(() -> new RuntimeException("Resource not found"));
 
-            Double amount = resource.getPrice();
+            // 2. Call Service (Now passing BigDecimal, matching the Service definition)
+            Map<String, String> mpesaResponse = mpesaService.initiateStkPush(phoneNumber, amountVal);
 
-            if (phone.startsWith("0")) phone = "254" + phone.substring(1);
-            if (phone.startsWith("+")) phone = phone.substring(1);
-
-            String checkoutRequestId = mpesaService.sendStkPush(phone, amount, "EduHub");
-
+            // 3. Save Transaction
             PaymentTransaction transaction = new PaymentTransaction();
-            transaction.setStudent(student);
+            transaction.setUser(user);
             transaction.setResource(resource);
-            transaction.setAmount(amount);
-            transaction.setPhoneNumber(phone);
-            transaction.setCheckoutRequestId(checkoutRequestId);
+            transaction.setAmount(amountVal); // Save as BigDecimal
+            transaction.setPhoneNumber(phoneNumber);
+            transaction.setTransactionDate(LocalDateTime.now());
             transaction.setStatus("PENDING");
+            
+            // Save IDs from M-Pesa response
+            transaction.setMerchantRequestId(mpesaResponse.get("MerchantRequestID"));
+            transaction.setCheckoutRequestId(mpesaResponse.get("CheckoutRequestID"));
+
             transactionRepository.save(transaction);
 
             return ResponseEntity.ok(Map.of(
-                "message", "STK Push Sent",
-                "checkoutRequestId", checkoutRequestId
+                "message", "STK Push initiated", 
+                "checkoutRequestId", transaction.getCheckoutRequestId()
             ));
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Payment Failed: " + e.getMessage());
+            return ResponseEntity.status(500).body("Payment initiation failed: " + e.getMessage());
         }
     }
 
-    // 2. CHECK STATUS
+    @PostMapping("/callback")
+    public void mpesaCallback(@RequestBody String callbackJson) {
+        try {
+            System.out.println("M-Pesa Callback: " + callbackJson);
+
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> map = mapper.readValue(callbackJson, Map.class);
+            Map<String, Object> body = (Map<String, Object>) map.get("Body");
+            Map<String, Object> stkCallback = (Map<String, Object>) body.get("stkCallback");
+
+            String checkoutRequestId = (String) stkCallback.get("CheckoutRequestID");
+            int resultCode = (int) stkCallback.get("ResultCode"); 
+
+            PaymentTransaction transaction = transactionRepository.findByCheckoutRequestId(checkoutRequestId).orElse(null);
+
+            if (transaction != null) {
+                if (resultCode == 0) {
+                    transaction.setStatus("COMPLETED");
+                    
+                    // Grant Access
+                    Purchase purchase = new Purchase(transaction.getUser(), transaction.getResource(), LocalDateTime.now());
+                    // Use doubleValue() to convert back if Entity expects Double, 
+                    // otherwise change Purchase entity to use BigDecimal too.
+                    purchase.setPrice(transaction.getResource().getPrice()); 
+                    purchaseRepository.save(purchase);
+                    
+                } else {
+                    transaction.setStatus("FAILED");
+                }
+                transactionRepository.save(transaction);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
     @GetMapping("/status/{checkoutRequestId}")
     public ResponseEntity<?> checkStatus(@PathVariable String checkoutRequestId) {
         PaymentTransaction transaction = transactionRepository.findByCheckoutRequestId(checkoutRequestId).orElse(null);
-        if (transaction == null) return ResponseEntity.status(404).body(Map.of("status", "NOT_FOUND"));
+        if (transaction == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(Map.of("status", transaction.getStatus()));
-    }
-
-    // 3. CALLBACK
-    @PostMapping("/callback")
-    public void mpesaCallback(@RequestBody String callbackJson) {
-        System.out.println("M-Pesa Callback: " + callbackJson);
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(callbackJson);
-            JsonNode stkCallback = root.path("Body").path("stkCallback");
-            String checkoutRequestId = stkCallback.path("CheckoutRequestID").asText();
-            int resultCode = stkCallback.path("ResultCode").asInt();
-
-            PaymentTransaction transaction = transactionRepository.findByCheckoutRequestId(checkoutRequestId).orElse(null);
-            if (transaction == null) return;
-
-            if (resultCode == 0) {
-                // SUCCESS
-                transaction.setStatus("COMPLETED");
-                transactionRepository.save(transaction);
-
-                // A. Create Purchase Record
-                Purchase purchase = new Purchase(transaction.getStudent(), transaction.getResource(), LocalDateTime.now());
-                purchase.setPrice(transaction.getAmount());
-                purchaseRepository.save(purchase);
-
-                // B. Calculations
-                Double amountPaid = transaction.getAmount();
-                Double teacherShare = amountPaid * 0.90; // 90%
-
-                // C. Credit Wallet
-                User teacherUser = transaction.getResource().getUser();
-                TeacherProfile profile = teacherProfileRepository.findByUserId(teacherUser.getId()).orElse(null);
-                
-                if (profile != null) {
-                    Double currentBalance = profile.getAccountBalance() != null ? profile.getAccountBalance() : 0.0;
-                    profile.setAccountBalance(currentBalance + teacherShare);
-                    teacherProfileRepository.save(profile);
-                }
-                
-                // D. Notify Teacher (In-App)
-                Notification notif = new Notification(
-                    teacherUser,
-                    "New Sale: '" + transaction.getResource().getTitle() + "' sold for KES " + amountPaid,
-                    LocalDateTime.now(), false
-                );
-                notificationRepository.save(notif);
-
-                // E. SEND EMAILS (UPDATED SECTION)
-                try {
-                    // 1. Email to Student
-                    emailProducer.sendEmail(
-                        transaction.getStudent().getEmail(),
-                        "Receipt: " + transaction.getResource().getTitle(),
-                        "Dear " + transaction.getStudent().getName() + ",\n\n" +
-                        "Thank you for purchasing '" + transaction.getResource().getTitle() + "'.\n" +
-                        "You can now access and download this resource from your dashboard.\n\n" +
-                        "Happy Learning,\nEduHub Team"
-                    );
-
-                    // 2. Email to Teacher (MORE INFORMATIVE)
-                    String teacherSubject = "New Sale: " + transaction.getResource().getTitle();
-                    String teacherBody = String.format(
-                        "Dear %s,\n\n" +
-                        "Great news! You have made a new sale on EduHub.\n\n" +
-                        "Transaction Details:\n" +
-                        "------------------------------------------------\n" +
-                        "Resource: %s\n" +
-                        "Student: %s\n" +
-                        "Sale Amount: KES %.2f\n" +
-                        "Your Earnings (90%%): KES %.2f\n" +
-                        "Date: %s\n" +
-                        "------------------------------------------------\n\n" +
-                        "This amount has been credited to your wallet.\n\n" +
-                        "Keep creating great content!\n" +
-                        "The EduHub Team",
-                        teacherUser.getName(),
-                        transaction.getResource().getTitle(),
-                        transaction.getStudent().getName(),
-                        amountPaid,
-                        teacherShare,
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"))
-                    );
-
-                    emailProducer.sendEmail(teacherUser.getEmail(), teacherSubject, teacherBody);
-
-                } catch (Exception emailEx) { 
-                    System.err.println("Email Error: " + emailEx.getMessage()); 
-                }
-
-            } else {
-                // Handle Failures
-                if (resultCode == 1032) transaction.setStatus("CANCELLED");
-                else if (resultCode == 1037) transaction.setStatus("TIMEOUT");
-                else transaction.setStatus("FAILED");
-                
-                transactionRepository.save(transaction);
-            }
-        } catch (Exception e) { e.printStackTrace(); }
     }
 }

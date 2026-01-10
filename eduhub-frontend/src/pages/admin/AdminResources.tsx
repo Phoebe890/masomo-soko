@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
     IconButton, CircularProgress, Avatar, Chip, Dialog, DialogTitle, DialogContent, 
-    DialogActions, Button, Snackbar, Alert, TextField, InputAdornment, Tooltip 
+    DialogActions, Button, Snackbar, Alert, TextField, Tooltip 
 } from '@mui/material';
 import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout';
@@ -14,7 +14,6 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import FolderZipRoundedIcon from '@mui/icons-material/FolderZipRounded';
 
 const THEME_COLORS = {
     teal: '#2DD4BF',
@@ -29,9 +28,7 @@ const AdminResources: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     
-    // --- STATE FOR VIEWING FILES ---
     const [viewFile, setViewFile] = useState<{ url: string, title: string } | null>(null);
-
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [takedownReason, setTakedownReason] = useState('');
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
@@ -57,23 +54,33 @@ const AdminResources: React.FC = () => {
         ));
     }, [searchTerm, resources]);
 
-    // --- FIXED: Handler to prevent 'startsWith' crash ---
+    // --- UPDATED VIEW HANDLER ---
     const handleViewResource = (row: any) => {
-        // Use the correct key from your database (file_path)
-        const path = row.file_path || row.filePath;
+        // 1. Log to debug exactly what the backend sent
+        console.log("Viewing Resource:", row);
+
+        // 2. Get the path (Backend sends 'filePath')
+        const path = row.filePath || row.file_path; 
 
         if (!path) {
-            setToast({ open: true, msg: "No file path associated with this resource", type: 'error' });
+            setToast({ open: true, msg: "Error: No file path found for this resource.", type: 'error' });
             return;
         }
 
-        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+        // 3. Construct URL
+        let fullUrl = "";
         
-        // Safety check to ensure path is a string before calling startsWith
-        const pathStr = String(path);
-        const fullUrl = pathStr.startsWith('http') 
-            ? pathStr 
-            : `${baseUrl}${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
+        // If it's an external URL (Cloudinary/S3), use it directly
+        if (String(path).startsWith('http')) {
+            fullUrl = path;
+        } 
+        // If it's a local file (e.g. "uploads/file.pdf"), prepend the backend URL
+        else {
+            const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+            // Remove leading slash if both have it to avoid double slash
+            const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+            fullUrl = `${baseUrl}/${cleanPath}`;
+        }
             
         setViewFile({
             url: fullUrl,
@@ -96,8 +103,6 @@ const AdminResources: React.FC = () => {
 
     return (
         <AdminLayout title="Content Moderation" selectedRoute="/admin/resources">
-            
-            {/* SEARCH BOX */}
             <Paper elevation={0} sx={{ 
                 p: 2, mb: 3, borderRadius: 3, 
                 bgcolor: 'white', border: '1px solid #E2E8F0',
@@ -116,7 +121,6 @@ const AdminResources: React.FC = () => {
                 />
             </Paper>
 
-            {/* MAIN TABLE */}
             <Paper sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
                 {loading ? (
                     <Box sx={{ p: 10, textAlign: 'center' }}><CircularProgress sx={{ color: THEME_COLORS.teal }} /></Box>
@@ -146,7 +150,8 @@ const AdminResources: React.FC = () => {
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                     <Avatar 
                                                         variant="rounded" 
-                                                        src={row.cover_image_url || row.previewImageUrl} 
+                                                        // Ensure coverImageUrl is used here
+                                                        src={row.coverImageUrl || row.cover_image_url} 
                                                         sx={{ width: 45, height: 45, borderRadius: 2, bgcolor: '#E2E8F0' }}
                                                     >
                                                         <PictureAsPdfRoundedIcon sx={{ color: THEME_COLORS.slate }} />
@@ -162,7 +167,7 @@ const AdminResources: React.FC = () => {
                                                 </Box>
                                             </TableCell>
                                             <TableCell>
-                                                <Typography variant="body2" fontWeight={500}>{row.user?.name || row.teacherName || 'Unknown Teacher'}</Typography>
+                                                <Typography variant="body2" fontWeight={500}>{row.user?.name || 'Unknown'}</Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Chip 
@@ -205,7 +210,7 @@ const AdminResources: React.FC = () => {
                 )}
             </Paper>
 
-            {/* --- FILE VIEWER MODAL --- */}
+            {/* View Modal */}
             {viewFile && (
                 <FileViewerModal 
                     open={!!viewFile} 
@@ -215,53 +220,29 @@ const AdminResources: React.FC = () => {
                 />
             )}
 
-            {/* --- TAKEDOWN DIALOG --- */}
-            <Dialog 
-                open={!!deleteId} 
-                onClose={() => setDeleteId(null)}
-                PaperProps={{ sx: { borderRadius: 3, width: '400px' } }}
-            >
+            {/* Takedown Dialog */}
+            <Dialog open={!!deleteId} onClose={() => setDeleteId(null)} PaperProps={{ sx: { borderRadius: 3, width: '400px' } }}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: THEME_COLORS.danger }}>
                     <WarningAmberRoundedIcon /> Confirm Takedown
                 </DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                        Removing this resource will notify the teacher. Please provide a brief reason for this moderation action.
+                        Removing this resource will notify the teacher.
                     </Typography>
                     <TextField 
-                        fullWidth 
-                        autoFocus
-                        placeholder="e.g. Copyright infringement, Incorrect curriculum..." 
-                        value={takedownReason} 
-                        onChange={(e) => setTakedownReason(e.target.value)} 
-                        size="small"
+                        fullWidth placeholder="Reason (e.g. Copyright infringement)" 
+                        value={takedownReason} onChange={(e) => setTakedownReason(e.target.value)} size="small"
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setDeleteId(null)} sx={{ color: THEME_COLORS.slate }}>Cancel</Button>
-                    <Button 
-                        onClick={confirmTakedown} 
-                        variant="contained" 
-                        color="error" 
-                        disableElevation
-                        disabled={!takedownReason}
-                        sx={{ borderRadius: 2 }}
-                    >
-                        Confirm Removal
-                    </Button>
+                    <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+                    <Button onClick={confirmTakedown} variant="contained" color="error" disabled={!takedownReason}>Confirm Removal</Button>
                 </DialogActions>
             </Dialog>
 
-            <Snackbar 
-                open={toast.open} 
-                autoHideDuration={4000} 
-                onClose={() => setToast({...toast, open: false})}
-            >
-                <Alert severity={toast.type} variant="filled" sx={{ borderRadius: 2 }}>
-                    {toast.msg}
-                </Alert>
+            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})}>
+                <Alert severity={toast.type} variant="filled">{toast.msg}</Alert>
             </Snackbar>
-
         </AdminLayout>
     );
 };

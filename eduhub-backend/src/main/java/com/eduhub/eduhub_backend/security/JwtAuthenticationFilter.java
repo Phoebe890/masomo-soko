@@ -6,12 +6,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,58 +20,64 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private JwtService jwtService; // Use JwtService, NOT JwtUtils
 
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+        
+        // 1. Get Auth Header
+        final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String userEmail;
+
+        // 2. Check if Header is valid. If not, continue chain (allows public endpoints like /auth/google to work)
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 3. Extract Token
+        jwt = authHeader.substring(7);
+
         try {
-            String jwt = parseJwt(request);
-            String requestPath = request.getRequestURI();
-            
-            // Only debug admin endpoints to avoid cluttering logs
-            boolean isDebugTarget = requestPath.startsWith("/api/admin");
+            // 4. Extract Email from Token
+            userEmail = jwtService.extractUsername(jwt);
 
-            if (isDebugTarget) {
-                System.out.println(">>> DEBUG AUTH: Processing request to " + requestPath);
-                System.out.println(">>> DEBUG AUTH: JWT Token present? " + (jwt != null));
-            }
-
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
-
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            // 5. Check if user is not already authenticated
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 
-                if (isDebugTarget) {
-                    System.out.println(">>> DEBUG AUTH: User found: " + username);
-                    // THIS IS THE IMPORTANT LINE: It shows what Spring Security actually sees
-                    System.out.println(">>> DEBUG AUTH: Authorities loaded: " + userDetails.getAuthorities());
+                // 6. Load User Details from DB
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+
+                // 7. Validate Token
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    
+                    // 8. Create Auth Token
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    
+                    // 9. Set Context (Logs the user in for this request)
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else if (isDebugTarget) {
-                System.out.println(">>> DEBUG AUTH: JWT was null or invalid.");
             }
         } catch (Exception e) {
-            System.err.println("Cannot set user authentication: " + e);
+            // Log error but don't crash. 
+            // This ensures that if a token is expired, we just return 403 Forbidden naturally.
+            System.err.println("JWT Authentication Warning: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String parseJwt(HttpServletRequest request) {
-        String headerAuth = request.getHeader("Authorization");
-        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
-        }
-        return null;
     }
 }

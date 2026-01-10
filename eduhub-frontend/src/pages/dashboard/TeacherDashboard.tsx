@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
     List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, useTheme,
-    IconButton, Collapse
+    IconButton
 } from '@mui/material';
 import { api } from '@/api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -18,7 +18,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import EditIcon from '@mui/icons-material/Edit';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CloseIcon from '@mui/icons-material/Close'; // ADDED
+import CloseIcon from '@mui/icons-material/Close'; 
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 const TeacherDashboard = () => {
@@ -28,18 +28,28 @@ const TeacherDashboard = () => {
     const [data, setData] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
 
-    // ADDED: State for notifications
-    const [notifications, setNotifications] = useState([
-        { id: 1, title: "Dashboard Active", subtitle: "Your dashboard is ready.", type: "info" },
-        { id: 2, title: "Profile Tips", subtitle: "Add a bio to attract more students.", type: "tip" }
-    ]);
+    // Initialize with empty array (will be filled by DB)
+    const [notifications, setNotifications] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
+                // 1. Get Dashboard Data
                 const dashRes = await api.get('/api/teacher/dashboard');
                 setData(dashRes.data);
 
+                // --- CRITICAL FIX: Set Notifications from Backend ---
+                if (dashRes.data.notifications && Array.isArray(dashRes.data.notifications)) {
+                    const mappedNotifs = dashRes.data.notifications.map((n: any) => ({
+                        id: n.id,
+                        title: "New Update",
+                        subtitle: n.message, // Use 'message' from DB
+                        type: n.read ? "read" : "info"
+                    }));
+                    setNotifications(mappedNotifs);
+                }
+
+                // 2. Get Analytics Data
                 const analyticsRes = await api.get('/api/teacher/analytics');
                 const rawSales = analyticsRes.data.salesLast30Days || {};
                 
@@ -73,9 +83,9 @@ const TeacherDashboard = () => {
         return [];
     };
 
-    // ADDED: Handler to remove notification
     const handleDismissNotification = (id: number) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
+        // Optional: You could call an API here to mark it as read in DB
     };
 
     const StatWidget = ({ title, value, icon, color }: any) => (
@@ -158,7 +168,7 @@ const TeacherDashboard = () => {
                     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, mb: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6" fontWeight={700}>My Profile</Typography>
-                            <IconButton size="small" onClick={() => navigate('/teacher/settings')}><EditIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={() => navigate('/dashboard/teacher/settings')}><EditIcon fontSize="small" /></IconButton>
                         </Box>
                         
                         <Box sx={{ mb: 2 }}>
@@ -193,39 +203,39 @@ const TeacherDashboard = () => {
                         </Box>
                     </Paper>
 
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}` }}>
-                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Activity</Typography>
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, maxHeight: 300, overflowY: 'auto' }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Recent Notifications</Typography>
                         
-                        {/* UPDATED: List with Dismiss functionality */}
                         <List disablePadding>
-                            {notifications.length === 0 && (
+                            {notifications.length === 0 ? (
                                 <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                                     No new notifications.
                                 </Typography>
+                            ) : (
+                                notifications.map((note) => (
+                                    <Box key={note.id}>
+                                        <ListItem 
+                                            secondaryAction={
+                                                <IconButton edge="end" size="small" onClick={() => handleDismissNotification(note.id)}>
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                            }
+                                            disableGutters
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar sx={{ bgcolor: '#EEF2FF', color: '#3B82F6' }}>
+                                                    {note.type === 'tip' ? <CheckCircleOutlineIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText 
+                                                primary={<Typography variant="subtitle2" fontWeight={600}>{note.title}</Typography>}
+                                                secondary={note.subtitle} 
+                                            />
+                                        </ListItem>
+                                        <Divider component="li" variant="inset" />
+                                    </Box>
+                                ))
                             )}
-                            {notifications.map((note) => (
-                                <Box key={note.id}>
-                                    <ListItem 
-                                        secondaryAction={
-                                            <IconButton edge="end" size="small" onClick={() => handleDismissNotification(note.id)}>
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        }
-                                        disableGutters
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: '#EEF2FF', color: '#3B82F6' }}>
-                                                {note.type === 'tip' ? <CheckCircleOutlineIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText 
-                                            primary={<Typography variant="subtitle2" fontWeight={600}>{note.title}</Typography>}
-                                            secondary={note.subtitle} 
-                                        />
-                                    </ListItem>
-                                    <Divider component="li" variant="inset" />
-                                </Box>
-                            ))}
                         </List>
                     </Paper>
                 </Grid>

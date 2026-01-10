@@ -1,137 +1,201 @@
 package com.eduhub.eduhub_backend.controller;
 
 import com.eduhub.eduhub_backend.dto.LoginRequest;
-import com.eduhub.eduhub_backend.dto.SignUpRequest;
+import com.eduhub.eduhub_backend.entity.TeacherProfile;
 import com.eduhub.eduhub_backend.entity.User;
+import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
-import com.eduhub.eduhub_backend.security.JwtUtils;
-import com.eduhub.eduhub_backend.service.AuthService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import com.eduhub.eduhub_backend.security.JwtService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(
+    origins = { "http://localhost:5173", "http://localhost:3000", "https://masomosoko.co.ke", "https://www.masomosoko.co.ke" }, 
+    allowCredentials = "true"
+)
 public class AuthController {
 
-    @Autowired private AuthService authService;
     @Autowired private AuthenticationManager authenticationManager;
     @Autowired private UserRepository userRepository;
+    @Autowired private TeacherProfileRepository teacherProfileRepository;
+    @Autowired private JwtService jwtService;
     @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JwtUtils jwtUtils; // Inject JwtUtils
 
-    private static final String EMAIL_PATTERN = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-    private static final Pattern pattern = Pattern.compile(EMAIL_PATTERN);
+    @Value("${google.client.id}")
+    private String googleClientId;
 
-    // --- HELPER TO GENERATE RESPONSE ---
-    private ResponseEntity<?> authenticateAndGetToken(String email, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateToken(email); // Generate Token
-
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String role = userDetails.getAuthorities().stream().findFirst().get().getAuthority().replace("ROLE_", "");
-
-        return ResponseEntity.ok(Map.of(
-            "token", jwt,  // Frontend will save this to localStorage
-            "email", email,
-            "role", role
-        ));
+    // Helper: Check if profile is complete
+    private boolean isTeacherProfileComplete(Long userId) {
+        Optional<TeacherProfile> profileOpt = teacherProfileRepository.findByUserId(userId);
+        if (profileOpt.isEmpty()) return false;
+        TeacherProfile profile = profileOpt.get();
+        return profile.getBio() != null && !profile.getBio().isEmpty() 
+            && profile.getPaymentNumber() != null && !profile.getPaymentNumber().isEmpty();
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody SignUpRequest request) {
-        if (request.getEmail() == null || !pattern.matcher(request.getEmail()).matches()) {
-            return ResponseEntity.badRequest().body("Invalid email format.");
-        }
-        if (request.getEmail() != null) request.setEmail(request.getEmail().toLowerCase().trim());
-        
-        String response = authService.signup(request);
-
-        if (response.contains("successfully")) {
-            return authenticateAndGetToken(request.getEmail(), request.getPassword());
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
+    // --- STANDARD LOGIN ---
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            return authenticateAndGetToken(loginRequest.getEmail().toLowerCase().trim(), loginRequest.getPassword());
+            // 1. Attempt Authentication
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
+            
+            // 2. Auth Successful - Generate Token
+            User user = userRepository.findByEmail(loginRequest.getEmail()).orElseThrow();
+            String token = jwtService.generateToken(user);
+            
+            boolean onboardingComplete = true; 
+            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
+                onboardingComplete = isTeacherProfileComplete(user.getId());
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("role", user.getRole());
+            response.put("email", user.getEmail());
+            response.put("name", user.getName());
+            response.put("photoUrl", user.getProfilePic());
+            response.put("onboardingComplete", onboardingComplete);
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password.");
+            // 3. Auth Failed - Check specific reason
+            User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
+            
+            if (user != null) {
+                // Check if this is a Google Account (Password matches the placeholder)
+                // We use matches() because the password in DB is hashed
+                if (passwordEncoder.matches("GOOGLE_AUTH", user.getPassword())) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("This account was created with Google. Please use 'Sign in with Google'.");
+                }
+            }
+            
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }
     }
 
+    // --- GOOGLE LOGIN ---
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> payload) {
-        String token = payload.get("token"); 
-        String requestedRole = payload.getOrDefault("role", "STUDENT"); 
-
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
         try {
-            OkHttpClient client = new OkHttpClient();
-            Request googleRequest = new Request.Builder()
-                    .url("https://www.googleapis.com/oauth2/v3/userinfo")
-                    .addHeader("Authorization", "Bearer " + token)
-                    .build();
+            String tokenString = body.get("token");
+            if (tokenString == null) tokenString = body.get("credential");
+            if (tokenString == null) return ResponseEntity.badRequest().body("Missing 'token' or 'credential'");
 
-            try (Response googleResponse = client.newCall(googleRequest).execute()) {
-                if (!googleResponse.isSuccessful()) return ResponseEntity.badRequest().body("Invalid Google Token");
+            String role = body.getOrDefault("role", "TEACHER");
+            String email = null;
+            String name = null;
+            String pictureUrl = null;
 
-                String responseBody = googleResponse.body().string();
-                JsonNode googleUser = new ObjectMapper().readTree(responseBody);
-                String email = googleUser.get("email").asText().toLowerCase().trim();
-                String name = googleUser.get("name").asText();
+            if (tokenString.startsWith("ya29")) {
+                Map<String, String> googleUser = fetchUserFromGoogleApi(tokenString);
+                if (googleUser == null) return ResponseEntity.status(401).body("Invalid Google Access Token");
+                email = googleUser.get("email");
+                name = googleUser.get("name");
+                pictureUrl = googleUser.get("picture");
+            } else {
+                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                        .setAudience(Collections.singletonList(googleClientId))
+                        .setAcceptableTimeSkewSeconds(60).build();
 
-                User user = userRepository.findByEmail(email).orElse(null);
+                GoogleIdToken idToken = verifier.verify(tokenString);
+                if (idToken == null) return ResponseEntity.status(401).body("Invalid Google ID Token");
 
-                // Use this random password for authentication generation
-                String dummyPassword = "GOOGLE_AUTH_bypass_password"; 
+                GoogleIdToken.Payload payload = idToken.getPayload();
+                email = payload.getEmail();
+                name = (String) payload.get("name");
+                pictureUrl = (String) payload.get("picture");
+            }
 
-                if (user == null) {
-                    user = new User();
-                    user.setEmail(email);
-                    user.setName(name);
-                    user.setRole(requestedRole.toUpperCase());
-                    // We set a fixed dummy password pattern so we can "authenticate" it later internally if needed
-                    // But typically for JWT we just generate the token directly.
-                    user.setPassword(passwordEncoder.encode(dummyPassword)); 
-                    user.setEnabled(true);
+            User user = userRepository.findByEmail(email).orElse(null);
+            
+            // Register new user if not exists
+            if (user == null) {
+                user = new User();
+                user.setEmail(email);
+                user.setName(name);
+                user.setRole(role.toUpperCase());
+                // SET PLACEHOLDER PASSWORD FOR GOOGLE USERS
+                user.setPassword(passwordEncoder.encode("GOOGLE_AUTH"));
+                user.setEnabled(true);
+                user.setProfilePic(pictureUrl);
+                userRepository.save(user);
+            } else {
+                if (user.getProfilePic() == null) {
+                    user.setProfilePic(pictureUrl);
                     userRepository.save(user);
                 }
-
-                // DIRECTLY GENERATE TOKEN (Skip Auth Manager for Google to avoid password check issues)
-                String jwt = jwtUtils.generateToken(user.getEmail());
-                
-                return ResponseEntity.ok(Map.of(
-                    "token", jwt,
-                    "email", user.getEmail(),
-                    "role", user.getRole()
-                ));
             }
+
+            // Sync Teacher Profile
+            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
+                TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
+                if (profile.getUser() == null) profile.setUser(user);
+                teacherProfileRepository.save(profile);
+            }
+
+            String jwtToken = jwtService.generateToken(user);
+            
+            boolean onboardingComplete = true;
+            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
+                onboardingComplete = isTeacherProfileComplete(user.getId());
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", jwtToken);
+            response.put("role", user.getRole());
+            response.put("email", user.getEmail());
+            response.put("name", user.getName());
+            response.put("photoUrl", user.getProfilePic());
+            response.put("onboardingComplete", onboardingComplete);
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Google Login Error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Google login failed: " + e.getMessage());
         }
+    }
+
+    private Map<String, String> fetchUserFromGoogleApi(String accessToken) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = "https://www.googleapis.com/oauth2/v3/userinfo";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map body = response.getBody();
+                Map<String, String> userInfo = new HashMap<>();
+                userInfo.put("email", (String) body.get("email"));
+                userInfo.put("name", (String) body.get("name"));
+                userInfo.put("picture", (String) body.get("picture"));
+                return userInfo;
+            }
+        } catch (Exception e) {}
+        return null;
     }
 }

@@ -1,42 +1,65 @@
 package com.eduhub.eduhub_backend.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "payment_transactions")
 public class PaymentTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String checkoutRequestId; // Crucial: Links M-Pesa callback to this record
-    private String phoneNumber;
-    private Double amount;
-    private String status; // PENDING, COMPLETED, FAILED
-
+    // FIX 1: Renamed 'student' to 'user' so adminController can call .getUser()
+    // This allows both Students and Teachers (for payouts) to have transactions.
     @ManyToOne
-    @JoinColumn(name = "student_id")
-    private User student;
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @ManyToOne
     @JoinColumn(name = "resource_id")
     private TeacherResource resource;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    // FIX 2: Use BigDecimal for money, not Double (prevents precision errors)
+    private BigDecimal amount;
+    
+    private String checkoutRequestId; // Matches M-Pesa response
+    private String merchantRequestId;
+    private String mpesaReceiptNumber;
+    private String phoneNumber;
+    private String status; // PENDING, COMPLETED, FAILED
+    
+    private LocalDateTime transactionDate = LocalDateTime.now();
 
-    // Getters and Setters
+    // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public String getCheckoutRequestId() { return checkoutRequestId; }
-    public void setCheckoutRequestId(String checkoutRequestId) { this.checkoutRequestId = checkoutRequestId; }
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
-    public Double getAmount() { return amount; }
-    public void setAmount(Double amount) { this.amount = amount; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public User getStudent() { return student; }
-    public void setStudent(User student) { this.student = student; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
     public TeacherResource getResource() { return resource; }
     public void setResource(TeacherResource resource) { this.resource = resource; }
+
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+
+    public String getCheckoutRequestId() { return checkoutRequestId; }
+    public void setCheckoutRequestId(String checkoutRequestId) { this.checkoutRequestId = checkoutRequestId; }
+
+    public String getMerchantRequestId() { return merchantRequestId; }
+    public void setMerchantRequestId(String merchantRequestId) { this.merchantRequestId = merchantRequestId; }
+
+    public String getMpesaReceiptNumber() { return mpesaReceiptNumber; }
+    public void setMpesaReceiptNumber(String mpesaReceiptNumber) { this.mpesaReceiptNumber = mpesaReceiptNumber; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public LocalDateTime getTransactionDate() { return transactionDate; }
+    public void setTransactionDate(LocalDateTime transactionDate) { this.transactionDate = transactionDate; }
 }

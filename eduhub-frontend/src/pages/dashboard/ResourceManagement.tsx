@@ -28,7 +28,6 @@ const CURRICULA = ['CBC', '8-4-4', 'IGCSE', 'KCSE'];
 const ResourceManagement: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  // Helper for responsive design
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,7 +57,7 @@ const ResourceManagement: React.FC = () => {
   const fetchResources = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/teacher/dashboard'); // Or /api/teacher/resources depending on your backend
+      const response = await api.get('/api/teacher/dashboard'); 
       setResources(response.data.resources || []);
     } catch (err) {
       console.error('Failed to fetch resources:', err);
@@ -131,15 +130,24 @@ const ResourceManagement: React.FC = () => {
     formData.append('pricing', priceVal > 0 ? "Paid" : "Free");
     if (priceVal > 0) formData.append('price', editFormData.price);
 
+    // Only append files if new ones were selected
     if (editFormData.resourceFile) formData.append('file', editFormData.resourceFile);
     if (editFormData.thumbnailFile) formData.append('thumbnail', editFormData.thumbnailFile);
 
     try {
-        await api.put(`/api/teacher/resources/${editingResource.id}`, formData);
+        // CRITICAL FIX: Changed to POST and added explicit Content-Type header
+        // Using POST for multipart updates is much more stable in Spring Boot
+        await api.post(`/api/teacher/resources/update/${editingResource.id}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        
         setSnackbar({ open: true, message: 'Resource updated successfully', severity: 'success' });
         setEditDialogOpen(false);
         fetchResources();
-    } catch (error) {
+    } catch (error: any) {
+        console.error("Update failed", error);
         setSnackbar({ open: true, message: 'Failed to update resource', severity: 'error' });
     } finally {
         setIsUpdating(false);
@@ -170,18 +178,12 @@ const ResourceManagement: React.FC = () => {
             <Typography variant="h4" fontWeight={700} color="text.primary">My Resources</Typography>
           </Box>
           
-          {/* UPDATED: Responsive Button */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleUploadClick}
             size={isMobile ? "small" : "medium"}
-            sx={{ 
-                fontWeight: 600, 
-                borderRadius: 2,
-                width: { xs: '100%', sm: 'auto' }, // Full width on mobile
-                py: isMobile ? 1 : 1.5 
-            }}
+            sx={{ fontWeight: 600, borderRadius: 2, width: { xs: '100%', sm: 'auto' }, py: isMobile ? 1 : 1.5 }}
           >
             Upload New Resource
           </Button>
@@ -239,7 +241,7 @@ const ResourceManagement: React.FC = () => {
             )}
         </Paper>
 
-        {/* Edit Dialog - same as before */}
+        {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
             <DialogTitle sx={{ fontWeight: 700 }}>Edit Resource</DialogTitle>
             <DialogContent dividers>
@@ -278,7 +280,7 @@ const ResourceManagement: React.FC = () => {
         {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}><WarningAmberIcon /> Confirm Deletion</DialogTitle>
-            <DialogContent><DialogContentText>Are you sure you want to delete this resource? This action cannot be undone.</DialogContentText></DialogContent>
+            <DialogContent><DialogContentText>Are you sure you want to delete this resource?</DialogContentText></DialogContent>
             <DialogActions sx={{ p: 3 }}>
                 <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined" color="inherit">Cancel</Button>
                 <Button onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>Delete Resource</Button>

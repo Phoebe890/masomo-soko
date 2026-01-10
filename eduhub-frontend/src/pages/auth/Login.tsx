@@ -24,38 +24,41 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  // --- LOGIC FIX: Inject Token & Check Onboarding ---
+  const handleAuthSuccess = (data: any) => {
+    const authToken = data.token || data.accessToken;
+    if (!authToken) { setMessage("Login failed: No token received."); return; }
+
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('email', data.email);
+    localStorage.setItem('role', data.role);
+    if (data.name) localStorage.setItem('name', data.name);
+    if (data.photoUrl) localStorage.setItem('photoUrl', data.photoUrl);
+
+    // Prevent 401 Bounce Back
+    api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+
+    setTimeout(() => {
+         const userRole = data.role?.toUpperCase();
+         if (userRole === 'TEACHER') {
+             // Check flag from backend
+             if (data.onboardingComplete === true) navigate('/dashboard/teacher');
+             else navigate('/dashboard/teacher/onboarding');
+         }
+         else if (userRole === 'STUDENT') navigate('/dashboard/student');
+         else if (userRole === 'ADMIN') navigate('/admin/dashboard');
+         else navigate('/');
+    }, 500);
+  };
+
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();
       setMessage(null);
       try {
-        const res = await api.post('/api/auth/google', { 
-            token: tokenResponse.access_token 
-        });
-
-        const data = res.data;
-        
-        // --- CRITICAL FIX START ---
-        // Extract token (handle both naming conventions just in case)
-        const authToken = data.token || data.accessToken;
-        
-        if (authToken) {
-            localStorage.setItem('token', authToken); // <--- This fixes the 403 error
-        }
-        // --- CRITICAL FIX END ---
-
-        localStorage.setItem('email', data.email);
-        localStorage.setItem('role', data.role);
-        
+        const res = await api.post('/api/auth/google', { token: tokenResponse.access_token });
         setMessage('Google Login Successful! Redirecting...');
-        
-        setTimeout(() => {
-             const userRole = data.role?.toUpperCase();
-             if (userRole === 'TEACHER') navigate('/dashboard/teacher');
-             else if (userRole === 'STUDENT') navigate('/dashboard/student');
-             else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-             else navigate('/');
-        }, 800);
+        handleAuthSuccess(res.data);
       } catch (err: any) {
         setMessage('Google authentication failed. ' + (err.response?.data || ''));
       } finally {
@@ -71,40 +74,15 @@ const Login: React.FC = () => {
     startLoading();
     try {
       const response = await api.post('/api/auth/login', formData);
-      const data = response.data;
-
-      // --- CRITICAL FIX START ---
-      // 1. Log the data to ensure we are seeing what the backend sends
-      console.log("Login Success Data:", data);
-
-      // 2. Extract the token safely
-      const authToken = data.token || data.accessToken;
-
-      // 3. Save to LocalStorage so Axios can find it
-      if (authToken) {
-          localStorage.setItem('token', authToken); // <--- REQUIRED for Axios Interceptor
-      } else {
-          console.error("Login succeeded but no token returned:", data);
-          throw new Error("Authentication token missing from server response.");
-      }
-      // --- CRITICAL FIX END ---
-
-      localStorage.setItem('email', data.email);
-      localStorage.setItem('role', data.role);
-      
       setMessage('Welcome back! Redirecting...');
-      
-      setTimeout(() => {
-        const userRole = data.role?.toUpperCase();
-        if (userRole === 'TEACHER') navigate('/dashboard/teacher');
-        else if (userRole === 'STUDENT') navigate('/dashboard/student');
-        else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-        else navigate('/');
-      }, 800);
-
+      handleAuthSuccess(response.data);
     } catch (error: any) {
-      console.error("Login Error:", error);
-      setMessage(error.response?.data || 'Invalid email or password.');
+      if (error.response && error.response.data) {
+        // Handle "Use Google Login" error from backend
+        setMessage(typeof error.response.data === 'string' ? error.response.data : 'Invalid email or password.');
+      } else {
+        setMessage('Login failed. Please check your connection.');
+      }
     } finally {
       stopLoading();
     }
@@ -118,8 +96,11 @@ const Login: React.FC = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#1a1b1d' }}>Welcome back</Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>Please enter your details to sign in.</Typography>
+            
             <Button fullWidth variant="outlined" onClick={() => googleLogin()} startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} sx={{ py: 1.5, mb: 3, color: '#3c4043', bgcolor: '#fff', borderColor: '#dadce0', textTransform: 'none', fontWeight: 500, borderRadius: '8px' }}>Sign in with Google</Button>
+            
             <Divider sx={{ mb: 3 }}><Typography variant="caption" color="text.secondary">OR WITH EMAIL</Typography></Divider>
+            
             <Box component="form" onSubmit={handleSubmit}>
               {message && (
                 <Box sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: message.includes('Welcome') || message.includes('Successful') ? 'success.light' : 'error.light', color: 'white' }}>

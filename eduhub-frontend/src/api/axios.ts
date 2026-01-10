@@ -1,20 +1,18 @@
 import axios from 'axios';
 
 // Get the backend URL from environment variables or default to local
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export const api = axios.create({
     baseURL: BASE_URL,
-    // CRITICAL: This allows the browser to send cookies (Session ID) 
-    // to a different domain (e.g., from masomosoko.co.ke to api.masomosoko.co.ke)
-    withCredentials: true, 
+    // Set to false for JWT (Bearer token) based authentication to avoid CORS issues
+    withCredentials: false, 
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
 // Request Interceptor: Adds the Bearer token if it exists in localStorage.
-// This acts as a backup authentication method if cookies fail or for specific endpoints.
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -28,19 +26,32 @@ api.interceptors.request.use(
     }
 );
 
-// Optional: Response Interceptor to handle session expiration globally
+// Response Interceptor: Handles Session Expiration
 api.interceptors.response.use(
     (response) => {
         return response;
     },
     (error) => {
-        // If the server returns 401 (Unauthorized), it usually means the session/token expired
+        // CASE 1: 401 Unauthorized (Token Expired or Invalid)
+        // We SHOULD logout here
         if (error.response && error.response.status === 401) {
-            console.warn("Session expired or unauthorized.");
+            console.warn('Session expired (401). Logging out...');
+            localStorage.clear();
+            sessionStorage.clear();
             
-             localStorage.clear();
-             window.location.href = '/login'; 
+            // Only redirect if not already on auth pages
+            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+                window.location.href = '/login';
+            }
         }
+
+        // CASE 2: 403 Forbidden (Valid Token, but Permission Denied)
+        // We SHOULD NOT logout here. It just means the user can't touch that specific button/page.
+        if (error.response && error.response.status === 403) {
+            console.warn('Access Denied (403). Permissions issue.');
+            // Do NOT clear localStorage.
+        }
+
         return Promise.reject(error);
     }
 );

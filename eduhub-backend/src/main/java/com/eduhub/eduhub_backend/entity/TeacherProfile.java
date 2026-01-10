@@ -16,16 +16,17 @@ public class TeacherProfile {
 
     private String bio;
 
-    @ElementCollection
+    // FIX: fetch = FetchType.EAGER ensures these lists are loaded from the DB 
+    // immediately. This stops the "no Session" error on the dashboard.
+    @ElementCollection(fetch = FetchType.EAGER)
     private List<String> subjects;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     private List<String> grades;
 
     private String paymentNumber;
     private String profilePicPath;
 
-    // --- NEW WALLET FIELD ---
     private Double accountBalance = 0.0;
 
     // Zoom Integration
