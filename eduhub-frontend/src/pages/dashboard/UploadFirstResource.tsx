@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     Box, Typography, Paper, TextField, Button, Grid, MenuItem, InputAdornment, 
-    Stack, IconButton, Alert, Snackbar, CircularProgress 
+    Stack, IconButton, Alert, Snackbar, CircularProgress, ListSubheader
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
@@ -15,7 +15,7 @@ const UploadFirstResource = () => {
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', type: 'success' as 'success'|'error' });
 
     const [formData, setFormData] = useState({
-        title: '', description: '', price: '', subject: '', grade: '', curriculum: '',
+        title: '', description: '', price: '', subject: '', grade: '', curriculum: 'CBC',
         thumbnailFile: null as File | null,
         resourceFile: null as File | null
     });
@@ -49,7 +49,6 @@ const UploadFirstResource = () => {
         if (formData.thumbnailFile) data.append('thumbnail', formData.thumbnailFile);
 
         try {
-            // FIXED: Using relative path via axios instance
             await api.post('/api/teacher/resources', data, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -77,28 +76,67 @@ const UploadFirstResource = () => {
                             <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Resource Details</Typography>
                             <Grid container spacing={3}>
                                 <Grid item xs={12}>
-                                    <TextField label="Title" name="title" fullWidth value={formData.title} onChange={handleChange} placeholder="e.g. Form 4 History Notes" />
+                                    <TextField label="Title" name="title" fullWidth value={formData.title} onChange={handleChange} placeholder="e.g. Grade 9 Integrated Science Project" />
                                 </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField select label="Subject" name="subject" fullWidth value={formData.subject} onChange={handleChange}>
-                                        {['Math', 'English', 'Science', 'History'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                                    </TextField>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <TextField select label="Grade" name="grade" fullWidth value={formData.grade} onChange={handleChange}>
-                                        {['Form 1', 'Form 2', 'Form 3', 'Form 4'].map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
-                                    </TextField>
-                                </Grid>
+                                
                                 <Grid item xs={12} md={6}>
                                     <TextField select label="Curriculum" name="curriculum" fullWidth value={formData.curriculum} onChange={handleChange}>
-                                        {['KCSE', 'CBC', 'IGCSE'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                                        <MenuItem value="CBC">CBC (Competency Based)</MenuItem>
+                                        <MenuItem value="8-4-4">8-4-4 / KCSE (Legacy)</MenuItem>
+                                        <MenuItem value="IGCSE">IGCSE</MenuItem>
                                     </TextField>
                                 </Grid>
+
+                                <Grid item xs={12} md={6}>
+                                    <TextField select label="Grade / Form" name="grade" fullWidth value={formData.grade} onChange={handleChange}>
+                                        <ListSubheader>Junior School</ListSubheader>
+                                        <MenuItem value="Grade 7">Grade 7</MenuItem>
+                                        <MenuItem value="Grade 8">Grade 8</MenuItem>
+                                        <MenuItem value="Grade 9">Grade 9</MenuItem>
+                                        <ListSubheader>Senior School</ListSubheader>
+                                        <MenuItem value="Grade 10">Grade 10</MenuItem>
+                                        <MenuItem value="Grade 11">Grade 11</MenuItem>
+                                        <MenuItem value="Grade 12">Grade 12</MenuItem>
+                                        <ListSubheader>Legacy System</ListSubheader>
+                                        <MenuItem value="Form 1">Form 1</MenuItem>
+                                        <MenuItem value="Form 2">Form 2</MenuItem>
+                                        <MenuItem value="Form 3">Form 3</MenuItem>
+                                        <MenuItem value="Form 4">Form 4</MenuItem>
+                                    </TextField>
+                                </Grid>
+
+                                <Grid item xs={12} md={12}>
+                                    <TextField select label="Subject / Learning Area" name="subject" fullWidth value={formData.subject} onChange={handleChange}>
+                                        <ListSubheader>Core Subjects</ListSubheader>
+                                        <MenuItem value="Mathematics">Mathematics</MenuItem>
+                                        <MenuItem value="English">English</MenuItem>
+                                        <MenuItem value="Kiswahili">Kiswahili</MenuItem>
+                                        
+                                        <ListSubheader>Junior School</ListSubheader>
+                                        <MenuItem value="Integrated Science">Integrated Science (Bio/Chem/Phys)</MenuItem>
+                                        <MenuItem value="Social Studies">Social Studies (Hist/Geo/Cit)</MenuItem>
+                                        <MenuItem value="Pre-Technical Studies">Pre-Technical Studies</MenuItem>
+                                        <MenuItem value="Agriculture">Agriculture & Nutrition</MenuItem>
+                                        <MenuItem value="Creative Arts">Creative Arts & Sports</MenuItem>
+                                        
+                                        <ListSubheader>Senior School - STEM</ListSubheader>
+                                        <MenuItem value="Biology">Biology</MenuItem>
+                                        <MenuItem value="Chemistry">Chemistry</MenuItem>
+                                        <MenuItem value="Physics">Physics</MenuItem>
+                                        <MenuItem value="Computer Studies">Computer Studies</MenuItem>
+                                        
+                                        <ListSubheader>Senior School - Humanities</ListSubheader>
+                                        <MenuItem value="History">History & Citizenship</MenuItem>
+                                        <MenuItem value="Geography">Geography</MenuItem>
+                                        <MenuItem value="Business Studies">Business Studies</MenuItem>
+                                    </TextField>
+                                </Grid>
+                                
                                 <Grid item xs={12} md={6}>
                                     <TextField label="Price (KES)" name="price" type="number" fullWidth value={formData.price} onChange={handleChange} InputProps={{ startAdornment: <InputAdornment position="start">KES</InputAdornment> }} placeholder="0 for Free" />
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <TextField label="Description" name="description" multiline rows={4} fullWidth value={formData.description} onChange={handleChange} />
+                                    <TextField label="Description" name="description" multiline rows={4} fullWidth value={formData.description} onChange={handleChange} placeholder="Describe the resource contents..." />
                                 </Grid>
                             </Grid>
                         </Paper>
@@ -114,7 +152,7 @@ const UploadFirstResource = () => {
                                         <CloudUploadIcon color="action" />
                                         <Typography variant="caption">{formData.resourceFile ? formData.resourceFile.name : "Upload Document"}</Typography>
                                     </Stack>
-                                    <input type="file" hidden accept=".pdf,.doc,.docx" onChange={(e) => handleFile(e, 'resourceFile')} />
+                                    <input type="file" hidden accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={(e) => handleFile(e, 'resourceFile')} />
                                 </Button>
 
                                 <Button variant="outlined" component="label" fullWidth sx={{ height: 100, borderStyle: 'dashed' }}>

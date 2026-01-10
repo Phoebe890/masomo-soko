@@ -13,13 +13,36 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/api/axios';
 
-const CATEGORIES = ['Exams', 'Notes', 'Schemes of Work', 'Revision Materials'];
-const LEVELS = ['Junior Secondary', 'Senior Secondary', 'KCPE', 'KCSE'];
-const CLASSES = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Grade 7', 'Grade 8'];
-const SUBJECTS = [
-  'Mathematics', 'English', 'Kiswahili', 'Chemistry', 'Physics', 'Biology', 
-  'History', 'Geography', 'CRE', 'Business', 'ICT', 'Art', 'Music'
+// UPDATED: Constants for CBC Curriculum
+const CATEGORIES = ['Exams & Assessments', 'Notes', 'Schemes of Work', 'Project Guides', 'Revision Materials', 'CBA Tools'];
+
+const LEVELS = [
+  'Junior School (Gr 7-9)', 
+  'Senior School (Gr 10-12)', 
+  'Primary (Gr 1-6)', 
+  'KCSE / 8-4-4 (Legacy)'
 ];
+
+const CLASSES = [
+  'Grade 7', 'Grade 8', 'Grade 9', // Junior
+  'Grade 10', 'Grade 11', 'Grade 12', // Senior
+  'Form 1', 'Form 2', 'Form 3', 'Form 4' // Legacy
+];
+
+const SUBJECTS = [
+  // Common
+  'Mathematics', 'English', 'Kiswahili', 'Religious Education',
+  // Junior School Specific
+  'Integrated Science', 'Social Studies', 'Pre-Technical Studies', 
+  'Agriculture & Nutrition', 'Creative Arts & Sports',
+  // Senior School - STEM Pathway
+  'Biology', 'Chemistry', 'Physics', 'Computer Studies', 'Agriculture', 'Home Science',
+  // Senior School - Social Sciences Pathway
+  'History & Citizenship', 'Geography', 'Business Studies', 'Economics',
+  // Senior School - Arts & Sports
+  'Visual Arts', 'Performing Arts', 'Music', 'Sports Science'
+];
+
 const TERMS = ['Term 1', 'Term 2', 'Term 3'];
 
 const TEXT_DARK = '#0f172a';
@@ -159,7 +182,7 @@ const BrowseResources = () => {
       <FilterSection title="Category" value={category} onChange={setCategory} options={CATEGORIES} />
       <FilterSection title="Subject" value={subject} onChange={setSubject} options={SUBJECTS} />
       <FilterSection title="Level" value={level} onChange={setLevel} options={LEVELS} />
-      <FilterSection title="Class / Form" value={classForm} onChange={setClassForm} options={CLASSES} />
+      <FilterSection title="Grade / Class" value={classForm} onChange={setClassForm} options={CLASSES} />
       <FilterSection title="Term" value={term} onChange={setTerm} options={TERMS} />
     </Box>
   );
@@ -172,7 +195,7 @@ const BrowseResources = () => {
            <Grid item xs={12} md={9}>
              <TextField
                 fullWidth
-                placeholder="Search for anything (e.g. Form 4 Math Notes)"
+                placeholder="Search resources (e.g. Grade 9 Integrated Science)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 InputProps={{
@@ -250,7 +273,6 @@ const BrowseResources = () => {
                         sorted.map((res: any, idx: number) => {
                             const displayImage = res.coverImageUrl || res.previewImageUrl || res.thumbnail;
                             
-                            // UPDATED: Logic to use real rating or 0
                             const ratingValue = res.averageRating || res.rating || 0;
                             const reviewCount = res.reviewCount || res.numOfReviews || 0;
 
@@ -284,7 +306,6 @@ const BrowseResources = () => {
                                             {res.teacherName || 'Instructor'}
                                         </Typography>
                                         
-                                        {/* UPDATED: Rating Section with Real Data */}
                                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                                             <Typography variant="body2" fontWeight={700} sx={{ color: '#b4690e', mr: 0.5 }}>
                                                 {ratingValue > 0 ? ratingValue.toFixed(1) : "0.0"}

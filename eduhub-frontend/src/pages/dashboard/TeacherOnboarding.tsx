@@ -15,32 +15,31 @@ import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SchoolIcon from '@mui/icons-material/School';
-import CodeIcon from '@mui/icons-material/Code';
-import LanguageIcon from '@mui/icons-material/Language';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
-import BrushIcon from '@mui/icons-material/Brush';
-import ScienceIcon from '@mui/icons-material/Science';
+import ScienceIcon from '@mui/icons-material/Science'; // STEM
+import Diversity3Icon from '@mui/icons-material/Diversity3'; // Social Sciences
+import SportsCricketIcon from '@mui/icons-material/SportsCricket'; // Sports
+import PaletteIcon from '@mui/icons-material/Palette'; // Arts
+import MenuBookIcon from '@mui/icons-material/MenuBook'; // Junior School
 import AddIcon from '@mui/icons-material/Add';
 
 const MPESA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/M-PESA_LOGO-01.svg/1200px-M-PESA_LOGO-01.svg.png";
 
+// UPDATED: Categories based on CBC Pathways
 const categories = [
-  { id: 'Mathematics', label: 'Maths & Logic', icon: <SchoolIcon fontSize="inherit" /> },
-  { id: 'Computer Science', label: 'Development', icon: <CodeIcon fontSize="inherit" /> },
-  { id: 'Business', label: 'Business', icon: <BusinessCenterIcon fontSize="inherit" /> },
-  { id: 'Languages', label: 'Languages', icon: <LanguageIcon fontSize="inherit" /> },
-  { id: 'Art', label: 'Art & Design', icon: <BrushIcon fontSize="inherit" /> },
-  { id: 'Science', label: 'Science', icon: <ScienceIcon fontSize="inherit" /> },
+  { id: 'Junior School', label: 'Junior School (Gr 7-9)', icon: <MenuBookIcon fontSize="inherit" /> },
+  { id: 'STEM Pathway', label: 'STEM Pathway', icon: <ScienceIcon fontSize="inherit" /> },
+  { id: 'Social Sciences', label: 'Social Sciences', icon: <Diversity3Icon fontSize="inherit" /> },
+  { id: 'Arts & Sports', label: 'Arts & Sports', icon: <PaletteIcon fontSize="inherit" /> },
+  { id: 'KCSE / Legacy', label: 'KCSE / 8-4-4', icon: <MenuBookIcon fontSize="inherit" /> },
 ];
 
+// UPDATED: Skill suggestions based on CBC subjects
 const skillSuggestions: Record<string, string[]> = {
-  'Mathematics': ['Algebra', 'Calculus', 'Statistics', 'Geometry'],
-  'Computer Science': ['Python', 'JavaScript', 'React', 'Java', 'Web Design'],
-  'Business': ['Accounting', 'Marketing', 'Economics', 'Excel'],
-  'Languages': ['English', 'Swahili', 'French', 'Public Speaking'],
-  'Art': ['Drawing', 'Graphic Design', 'Painting', 'Music Theory'],
-  'Science': ['Physics', 'Chemistry', 'Biology']
+  'Junior School': ['Integrated Science', 'Pre-Technical Studies', 'Social Studies', 'Agriculture', 'Mathematics'],
+  'STEM Pathway': ['Physics', 'Chemistry', 'Biology', 'Computer Studies', 'Mathematics'],
+  'Social Sciences': ['History', 'Geography', 'Business Studies', 'Citizenship', 'Religious Education'],
+  'Arts & Sports': ['Visual Arts', 'Music', 'Performing Arts', 'Sports Science', 'Physical Education'],
+  'KCSE / Legacy': ['Math', 'English', 'Kiswahili', 'Business', 'History']
 };
 
 const TeacherOnboarding: React.FC = () => {
@@ -92,8 +91,8 @@ const TeacherOnboarding: React.FC = () => {
       if (!formData.bio.trim() || formData.bio.length < 50) { newErrors.bio = "Bio must be at least 50 characters."; isValid = false; } else newErrors.bio = "";
     }
     if (currentStep === 2) {
-      if (!formData.category) { newErrors.category = "Select a category."; isValid = false; } else newErrors.category = "";
-      if (formData.skills.length === 0) { newErrors.skills = "Add at least one skill."; isValid = false; } else newErrors.skills = "";
+      if (!formData.category) { newErrors.category = "Select a specialization."; isValid = false; } else newErrors.category = "";
+      if (formData.skills.length === 0) { newErrors.skills = "Add at least one subject/skill."; isValid = false; } else newErrors.skills = "";
     }
     if (currentStep === 3) {
       const phoneRegex = /^(7|1)[0-9]{8}$/;
@@ -133,7 +132,6 @@ const TeacherOnboarding: React.FC = () => {
         if (!validateStep(3)) return;
         submitProfileToBackend();
     } else if (step === 4) {
-      // FINAL REDIRECT
       navigate('/dashboard/teacher');
     } else {
       setStep(s => s + 1);
@@ -157,7 +155,6 @@ const TeacherOnboarding: React.FC = () => {
     setSkillInput('');
   };
 
-  // --- RENDER STEPS ---
   const renderIdentity = () => (
     <Box>
       <Typography variant="h4" fontWeight={800} gutterBottom>Build your instructor profile</Typography>
@@ -174,7 +171,7 @@ const TeacherOnboarding: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Stack spacing={3}>
             <TextField label="Display Name" fullWidth required value={formData.displayName} error={!!errors.displayName} helperText={errors.displayName} onChange={e => setFormData({...formData, displayName: e.target.value})} />
-            <TextField label="Headline" fullWidth required value={formData.headline} error={!!errors.headline} helperText={errors.headline} onChange={e => setFormData({...formData, headline: e.target.value})} />
+            <TextField label="Headline" fullWidth required value={formData.headline} error={!!errors.headline} helperText={errors.headline} onChange={e => setFormData({...formData, headline: e.target.value})} placeholder="e.g. Senior School Biology Teacher" />
             <TextField label="Bio" fullWidth multiline rows={5} required value={formData.bio} error={!!errors.bio} helperText={errors.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
           </Stack>
         </Grid>
@@ -184,7 +181,8 @@ const TeacherOnboarding: React.FC = () => {
 
   const renderExpertise = () => (
     <Box>
-      <Typography variant="h4" fontWeight={800} gutterBottom>What are you teaching?</Typography>
+      <Typography variant="h4" fontWeight={800} gutterBottom>What is your Specialization?</Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>Choose your main pathway or level.</Typography>
       {errors.category && <Alert severity="error" sx={{ mb: 2 }}>{errors.category}</Alert>}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {categories.map((cat) => (
@@ -197,7 +195,15 @@ const TeacherOnboarding: React.FC = () => {
           </Grid>
         ))}
       </Grid>
-      <TextField fullWidth placeholder="Type a skill..." value={skillInput} onChange={e => setSkillInput(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end"><IconButton onClick={() => handleAddSkill(skillInput)}><AddIcon /></IconButton></InputAdornment> }} />
+      
+      <Typography fontWeight={700} sx={{ mb: 1 }}>Specific Subjects</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+          {formData.category && skillSuggestions[formData.category]?.map(s => (
+              <Chip key={s} label={s} onClick={() => handleAddSkill(s)} variant="outlined" sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f0f9ff' } }} />
+          ))}
+      </Box>
+
+      <TextField fullWidth placeholder="Type a subject..." value={skillInput} onChange={e => setSkillInput(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end"><IconButton onClick={() => handleAddSkill(skillInput)}><AddIcon /></IconButton></InputAdornment> }} />
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>{formData.skills.map(s => <Chip key={s} label={s} onDelete={() => setFormData({...formData, skills: formData.skills.filter(i => i !== s)})} />)}</Box>
     </Box>
   );
@@ -215,7 +221,6 @@ const TeacherOnboarding: React.FC = () => {
   const renderSuccess = () => (
     <Box sx={{ textAlign: 'center', py: 8 }}>
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 10 }}>
-            {/* SAFARICOM STYLE GREEN CHECKMARK */}
             <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="50" cy="50" r="45" fill="#43B02A"/>
                 <path d="M30 50L45 65L70 35" stroke="white" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>

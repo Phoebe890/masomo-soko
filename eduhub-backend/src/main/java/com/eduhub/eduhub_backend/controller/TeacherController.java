@@ -48,7 +48,86 @@ public class TeacherController {
                 });
     }
 
-    // --- 1. DASHBOARD (Includes Notifications) ---
+    // =========================================================================
+    //  PUBLIC ENDPOINTS (For Homepage/Browsing)
+    // =========================================================================
+
+    // 1. Get All Resources (Public)
+    @GetMapping("/resources")
+    public ResponseEntity<?> getAllResources() {
+        try {
+            List<TeacherResource> resources = teacherResourceRepository.findAll();
+            
+            // Map to DTOs
+            List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
+                // Determine Average Rating
+                List<Review> reviews = reviewRepository.findByResource(res);
+                return new TeacherResourceDTO(res, reviews); 
+            }).collect(Collectors.toList());
+
+            // Return { resources: [...] } structure expected by frontend
+            Map<String, Object> response = new HashMap<>();
+            response.put("resources", resourceDtos);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching resources");
+        }
+    }
+
+    // 2. Get Single Resource Detail (Public - Fixes your 403 Error)
+    @GetMapping("/resources/{id}")
+    public ResponseEntity<?> getResourceById(@PathVariable Long id) {
+        try {
+            TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
+            
+            if (resource == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Resource not found");
+            }
+
+            List<Review> reviews = reviewRepository.findByResource(resource);
+            TeacherResourceDTO dto = new TeacherResourceDTO(resource, reviews);
+
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching resource details");
+        }
+    }
+
+    // 3. Get Top Contributors (Public)
+    @GetMapping("/top-contributors")
+    public ResponseEntity<?> getTopContributors() {
+        try {
+            List<TeacherProfile> profiles = teacherProfileRepository.findAll();
+            
+            List<Map<String, Object>> contributors = profiles.stream().map(profile -> {
+                Map<String, Object> map = new HashMap<>();
+                String name = (profile.getUser() != null) ? profile.getUser().getName() : "Instructor";
+                int resourceCount = (profile.getUser() != null) 
+                    ? teacherResourceRepository.findByUserId(profile.getUser().getId()).size() 
+                    : 0;
+
+                map.put("name", name);
+                map.put("profilePicPath", profile.getProfilePicPath());
+                map.put("subjects", profile.getSubjects());
+                map.put("resourceCount", resourceCount);
+                return map;
+            })
+            .sorted((a, b) -> (int)b.get("resourceCount") - (int)a.get("resourceCount"))
+            .limit(4)
+            .collect(Collectors.toList());
+
+            return ResponseEntity.ok(contributors);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching contributors");
+        }
+    }
+
+    // =========================================================================
+    //  PROTECTED TEACHER ENDPOINTS
+    // =========================================================================
+
+    // --- DASHBOARD ---
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -56,11 +135,9 @@ public class TeacherController {
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
             TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(null);
             
-            // A. Fetch Resources
             List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
             if (resources == null) resources = new ArrayList<>();
 
-            // B. Calculate Stats (Sales & Balance)
             long totalSales = 0;
             Double currentBalance = 0.0;
 
@@ -75,22 +152,19 @@ public class TeacherController {
                 } catch (Exception e) { e.printStackTrace(); }
             }
 
-            // C. Convert to DTOs (including reviews)
             List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
                 List<Review> reviews = reviewRepository.findByResource(res);
                 return new TeacherResourceDTO(res, reviews);
             }).collect(Collectors.toList());
 
-            // D. CRITICAL: Fetch Notifications for this teacher
             List<Notification> notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(user);
 
-            // E. Build Response
             Map<String, Object> response = new HashMap<>();
             response.put("resources", resourceDtos);
             response.put("totalSales", totalSales);
             response.put("currentBalance", currentBalance);
             response.put("profile", profile);
-            response.put("notifications", notifications); // <--- Sent to frontend
+            response.put("notifications", notifications);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -98,7 +172,7 @@ public class TeacherController {
         }
     }
 
-    // --- 2. ONBOARDING ---
+    // --- ONBOARDING ---
     @PostMapping("/onboarding")
     public ResponseEntity<?> onboarding(
             @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
@@ -136,12 +210,11 @@ public class TeacherController {
             teacherProfileRepository.save(profile);
             return ResponseEntity.ok("Profile updated");
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Failed: " + e.getMessage());
         }
     }
 
-    // --- 3. GET SETTINGS ---
+    // --- GET SETTINGS ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -175,7 +248,7 @@ public class TeacherController {
         }
     }
 
-    // --- 4. UPLOAD RESOURCE ---
+    // --- UPLOAD RESOURCE ---
     @PostMapping("/resources")
     public ResponseEntity<?> uploadResource(
             @RequestParam("file") MultipartFile file,
@@ -217,12 +290,11 @@ public class TeacherController {
             teacherResourceRepository.save(resource);
             return ResponseEntity.ok("Uploaded successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
-    // --- 5. UPDATE RESOURCE (Using POST for Stability) ---
+    // --- UPDATE RESOURCE ---
     @PostMapping("/resources/update/{id}")
     public ResponseEntity<?> updateResource(
             @PathVariable Long id,
@@ -243,7 +315,6 @@ public class TeacherController {
 
             if (resource == null) return ResponseEntity.status(404).body("Resource not found");
             
-            // Check ownership
             if (!resource.getUser().getId().equals(user.getId())) {
                 return ResponseEntity.status(403).body("Not authorized");
             }
@@ -269,12 +340,11 @@ public class TeacherController {
             teacherResourceRepository.save(resource);
             return ResponseEntity.ok("Updated successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Error updating resource: " + e.getMessage());
         }
     }
 
-    // --- 6. DELETE RESOURCE ---
+    // --- DELETE RESOURCE ---
     @DeleteMapping("/resources/{id}")
     public ResponseEntity<?> deleteResource(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -294,7 +364,7 @@ public class TeacherController {
         }
     }
     
-    // --- 7. ANALYTICS ---
+    // --- ANALYTICS ---
     @GetMapping("/analytics")
     public ResponseEntity<?> getTeacherAnalytics(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -313,23 +383,20 @@ public class TeacherController {
 
         return ResponseEntity.ok(Map.of("salesLast30Days", salesLast30Days, "totalSales", purchases.size()));
     }
-     // --- NEW ENDPOINT: GET NOTIFICATIONS ONLY ---
+
+    // --- NOTIFICATIONS ---
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            
-            // Fetch notifications
             List<Notification> notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(user);
-            
             return ResponseEntity.ok(notifications);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error fetching notifications");
         }
     }
     
-    // --- NEW ENDPOINT: MARK NOTIFICATION AS READ ---
     @PostMapping("/notifications/{id}/read")
     public ResponseEntity<?> markAsRead(@PathVariable Long id) {
         try {
@@ -344,7 +411,7 @@ public class TeacherController {
         }
     }
 
-    // --- 8. PAYOUT SETUP ---
+    // --- PAYOUT SETUP ---
     @PostMapping("/payout")
     public ResponseEntity<?> setupPayout(
             @AuthenticationPrincipal UserDetails userDetails,

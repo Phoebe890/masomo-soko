@@ -7,17 +7,22 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
 import { api } from '@/api/axios';
+import { alpha } from '@mui/material/styles';
 
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import FunctionsIcon from '@mui/icons-material/Functions';
 import ScienceIcon from '@mui/icons-material/Science';
-import LanguageIcon from '@mui/icons-material/Language';
-import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
+import Diversity3Icon from '@mui/icons-material/Diversity3';
+import SportsCricketIcon from '@mui/icons-material/SportsCricket';
+import ComputerIcon from '@mui/icons-material/Computer';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'; 
+import PersonIcon from '@mui/icons-material/Person';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import AgricultureIcon from '@mui/icons-material/Agriculture';
+import EngineeringIcon from '@mui/icons-material/Engineering';
 
 // Assets
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg'; 
@@ -26,7 +31,8 @@ import heroImage2 from '../assets/pexels-kampus-5940829.jpg';
 // --- CONSTANTS ---
 const TEXT_DARK = '#0f172a'; 
 const TEXT_MUTED = '#475569';
-const PRIMARY_BLUE = '#2563eb'; 
+const PRIMARY_BLUE = '#2F6BFF'; 
+const SAFARICOM_GREEN = '#43B02A'; 
 const ACCENT_ORANGE = '#ea580c'; 
 
 const getRandomColor = (id: number) => {
@@ -34,16 +40,75 @@ const getRandomColor = (id: number) => {
   return colors[id % colors.length];
 };
 
+// --- DATA: CATEGORIES WITH GRADIENTS ---
 const CATEGORIES = [
-  { label: 'KCSE Revision', id: 'kcse', icon: <SchoolIcon /> },
-  { label: 'KCPE Mocks', id: 'kcpe', icon: <SchoolIcon /> },
-  { label: 'Junior Secondary', id: 'junior', icon: <MenuBookIcon /> },
-  { label: 'Form 1-4 Notes', id: 'highschool', icon: <MenuBookIcon /> },
-  { label: 'Mathematics', id: 'math', icon: <FunctionsIcon /> },
-  { label: 'Sciences', id: 'science', icon: <ScienceIcon /> },
-  { label: 'Languages', id: 'languages', icon: <LanguageIcon /> },
-  { label: 'Humanities', id: 'humanities', icon: <HistoryEduIcon /> },
+  { 
+    label: 'Junior School', 
+    sub: 'Grades 7-9', 
+    id: 'junior-school', 
+    icon: <MenuBookIcon />, 
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' // Deep Purple
+  }, 
+  { 
+    label: 'Senior School', 
+    sub: 'Grades 10-12', 
+    id: 'senior-school', 
+    icon: <SchoolIcon />, 
+    gradient: 'linear-gradient(135deg, #6B73FF 0%, #000DFF 100%)' // Royal Blue
+  },
+  { 
+    label: 'STEM Pathway', 
+    sub: 'Sci, Tech, Eng, Math', 
+    id: 'stem', 
+    icon: <ScienceIcon />, 
+    gradient: 'linear-gradient(135deg, #2AF598 0%, #009EFD 100%)' // Cyan-Blue
+  },
+  { 
+    label: 'Social Sciences', 
+    sub: 'Humanities & Biz', 
+    id: 'social-sciences', 
+    icon: <Diversity3Icon />, 
+    gradient: 'linear-gradient(135deg, #FDBB2D 0%, #3A1C71 100%)' // Gold-Purple
+  },
+  { 
+    label: 'Arts & Sports', 
+    sub: 'Creative & Physical', 
+    id: 'arts-sports', 
+    icon: <SportsCricketIcon />, 
+    gradient: 'linear-gradient(135deg, #FCCF31 0%, #F55555 100%)' // Orange-Red
+  },
+  { 
+    label: 'Pre-Technical', 
+    sub: 'Technical Skills', 
+    id: 'pre-tech', 
+    icon: <ComputerIcon />, 
+    gradient: 'linear-gradient(135deg, #CE9FFC 0%, #7367F0 100%)' // Lavender
+  },
+  { 
+    label: 'Agriculture', 
+    sub: 'Farming & Bio', 
+    id: 'agriculture', 
+    icon: <AgricultureIcon />, 
+    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' // Emerald
+  },
+  { 
+    label: 'KCSE Revision', 
+    sub: 'Exam Prep', 
+    id: 'kcse', 
+    icon: <EngineeringIcon />, 
+    gradient: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%)' // Pink Pastel
+  },
 ];
+
+// --- COMPONENT: ABSTRACT BACKGROUND SVG ---
+// This creates the "EdTech Shape" behind the icons
+const CardBackground = () => (
+    <Box sx={{ position: 'absolute', right: -20, bottom: -40, opacity: 0.2, transform: 'rotate(-15deg)' }}>
+        <svg width="150" height="150" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M44.7,-76.4C58.9,-69.2,71.8,-59.1,81.6,-46.6C91.4,-34.1,98.1,-19.2,95.8,-4.9C93.5,9.3,82.1,22.9,71.1,34.3C60,45.7,49.3,54.9,37.6,63.5C25.9,72.1,13.2,80.1,0.6,79.1C-12,78.1,-23.9,68.1,-35.3,59.3C-46.7,50.5,-57.6,42.9,-66.4,32.6C-75.2,22.3,-81.9,9.3,-81.7,-3.5C-81.5,-16.3,-74.4,-28.9,-64.8,-39.3C-55.2,-49.7,-43.1,-57.9,-30.9,-66.1C-18.7,-74.3,-6.4,-82.5,7.1,-94.8L44.7,-76.4Z" transform="translate(100 100)" />
+        </svg>
+    </Box>
+);
 
 const TeacherIllustration = () => (
   <Box sx={{ position: 'relative', width: 280, height: 200 }}>
@@ -76,52 +141,55 @@ const Home: React.FC = () => {
     {
       type: 'student',
       image: heroImage1,
-      title: <>Access Kenya's Best <br/><span style={{ color: '#60a5fa' }}>Education Resources</span></>,
-      subtitle: "Download high-quality Notes, Exams, and Revision Guides instantly. Pay securely via M-Pesa.",
+      title: <>Master the <br/><span style={{ color: '#60a5fa' }}>CBC Curriculum</span></>,
+      subtitle: "Junior School (Grades 7–9) & Senior School (Grades 10–12). Download Notes, Projects, and KJSEA/KCSE Exams instantly.",
     },
     {
       type: 'teacher',
       image: heroImage2,
-      title: <>Turn Your Knowledge <br/><span style={{ color: '#60a5fa' }}>Into Income</span></>,
-      subtitle: "Are you a teacher? Upload your notes and exams to Masomo Soko and earn money every time a student downloads them.",
+      title: <>Turn Your Knowledge <br/><span style={{ color: ACCENT_ORANGE }}>Into Income</span></>,
+      subtitle: "Upload resources for STEM, Social Sciences, and Arts Pathways. Earn money every time a student downloads.",
     }
   ];
 
   useEffect(() => {
-    // FIX: Set document title to remove "Vite + TS"
     document.title = "Masomo Soko - Kenya's Best Education Marketplace";
-
     const interval = setInterval(() => {
-      if (!isPaused) {
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-      }
+      if (!isPaused) setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 8000); 
     return () => clearInterval(interval);
   }, [slides.length, isPaused]);
 
   useEffect(() => {
     setLoading(true);
+
     api.get('/api/teacher/resources')
       .then(res => {
-        setResources(res.data.resources ? res.data.resources.slice(0, 8) : []);
+        let data = [];
+        if (Array.isArray(res.data)) data = res.data;
+        else if (res.data && Array.isArray(res.data.resources)) data = res.data.resources;
+        else if (res.data && Array.isArray(res.data.data)) data = res.data.data;
+        setResources(data.slice(0, 8));
         setLoading(false);
       })
       .catch(() => setLoading(false));
 
     api.get('/api/teacher/top-contributors')
-      .then(res => setContributors(res.data))
+      .then(res => {
+        let data = [];
+        if (Array.isArray(res.data)) data = res.data;
+        else if (res.data && Array.isArray(res.data.contributors)) data = res.data.contributors;
+        setContributors(data);
+      })
       .catch(() => {});
   }, []);
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (heroSearch.trim()) {
-      navigate(`/browse?search=${encodeURIComponent(heroSearch)}`);
-    }
+    if (heroSearch.trim()) navigate(`/browse?search=${encodeURIComponent(heroSearch)}`);
   };
 
   return (
-    // ADDED: overflowX: 'hidden' to fix mobile whitespace issue
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
       
      {/* --- HERO SECTION --- */}
@@ -174,7 +242,7 @@ const Home: React.FC = () => {
                             <Box component="form" onSubmit={handleHeroSearch} sx={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
                                 <TextField
                                     fullWidth
-                                    placeholder="Search for notes, exams... (e.g. Form 4 Math)"
+                                    placeholder="Search (e.g. Grade 9 Integrated Science)"
                                     value={heroSearch}
                                     onChange={(e) => setHeroSearch(e.target.value)}
                                     onFocus={() => setIsPaused(true)}
@@ -188,12 +256,17 @@ const Home: React.FC = () => {
                         ) : (
                             <Button 
                               component={RouterLink} 
-                              // UPDATED LINK: Now goes to Seller Landing Page
                               to="/seller" 
                               variant="contained" 
+                              color="secondary" 
                               size="large" 
                               endIcon={<ArrowForwardIcon />} 
-                              sx={{ borderRadius: '50px', height: '64px', px: 6, fontSize: '1.2rem', fontWeight: 700, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: '0 8px 25px rgba(0,0,0,0.3)', '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.02)' } }}
+                              sx={{ 
+                                borderRadius: '50px', height: '64px', px: 6, 
+                                fontSize: '1.2rem', fontWeight: 800, textTransform: 'none', 
+                                boxShadow: '0 8px 25px rgba(234, 88, 12, 0.4)',
+                                '&:hover': { transform: 'scale(1.02)' } 
+                              }}
                             >
                                 Start Selling Now
                             </Button>
@@ -213,58 +286,104 @@ const Home: React.FC = () => {
       {/* --- TRUST BAR --- */}
       <Box sx={{ bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', py: 4 }}>
         <Container maxWidth="xl">
-          {/* UPDATED: Reduced spacing on mobile to prevent overflow */}
           <Grid container justifyContent="center" alignItems="center" spacing={{ xs: 2, md: 8 }} sx={{ opacity: 0.8 }}>
-             <Grid item><Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>50K+ Resources</Typography></Grid>
+             <Grid item><Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>CBC Aligned</Typography></Grid>
              <Grid item>
                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" alt="M-PESA Verified" style={{ height: 40, marginRight: 12 }} loading="lazy" />
+                 <VerifiedIcon sx={{ mr: 1, color: SAFARICOM_GREEN }} />
+                 <Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>Verified Resources</Typography>
+               </Box>
+             </Grid>
+             <Grid item>
+               <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" alt="M-PESA" style={{ height: 35, marginRight: 12 }} loading="lazy" />
                  <Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>Secured Payments</Typography>
                </Box>
              </Grid>
-             <Grid item><Typography variant="h6" fontWeight={600} color={TEXT_MUTED}>Expert Content</Typography></Grid>
           </Grid>
         </Container>
       </Box>
 
-      {/* --- CATEGORIES SECTION --- */}
+      {/* --- MODERN BROWSE CURRICULUM SECTION --- */}
       <Container maxWidth="xl" sx={{ mt: 8, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 3 }}>
            <Box>
-              <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5, fontSize: '0.8rem' }}>BROWSE BY TOPIC</Typography>
-              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5 }}>Top Categories</Typography>
+              <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>PATHWAYS & LEVELS</Typography>
+              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5 }}>Browse Curriculum</Typography>
            </Box>
            <Button component={RouterLink} to="/browse" endIcon={<KeyboardArrowRightIcon />} sx={{ display: { xs: 'none', sm: 'flex' }, fontWeight: 700, textTransform: 'none' }}>View All</Button>
         </Box>
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {CATEGORIES.map((cat) => (
-            <Grid item xs={6} sm={4} md={3} key={cat.id}>
-              <Chip
+            <Grid item xs={12} sm={6} md={3} key={cat.id}>
+              {/* MODERN EDTECH CARD */}
+              <Card 
                 component={RouterLink}
                 to={`/browse?category=${cat.id}`}
-                label={cat.label}
-                clickable
-                icon={cat.icon}
-                variant="outlined"
                 sx={{ 
-                  width: '100%', justifyContent: 'flex-start', py: 3.5, px: 2, fontWeight: 600, fontSize: '1rem', color: TEXT_DARK, borderColor: '#E2E8F0', borderRadius: 2, transition: 'all 0.2s',
-                  '& .MuiChip-icon': { color: PRIMARY_BLUE, fontSize: 24 },
-                  '&:hover': { bgcolor: '#F1F5F9', borderColor: PRIMARY_BLUE, transform: 'translateY(-2px)' }
+                    textDecoration: 'none',
+                    borderRadius: 4, 
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: cat.gradient, // Use the Gradient
+                    color: 'white',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    height: 140, // Shorter, wider cards
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    px: 3,
+                    '&:hover': { 
+                        transform: 'translateY(-5px) scale(1.02)',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+                    }
                 }}
-              />
+              >
+                  {/* Abstract Background SVG */}
+                  <CardBackground />
+                  
+                  <Box sx={{ position: 'relative', zIndex: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                        {/* Glassmorphism Icon Bubble */}
+                        <Box sx={{ 
+                            bgcolor: 'rgba(255,255,255,0.2)', 
+                            backdropFilter: 'blur(10px)',
+                            width: 50, 
+                            height: 50, 
+                            borderRadius: 3, 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.3)'
+                        }}>
+                            {React.cloneElement(cat.icon as React.ReactElement, { sx: { color: 'white', fontSize: 28 } })}
+                        </Box>
+                        
+                        <Box>
+                            <Typography fontWeight={800} sx={{ fontSize: '1.1rem', lineHeight: 1.2 }}>
+                                {cat.label}
+                            </Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                                {cat.sub}
+                            </Typography>
+                        </Box>
+                    </Stack>
+                  </Box>
+              </Card>
             </Grid>
           ))}
         </Grid>
       </Container>
 
-      {/* --- FEATURED RESOURCES SECTION --- */}
+      {/* --- FEATURED RESOURCES --- */}
       <Box sx={{ bgcolor: '#f8fafc', py: 8 }}>
         <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 4 }}>
              <Box>
-                <Typography variant="overline" color="secondary" fontWeight={800} sx={{ letterSpacing: 1.5, fontSize: '0.8rem', color: ACCENT_ORANGE }}>FRESH UPLOADS</Typography>
+                <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>FRESH UPLOADS</Typography>
                 <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 0.5 }}>Featured Resources</Typography>
-                <Typography variant="body1" color={TEXT_MUTED} sx={{ mt: 1, maxWidth: 600 }}>High-quality materials vetted by our team to ensure you get the best grades.</Typography>
+                <Typography variant="body1" color={TEXT_MUTED} sx={{ mt: 1, maxWidth: 600 }}>Curriculum-approved materials for Junior and Senior School.</Typography>
              </Box>
              <Button component={RouterLink} to="/browse" variant="outlined" endIcon={<KeyboardArrowRightIcon />} sx={{ display: { xs: 'none', sm: 'flex' }, borderRadius: 50, fontWeight: 700, textTransform: 'none' }}>Explore All</Button>
           </Box>
@@ -277,22 +396,24 @@ const Home: React.FC = () => {
                  <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', py: 5 }}>
                     <SchoolIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                     <Typography color="text.secondary">No resources found right now. Check back later.</Typography>
+                    <Button component={RouterLink} to="/browse" sx={{ mt: 2 }}>Browse All</Button>
                  </Box>
               ) : (
                 resources.map((res: any, index: number) => {
                   const ratingValue = res.averageRating || 0;
                   const reviewCount = res.reviews ? res.reviews.length : 0;
                   const displayImage = res.coverImageUrl || res.previewImageUrl;
+                  const teacherInitial = res.teacherName ? res.teacherName[0] : 'T';
 
                   return (
-                    <Grid item xs={12} sm={6} md={3} key={res.id}>
+                    <Grid item xs={12} sm={6} md={3} key={res.id || res._id || index}>
                       <Card 
                         sx={{ 
                           height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 3, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0', bgcolor: 'white', cursor: 'pointer', transition: 'all 0.3s ease',
                           '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', '& .title': { color: PRIMARY_BLUE } } 
                         }}
                         component={RouterLink}
-                        to={`/resource/${res.id}`}
+                        to={`/resource/${res.id || res._id}`}
                         style={{ textDecoration: 'none' }}
                       >
                         <Box sx={{ position: 'relative', pt: '60%', borderBottom: '1px solid #f1f5f9', overflow: 'hidden' }}>
@@ -301,12 +422,27 @@ const Home: React.FC = () => {
                            ) : (
                                <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', bgcolor: getRandomColor(index), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><SchoolIcon sx={{ fontSize: 40, opacity: 0.5 }} /></Box>
                            )}
-                           <Chip label={res.price > 0 ? `KES ${res.price}` : "Free"} size="small" sx={{ position: 'absolute', bottom: 10, right: 10, bgcolor: 'white', color: TEXT_DARK, fontWeight: 800, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                           
+                           {/* SAFARICOM GREEN PRICE TAG */}
+                           <Chip 
+                            label={res.price > 0 ? `KES ${res.price}` : "Free"} 
+                            size="small" 
+                            sx={{ 
+                                position: 'absolute', bottom: 10, right: 10, 
+                                bgcolor: SAFARICOM_GREEN, 
+                                color: 'white',
+                                fontWeight: 800,
+                                borderRadius: 1.5,
+                                px: 0.5,
+                                height: 28,
+                                boxShadow: '0 4px 6px rgba(67, 176, 42, 0.3)' 
+                            }} 
+                           />
                         </Box>
                         <CardContent sx={{ p: 2, flexGrow: 1 }}>
                           <Typography className="title" variant="h6" fontWeight={700} sx={{ fontSize: '1rem', lineHeight: 1.4, mb: 1, color: TEXT_DARK, height: '2.8rem', overflow: 'hidden', transition: 'color 0.2s' }}>{res.title}</Typography>
                           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                              <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{res.teacherName?.[0] || 'T'}</Avatar>
+                              <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{teacherInitial}</Avatar>
                               <Typography variant="body2" sx={{ color: TEXT_MUTED, fontSize: '0.85rem' }}>{res.teacherName || 'Instructor'}</Typography>
                           </Stack>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -330,7 +466,7 @@ const Home: React.FC = () => {
            <Box sx={{ textAlign: 'center', mb: 8 }}>
              <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>EASY STEPS</Typography>
              <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: TEXT_DARK }}>Start learning in 3 minutes</Typography>
-             <Typography variant="h6" sx={{ color: TEXT_MUTED }} fontWeight={400}>Everything you need to excel in your exams is just a click away.</Typography>
+             <Typography variant="h6" sx={{ color: TEXT_MUTED }} fontWeight={400}>Everything you need to excel in your CBC assessment is just a click away.</Typography>
            </Box>
 
            <Grid container spacing={4}>
@@ -338,7 +474,7 @@ const Home: React.FC = () => {
                 <Box sx={{ p: 3, height: '100%', textAlign: 'center' }}>
                     <Box component="img" src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" sx={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 4, mb: 3, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }} />
                     <Typography variant="h5" fontWeight={700} gutterBottom>1. Search</Typography>
-                    <Typography color={TEXT_MUTED}>Browse our huge library of notes, exams, and revision materials.</Typography>
+                    <Typography color={TEXT_MUTED}>Find notes and exams for Grade 7, 8, 9 or Senior School pathways.</Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} md={4}>
@@ -370,12 +506,24 @@ const Home: React.FC = () => {
          <Container maxWidth="xl">
             <Grid container spacing={6} alignItems="center">
                 <Grid item xs={12} md={6}>
-                    <Typography variant="overline" sx={{ color: ACCENT_ORANGE, fontWeight: 700, letterSpacing: 2 }}>FOR TEACHERS</Typography>
+                    <Typography variant="overline" color="secondary" sx={{ fontWeight: 700, letterSpacing: 2 }}>FOR TEACHERS</Typography>
                     <Typography variant="h3" fontWeight={800} gutterBottom>Sell Your Resources</Typography>
-                    <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, opacity: 0.9 }}>Teachers from around the country upload their notes, exams, and guides for thousands of students to buy on Masomo Soko. Turn your hard work into income.</Typography>
+                    <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 3, opacity: 0.9 }}>Teachers from around Kenya upload their CBC notes, projects, and guides. Help students excel in the new curriculum and earn extra income.</Typography>
                     
-                    {/* UPDATED LINK: Now goes to /seller */}
-                    <Button variant="contained" size="large" component={RouterLink} to="/seller" sx={{ bgcolor: 'white', color: '#1e293b', borderRadius: 50, fontWeight: 700, px: 4, py: 1.5, '&:hover': { bgcolor: '#f1f5f9' } }}>Start selling today</Button>
+                    <Button 
+                        variant="contained" 
+                        size="large" 
+                        component={RouterLink} 
+                        to="/seller" 
+                        sx={{ 
+                            bgcolor: 'white', 
+                            color: 'secondary.main', 
+                            borderRadius: 50, fontWeight: 800, px: 4, py: 1.5, 
+                            '&:hover': { bgcolor: '#f1f5f9' } 
+                        }}
+                    >
+                        Start selling today
+                    </Button>
                 </Grid>
                 <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center' }}>
                      <Box sx={{ width: '100%', height: 300, bgcolor: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}><TeacherIllustration /></Box>
@@ -388,30 +536,57 @@ const Home: React.FC = () => {
       <Container maxWidth="xl" sx={{ py: 6, mb: 6 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 4 }}>
            <Box>
-              <Typography variant="overline" color="primary" fontWeight={800} sx={{ letterSpacing: 1.5 }}>COMMUNITY</Typography>
+              {/* ORANGE TEXT */}
+              <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>COMMUNITY</Typography>
               <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK }}>Popular Teachers</Typography>
            </Box>
         </Box>
         <Grid container spacing={3}>
-          {contributors.slice(0, 4).map((contributor: any, idx) => (
-            <Grid item xs={12} sm={6} md={3} key={idx}>
-              <Card sx={{ height: '100%', boxShadow: 'none', border: '1px solid #E2E8F0', p: 2, borderRadius: 3, transition: 'all 0.2s', '&:hover': { borderColor: PRIMARY_BLUE, transform: 'translateY(-2px)' } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar src={contributor.profilePicPath} sx={{ width: 64, height: 64, mr: 2 }}>{contributor.name?.charAt(0)}</Avatar>
-                      <Box>
-                          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', color: TEXT_DARK }}>{contributor.name}</Typography>
-                          <Typography variant="caption" color="text.secondary">Instructor</Typography>
-                      </Box>
-                  </Box>
-                  <Typography variant="body2" sx={{ mb: 2, color: TEXT_MUTED }}>Specializes in {Array.isArray(contributor.subjects) ? contributor.subjects.join(', ') : 'Education'}.</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SchoolIcon sx={{ fontSize: 18, color: PRIMARY_BLUE, mr: 1 }} />
-                      <Typography variant="body2" fontWeight={700} color="primary.main">{contributor.resourceCount} Resources Uploaded</Typography>
-                  </Box>
-              </Card>
-            </Grid>
-          ))}
+          {contributors.length === 0 ? (
+             <Typography sx={{ p: 2, color: TEXT_MUTED }}>Community data loading or unavailable...</Typography>
+          ) : (
+            contributors.slice(0, 4).map((contributor: any, idx) => (
+              <Grid item xs={12} sm={6} md={3} key={idx}>
+                <Card sx={{ 
+                    height: '100%', 
+                    boxShadow: 'none', 
+                    border: '1px solid #E2E8F0', 
+                    p: 3, 
+                    borderRadius: 4, 
+                    textAlign: 'center',
+                    transition: 'all 0.2s', 
+                    '&:hover': { borderColor: PRIMARY_BLUE, transform: 'translateY(-2px)' } 
+                }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                        <Avatar 
+                            src={contributor.profilePicPath || ""} 
+                            sx={{ width: 80, height: 80, border: '3px solid #f1f5f9' }} 
+                        >
+                            {contributor.name ? contributor.name.charAt(0) : <PersonIcon />}
+                        </Avatar>
+                    </Box>
+                    
+                    <Box sx={{ mb: 1 }}>
+                        <Typography variant="h6" fontWeight={800} sx={{ fontSize: '1.1rem', color: TEXT_DARK }}>
+                            {contributor.name || "Teacher"} 
+                            <VerifiedIcon sx={{ fontSize: 16, ml: 0.5, verticalAlign: 'middle', color: SAFARICOM_GREEN }} />
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ letterSpacing: 0.5 }}>INSTRUCTOR</Typography>
+                    </Box>
+
+                    <Typography variant="body2" sx={{ mb: 3, color: TEXT_MUTED, height: '2.5em', overflow: 'hidden' }}>
+                        Specializes in {Array.isArray(contributor.subjects) && contributor.subjects.length > 0 ? contributor.subjects.slice(0,2).join(', ') : 'Education'}.
+                    </Typography>
+                    
+                    <Box sx={{ bgcolor: '#eff6ff', borderRadius: 2, p: 1 }}>
+                        <Typography variant="body2" fontWeight={700} color="primary.main">
+                            {contributor.resourceCount || 0} Resources Uploaded
+                        </Typography>
+                    </Box>
+                </Card>
+              </Grid>
+            ))
+          )}
         </Grid>
       </Container>
       <Footer />

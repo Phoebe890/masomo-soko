@@ -3,7 +3,7 @@
 
 /* --- GLOBAL SCALE CONTROL --- */
 html {
-  font-size: 14px; /* Keeps the scale refined */
+  font-size: 14px; 
 }
 
 @media (max-width: 600px) {
@@ -13,13 +13,30 @@ html {
 }
 
 :root {
-  /* 2. Change the font family here */
+  /* --- TYPOGRAPHY --- */
   font-family: 'Plus Jakarta Sans', sans-serif;
-  
-  /* Slightly increase line height for better readability in education */
   line-height: 1.6;
   font-weight: 400;
 
+  /* --- COLOR PALETTE (CSS Variables) --- */
+  
+  /* PRIMARY: Royal Blue (Trust, Core Brand) */
+  --primary-main: #2563eb;       /* Use for: Main buttons, Headers */
+  --primary-dark: #1e40af;       /* Use for: Hover states */
+  --primary-light: #eff6ff;      /* Use for: Backgrounds of blue sections */
+
+  /* COMPLEMENTARY: Burnt Orange (Action, Highlights) */
+  --accent-main: #ea580c;        /* Use for: 'Sell Now' buttons, Price tags, Alerts */
+  --accent-hover: #c2410c;       /* Use for: Hover states */
+  --accent-light: #fff7ed;       /* Use for: Light orange backgrounds */
+
+  /* NEUTRALS: Slate (Text, Borders) */
+  --text-main: #0f172a;          /* Darkest text */
+  --text-muted: #64748b;         /* Secondary text */
+  --bg-light: #f8fafc;           /* Page backgrounds */
+  --border-color: #e2e8f0;       /* Card borders */
+
+  /* --- SETTINGS --- */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -32,5 +49,33 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #ffffff;
-  color: #0f172a; /* The Cool Slate color */
-} 
+  color: var(--text-main); /* Uses variable */
+}
+
+/* --- UTILITY CLASSES (Optional but helpful) --- */
+
+/* Makes text the accent color */
+.text-accent {
+  color: var(--accent-main);
+}
+
+/* Makes text the primary blue */
+.text-primary {
+  color: var(--primary-main);
+}
+
+/* A standard button using the Accent color */
+.btn-accent {
+  background-color: var(--accent-main);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 50px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+}

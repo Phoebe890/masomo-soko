@@ -1,6 +1,5 @@
 package com.eduhub.eduhub_backend.security;
 
-// CRITICAL: You must import the service from its package
 import com.eduhub.eduhub_backend.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -54,7 +53,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Match these exactly to your frontend URLs
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173", 
             "https://masomosoko.co.ke",
@@ -63,7 +61,6 @@ public class SecurityConfig {
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         
-        // Expanded headers to prevent 403 CORS issues with Axios
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization", 
             "Cache-Control", 
@@ -92,6 +89,8 @@ public class SecurityConfig {
             
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                
+                // Public Endpoints (Auth, Uploads, Payment Callbacks)
                 .requestMatchers(
                         "/api/auth/**",
                         "/api/payment/callback",
@@ -99,7 +98,12 @@ public class SecurityConfig {
                         "/api/resources/public/**"
                 ).permitAll()
 
-                // Roles mapped via CustomUserDetailsService [ROLE_ADMIN]
+                // --- FIX: Allow Guests to View Resources (List & Details) & Contributors ---
+                .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll() // <--- THIS FIXES YOUR ERROR
+                .requestMatchers(HttpMethod.GET, "/api/teacher/top-contributors").permitAll()
+
+                // Role Restrictions
                 .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
                 .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "ROLE_ADMIN", "ADMIN")
                 .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT")
