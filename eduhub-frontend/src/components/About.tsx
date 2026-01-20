@@ -179,7 +179,9 @@ const About: React.FC = () => {
                 <Typography variant="h4" fontWeight={800} sx={{ color: '#0f172a' }}>Polycarp Muriithi</Typography>
                 <Typography variant="h6" sx={{ color: '#ea580c', fontWeight: 700, mb: 2 }}>Co-Founder & Visionary</Typography>
                 <Typography sx={{ color: '#64748b', fontSize: '1.1rem', lineHeight: 1.8, maxWidth: 400, mx: 'auto', mb: 3 }}>
-                  The visionary mind behind Masomo Soko. Polycarp recognized the need for a platform where educators could finally monetize their intellectual hard work.
+                  The visionary educational strategist behind the Masomo Soko concept. Polycarp identified a critical gap in the market: 
+                  the need for a sustainable ecosystem where Kenyan educators are fairly rewarded for their expertise. 
+                  He is dedicated to transforming teaching into a digital career by empowering teachers to monetize high-quality revision resources.
                 </Typography>
                 <IconButton sx={{ color: '#0077b5', bgcolor: '#f0f9ff', '&:hover': { bgcolor: '#0077b5', color: 'white' } }} component="a" href="https://www.linkedin.com/in/polycarp-muriithi-36940026a/" target="_blank">
                   <LinkedInIcon />
