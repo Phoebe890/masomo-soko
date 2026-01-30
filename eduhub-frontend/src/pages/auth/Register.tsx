@@ -104,7 +104,6 @@ const Register: React.FC = () => {
     navigate(`/register?role=${newRole}`, { replace: true });
   };
 
-  // Floating Illustrations based on role
   const illustration = formData.role === 'teacher' 
     ? 'https://plus.unsplash.com/premium_vector-1682301063286-76f90a3d3219?q=80&w=829&auto=format&fit=crop' 
     : 'https://plus.unsplash.com/premium_vector-1721133314546-5e26b47c0338?q=80&w=1000&auto=format&fit=crop';
@@ -145,12 +144,25 @@ const Register: React.FC = () => {
                   </motion.div>
                 </AnimatePresence>
 
+                {/* RESTORED ORIGINAL BLUE BORDER GOOGLE BUTTON */}
                 <Button 
                   fullWidth 
                   variant="outlined" 
                   onClick={() => googleSignup()} 
                   startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} 
-                  sx={{ py: 1.5, mb: 3, color: '#3c4043', borderColor: '#dadce0', textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+                  sx={{ 
+                    py: 1.5, 
+                    mb: 3, 
+                    borderRadius: '8px',
+                    borderColor: theme.palette.primary.main, // Restored Blue Border
+                    color: theme.palette.primary.main,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': {
+                        borderColor: theme.palette.primary.dark,
+                        bgcolor: 'rgba(47, 107, 255, 0.04)'
+                    }
+                  }}
                 >
                   Sign up with Google
                 </Button>

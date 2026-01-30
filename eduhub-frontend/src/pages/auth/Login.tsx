@@ -22,7 +22,7 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   
-  // Local Notification State
+  // Local Notification State (eCitizen Style)
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -107,12 +107,25 @@ const Login: React.FC = () => {
                     Sign in to continue your learning journey.
                   </Typography>
                   
+                  {/* RESTORED ORIGINAL BLUE BORDER GOOGLE BUTTON */}
                   <Button 
                     fullWidth 
                     variant="outlined" 
                     onClick={() => googleLogin()} 
                     startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} 
-                    sx={{ py: 1.5, mb: 3, color: '#3c4043', borderColor: '#dadce0', textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+                    sx={{ 
+                        py: 1.5, 
+                        mb: 3, 
+                        borderRadius: '8px',
+                        borderColor: theme.palette.primary.main, // Restored Blue Border
+                        color: theme.palette.primary.main,
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        '&:hover': {
+                            borderColor: theme.palette.primary.dark,
+                            bgcolor: 'rgba(47, 107, 255, 0.04)'
+                        }
+                    }}
                   >
                     Sign in with Google
                   </Button>
