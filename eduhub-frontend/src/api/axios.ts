@@ -7,9 +7,8 @@ export const api = axios.create({
     baseURL: BASE_URL,
     // Set to false for JWT (Bearer token) based authentication to avoid CORS issues
     withCredentials: false, 
-    headers: {
-        'Content-Type': 'application/json'
-    }
+    headers: {}
+    
 });
 
 // Request Interceptor: Adds the Bearer token if it exists in localStorage.

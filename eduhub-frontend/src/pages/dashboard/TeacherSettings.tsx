@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, TextField, Button, Paper, Grid, 
   CircularProgress, Snackbar, Alert, Divider, InputAdornment, 
-  Container, IconButton, useTheme, useMediaQuery
+  Container, IconButton, useTheme, useMediaQuery, Avatar
 } from '@mui/material';
 import { api } from '@/api/axios';
 import SaveIcon from '@mui/icons-material/Save';
@@ -19,7 +19,10 @@ const TeacherSettings = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
-    // Form State to allow editing
+    // Photo state
+    const [profilePic, setProfilePic] = useState('');
+
+    // Form State
     const [formData, setFormData] = useState({
         displayName: '',
         headline: '',
@@ -30,11 +33,11 @@ const TeacherSettings = () => {
     const [toast, setToast] = useState({ open: false, msg: '', severity: 'success' as 'success' | 'error' });
 
     useEffect(() => {
-        // Fetch existing data to populate the form
-        api.get('/api/teacher/dashboard')
+        // Fetch from /settings as it contains the synced photo logic
+        api.get('/api/teacher/settings')
             .then(res => {
                 const p = res.data.profile || {};
-                const u = res.data.profile?.user || {};
+                const u = p.user || {};
                 
                 setFormData({
                     displayName: u.name || '',
@@ -42,6 +45,7 @@ const TeacherSettings = () => {
                     bio: p.bio || '',
                     mpesaNumber: p.paymentNumber || ''
                 });
+                setProfilePic(p.profilePicPath || '');
             })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
@@ -56,12 +60,10 @@ const TeacherSettings = () => {
         try {
             const uploadData = new FormData();
             uploadData.append('bio', formData.bio);
-            // Assuming your backend uses 'paymentNumber' field
             uploadData.append('paymentNumber', formData.mpesaNumber);
-            // NOTE: If you have a 'headline' field in your backend onboarding API, append it here too
-            // uploadData.append('headline', formData.headline); 
+            uploadData.append('subjects', JSON.stringify([])); 
+            uploadData.append('grades', JSON.stringify([]));
 
-            // We use the onboarding endpoint to update details as it usually accepts the same fields
             await api.post('/api/teacher/onboarding', uploadData); 
             setToast({ open: true, msg: 'Profile updated successfully!', severity: 'success' });
         } catch (error) {
@@ -93,6 +95,23 @@ const TeacherSettings = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}><CircularProgress /></Box>
                 ) : (
                     <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #E5E7EB', maxWidth: 800 }}>
+                        
+                        {/* PROFILE PICTURE SECTION */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
+                            <Avatar 
+                                src={profilePic} 
+                                sx={{ width: 100, height: 100, border: '2px solid #E5E7EB', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} 
+                            />
+                            <Box>
+                                <Typography variant="h6" fontWeight={700}>Profile Picture</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    {profilePic && profilePic.includes('googleusercontent') 
+                                        ? "Synced from Google Account" 
+                                        : "Personalized Profile Photo"}
+                                </Typography>
+                            </Box>
+                        </Box>
+
                         <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Public Profile</Typography>
                         
                         <Grid container spacing={3}>
@@ -142,10 +161,17 @@ const TeacherSettings = () => {
                                 size="large"
                                 onClick={handleSave} 
                                 disabled={saving}
-                                startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
-                                sx={{ fontWeight: 700, borderRadius: 2 }}
+                                startIcon={saving ? <CircularProgress size={20} color="inherit"/> : null}
+                                sx={{ 
+                                    fontWeight: 700, 
+                                    borderRadius: 2,
+                                    px: 4,
+                                    bgcolor: '#43B02A', 
+                                    '&:hover': { bgcolor: '#388E3C' },
+                                    '&.Mui-disabled': { bgcolor: '#A5D6A7', color: 'white' }
+                                }}
                             >
-                                Save Changes
+                                {saving ? 'Saving...' : 'Save Changes'}
                             </Button>
                         </Box>
                     </Paper>

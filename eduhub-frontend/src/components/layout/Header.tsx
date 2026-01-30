@@ -134,7 +134,7 @@ const Header: React.FC = () => {
           {/* --- BRANDING (Updated with Chewy font) --- */}
           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
               {/* Icon is now Orange to match */}
-              <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />
+             {/* <SchoolIcon sx={{ color: '#ea580c', fontSize: 32, mr: 1 }} />*/}
               
               <Typography 
                 variant="h5" 

@@ -78,39 +78,36 @@ public class SecurityConfig {
         return source;
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+   // Inside SecurityConfig.java
+
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authenticationProvider(authenticationProvider())
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // Public Endpoints (Auth, Uploads, Payment Callbacks)
-                .requestMatchers(
-                        "/api/auth/**",
-                        "/api/payment/callback",
-                        "/uploads/**",
-                        "/api/resources/public/**"
-                ).permitAll()
+            // 1. Public Endpoints
+            .requestMatchers("/api/auth/**", "/api/payment/callback", "/uploads/**", "/api/resources/public/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**", "/api/teacher/top-contributors").permitAll()
 
-                // --- FIX: Allow Guests to View Resources (List & Details) & Contributors ---
-                .requestMatchers(HttpMethod.GET, "/api/teacher/resources").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**").permitAll() // <--- THIS FIXES YOUR ERROR
-                .requestMatchers(HttpMethod.GET, "/api/teacher/top-contributors").permitAll()
+            // 2. FIX: Allow any LOGGED IN user to submit onboarding
+            // This must come BEFORE the generic /api/teacher/** rule
+            .requestMatchers(HttpMethod.POST, "/api/teacher/onboarding").authenticated()
 
-                // Role Restrictions
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
-                .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "ROLE_ADMIN", "ADMIN")
-                .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT")
-                
-                .anyRequest().authenticated()
-            );
+            // 3. Role Restrictions
+            .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+            .requestMatchers("/api/teacher/**").hasAnyAuthority("ROLE_TEACHER", "TEACHER", "ROLE_ADMIN", "ADMIN")
+            .requestMatchers("/api/student/**").hasAnyAuthority("ROLE_STUDENT", "STUDENT")
+            
+            .anyRequest().authenticated()
+        );
 
-        return http.build();
-    }
+    return http.build();
+}
 }

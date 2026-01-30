@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Box, Typography, TextField, Button, Grid, Link, useTheme, 
-  InputAdornment, IconButton, Divider, Stack, FormControlLabel, Checkbox 
+  InputAdornment, IconButton, Divider, Stack, FormControlLabel, Checkbox,
+  Container, Snackbar, Alert
 } from '@mui/material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +13,6 @@ import { api } from '@/api/axios';
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const Register: React.FC = () => {
   const theme = useTheme();
@@ -29,11 +29,14 @@ const Register: React.FC = () => {
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  
+  // Local Notification State (eCitizen Style)
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success'
+  });
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // --- LOGIC FIX: Inject Token & Check Onboarding ---
   const handleAuthSuccess = (data: any) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('email', data.email);
@@ -41,58 +44,55 @@ const Register: React.FC = () => {
     localStorage.setItem('name', data.name);
     if(data.photoUrl) localStorage.setItem('photoUrl', data.photoUrl);
 
-    // Prevent 401 Bounce Back
     api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+    
+    setToast({ open: true, message: "Account created successfully! Redirecting...", severity: 'success' });
 
     setTimeout(() => {
         const userRole = data.role?.toUpperCase();
         if (userRole === 'TEACHER') {
-            // Check flag from backend
             if (data.onboardingComplete === true) navigate('/dashboard/teacher');
             else navigate('/dashboard/teacher/onboarding');
         }
         else if (userRole === 'STUDENT') navigate('/dashboard/student');
         else if (userRole === 'ADMIN') navigate('/admin/dashboard');
         else navigate('/');
-    }, 500);
+    }, 1500);
   };
 
   const googleSignup = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();
-      setMessage(null);
       try {
         const res = await api.post('/api/auth/google', { 
             token: tokenResponse.access_token,
             role: formData.role.toUpperCase() 
         });
-        setMessage('Google Signup Successful! Redirecting...');
         handleAuthSuccess(res.data);
       } catch (err: any) {
-        setMessage('Google authentication failed. ' + (err.response?.data || ''));
+        setToast({ open: true, message: "Google authentication failed.", severity: 'error' });
       } finally {
         stopLoading();
       }
     },
-    onError: () => setMessage('Google Signup Failed'),
+    onError: () => setToast({ open: true, message: "Google Signup Failed", severity: 'error' }),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
-    if (!isValidEmail(formData.email)) { setMessage('Please enter a valid email.'); return; }
-    if (formData.password !== formData.confirmPassword) { setMessage('Passwords do not match.'); return; }
-    if (!agreedToTerms) { setMessage('You must agree to the Terms of Service.'); return; }
+    if (!isValidEmail(formData.email)) { setToast({ open: true, message: 'Please enter a valid email.', severity: 'error' }); return; }
+    if (formData.password !== formData.confirmPassword) { setToast({ open: true, message: 'Passwords do not match.', severity: 'error' }); return; }
+    if (!agreedToTerms) { setToast({ open: true, message: 'You must agree to the Terms of Service.', severity: 'error' }); return; }
 
     startLoading();
     try {
       await api.post('/api/auth/signup', {
         name: formData.name, email: formData.email, password: formData.password, role: formData.role
       });
-      setMessage('Account created! Logging you in...');
-      setTimeout(() => navigate('/login'), 1500);
+      setToast({ open: true, message: 'Account created! Redirecting to login...', severity: 'success' });
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error: any) {
-      setMessage(error.response?.data || 'Registration failed.');
+      setToast({ open: true, message: error.response?.data || 'Registration failed.', severity: 'error' });
     } finally {
       stopLoading();
     }
@@ -104,39 +104,182 @@ const Register: React.FC = () => {
     navigate(`/register?role=${newRole}`, { replace: true });
   };
 
-  const bgImage = formData.role === 'teacher' 
-    ? 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1650&q=80' 
-    : 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1650&q=80';
+  // Floating Illustrations based on role
+  const illustration = formData.role === 'teacher' 
+    ? 'https://plus.unsplash.com/premium_vector-1682301063286-76f90a3d3219?q=80&w=829&auto=format&fit=crop' 
+    : 'https://plus.unsplash.com/premium_vector-1721133314546-5e26b47c0338?q=80&w=1000&auto=format&fit=crop';
 
   return (
-    <Grid container component="main" sx={{ minHeight: '100vh' }}>
-      <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', p: { xs: 3, sm: 6, md: 8 }, bgcolor: '#fff' }}>
-        <Box maxWidth="sm" sx={{ mx: 'auto', width: '100%' }}>
-          <Button startIcon={<ArrowBackIcon />} component={RouterLink} to="/" sx={{ mb: 4, color: 'text.secondary', pl: 0 }}>Back to Home</Button>
-          <AnimatePresence mode="wait">
-            <motion.div key={formData.role} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-              <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: '#1a1b1d' }}>Sign up as a {formData.role === 'teacher' ? 'Teacher' : 'Student'}</Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>{formData.role === 'teacher' ? 'Start your journey to financial freedom.' : 'Join thousands of students mastering their coursework.'}</Typography>
-            </motion.div>
-          </AnimatePresence>
-          <Button fullWidth variant="outlined" onClick={() => googleSignup()} startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} sx={{ py: 1.5, mb: 3, borderRadius: '8px' }}>Sign up with Google</Button>
-          <Divider sx={{ mb: 3 }}><Typography variant="caption" color="text.secondary">OR WITH EMAIL</Typography></Divider>
-          <Box component="form" onSubmit={handleSubmit}>
-            {message && <Box sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: message.includes('created') || message.includes('Successful') ? 'success.light' : 'error.light', color: 'white' }}><Typography variant="body2" fontWeight={500}>{message}</Typography></Box>}
-            <Stack spacing={2.5}>
-              <TextField fullWidth label="Full Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-              <TextField fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-              <TextField fullWidth label="Password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
-              <TextField fullWidth label="Confirm Password" type="password" value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
-            </Stack>
-            <Box sx={{ mt: 2 }}><FormControlLabel control={<Checkbox checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} color="primary" />} label={<Typography variant="body2" color="text.secondary">I agree to the Terms and Privacy Policy.</Typography>} /></Box>
-            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, py: 1.8, borderRadius: 2, fontWeight: 700, bgcolor: theme.palette.primary.main }}>Create Account</Button>
-            <Box sx={{ mt: 3, textAlign: 'center' }}><Typography variant="body2" color="text.secondary">Looking to {formData.role === 'teacher' ? 'buy' : 'sell'}? <Link component="button" type="button" onClick={switchRole} sx={{ color: 'primary.main', fontWeight: 600 }}>Sign up as a {formData.role === 'teacher' ? 'Student' : 'Teacher'}</Link></Typography></Box>
-          </Box>
-        </Box>
-      </Grid>
-      <Grid item xs={false} md={6} sx={{ display: { xs: 'none', md: 'block' }, position: 'relative', overflow: 'hidden' }}><Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} /></Grid>
-    </Grid>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ flexGrow: 1, display: 'flex', alignItems: { xs: 'flex-start', md: 'center' } }}>
+        <Container maxWidth="lg">
+          <Grid 
+            container 
+            alignItems={{ xs: 'flex-start', md: 'center' }} 
+            sx={{ pt: { xs: 5, md: 0 }, pb: { xs: 5, md: 0 } }}
+          >
+            {/* LEFT SIDE: FORM */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ maxWidth: '440px', mx: { xs: 'auto', md: '0' } }}>
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    key={formData.role} 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }} 
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Typography 
+                      variant="h3" 
+                      fontWeight={800} 
+                      gutterBottom 
+                      sx={{ color: '#1a1b1d', fontSize: { xs: '2.2rem', md: '2.5rem' }, lineHeight: 1.1 }}
+                    >
+                      Sign up as a {formData.role === 'teacher' ? 'Teacher' : 'Student'}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: '1rem' }}>
+                      {formData.role === 'teacher' 
+                        ? 'Start your journey to financial freedom.' 
+                        : 'Join thousands of students mastering their coursework.'}
+                    </Typography>
+                  </motion.div>
+                </AnimatePresence>
+
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  onClick={() => googleSignup()} 
+                  startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} 
+                  sx={{ py: 1.5, mb: 3, color: '#3c4043', borderColor: '#dadce0', textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  Sign up with Google
+                </Button>
+
+                <Divider sx={{ mb: 3 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>OR WITH EMAIL</Typography>
+                </Divider>
+
+                <Box component="form" onSubmit={handleSubmit}>
+                  <Stack spacing={2}>
+                    <TextField fullWidth label="Full Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                    <TextField fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                    <TextField 
+                      fullWidth 
+                      label="Password" 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={formData.password} 
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                      required 
+                      InputProps={{ 
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ) 
+                      }} 
+                    />
+                    <TextField fullWidth label="Confirm Password" type="password" value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
+                  </Stack>
+
+                  <Box sx={{ mt: 1.5 }}>
+                    <FormControlLabel 
+                      control={<Checkbox checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} color="primary" size="small" />} 
+                      label={<Typography variant="body2" color="text.secondary">I agree to the Terms and Privacy Policy.</Typography>} 
+                    />
+                  </Box>
+
+                  <Button 
+                    type="submit" 
+                    fullWidth 
+                    variant="contained" 
+                    sx={{ 
+                      mt: 3, 
+                      py: 2, 
+                      borderRadius: '8px', 
+                      fontWeight: 700, 
+                      bgcolor: theme.palette.primary.main,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      boxShadow: '0 4px 12px rgba(47, 107, 255, 0.25)'
+                    }}
+                  >
+                    Create Account
+                  </Button>
+
+                  <Box sx={{ mt: 3, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Looking to {formData.role === 'teacher' ? 'buy' : 'sell'}? {' '}
+                      <Link 
+                        component="button" 
+                        type="button" 
+                        onClick={switchRole} 
+                        sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        Sign up as a {formData.role === 'teacher' ? 'Student' : 'Teacher'}
+                      </Link>
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Already have an account? <Link component={RouterLink} to="/login" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>Log in</Link>
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* RIGHT SIDE: ILLUSTRATION */}
+            <Grid item xs={false} md={6} sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'center' }}>
+              <motion.div
+                key={illustration}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Box 
+                  component="img"
+                  src={"https://plus.unsplash.com/premium_vector-1682301063286-76f90a3d3219?q=80&w=829&auto=format&fit=crop"}
+                  sx={{ 
+                    width: '100%', 
+                    maxWidth: '550px', 
+                    height: 'auto',
+                    filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.05))' 
+                  }}
+                />
+              </motion.div>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* ECITIZEN STYLE NOTIFICATION */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={5000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          sx={{ 
+            width: '100%', 
+            minWidth: '320px',
+            bgcolor: '#fff', 
+            color: '#1a1b1d', 
+            fontWeight: 700,
+            borderRadius: '4px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+            borderLeft: `6px solid ${toast.severity === 'success' ? '#43B02A' : '#d32f2f'}`,
+            '& .MuiAlert-icon': { 
+                color: toast.severity === 'success' ? '#43B02A' : '#d32f2f' 
+            }
+          }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

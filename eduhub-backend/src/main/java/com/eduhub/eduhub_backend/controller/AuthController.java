@@ -153,6 +153,9 @@ public class AuthController {
             if ("TEACHER".equalsIgnoreCase(user.getRole())) {
                 TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
                 if (profile.getUser() == null) profile.setUser(user);
+                 if (profile.getProfilePicPath() == null || profile.getProfilePicPath().isEmpty()) {
+        profile.setProfilePicPath(pictureUrl); 
+    }
                 teacherProfileRepository.save(profile);
             }
 

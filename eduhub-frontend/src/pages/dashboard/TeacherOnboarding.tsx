@@ -114,7 +114,7 @@ const TeacherOnboarding: React.FC = () => {
         uploadData.append('paymentNumber', formData.mpesaNumber);
         if (formData.photoFile) uploadData.append('profilePic', formData.photoFile);
 
-        await api.post('/api/teacher/onboarding', uploadData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.post('/api/teacher/onboarding', uploadData);
         setStep(4);
     } catch (error: any) {
         setToast({ open: true, msg: "Failed to save profile.", severity: 'error' });

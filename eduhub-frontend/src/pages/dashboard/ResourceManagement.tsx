@@ -198,21 +198,47 @@ const ResourceManagement: React.FC = () => {
           </Box>
           
           <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleUploadClick}
-            sx={{ 
-                bgcolor: '#2563EB', // The specific blue from the image button
-                textTransform: 'none',
-                fontWeight: 600, 
-                borderRadius: 1.5, 
-                boxShadow: 'none',
-                px: 3,
-                '&:hover': { bgcolor: '#1D4ED8', boxShadow: 'none' }
-            }}
-          >
-            New Resource
-          </Button>
+  variant="contained"
+  startIcon={<AddIcon />}
+  onClick={handleUploadClick}
+  sx={{
+    // Colors & Typography
+    bgcolor: '#2563EB',
+    textTransform: 'none',
+    fontWeight: 700,
+    letterSpacing: '0.3px',
+    color: '#fff',
+    
+    // RESPONSIVE SIZING
+    // xs = mobile, sm/md = desktop
+    fontSize: { xs: '0.85rem', md: '0.95rem' },
+    px: { xs: 2, md: 3 }, 
+    py: { xs: 0.8, md: 1.2 },
+    minWidth: 'fit-content',
+    
+    // Modern Aesthetic
+    borderRadius: '10px', // Slightly more rounded
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    
+    '&:hover': {
+      bgcolor: '#1D4ED8',
+      transform: 'translateY(-2px)', // Modern lift effect
+      boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+    },
+    
+    // Hide text icon spacing on very small screens if necessary
+    '& .MuiButton-startIcon': {
+      marginRight: { xs: 0.5, md: 1 }
+    }
+  }}
+>
+  New Resource
+</Button>
         </Box>
 
         {/* TOOLBAR & FILTERS */}

@@ -173,48 +173,69 @@ public class TeacherController {
     }
 
     // --- ONBOARDING ---
-    @PostMapping("/onboarding")
-    public ResponseEntity<?> onboarding(
-            @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
-            @RequestParam("bio") String bio,
-            @RequestParam("subjects") String subjectsJson,
-            @RequestParam("grades") String gradesJson,
-            @RequestParam(value = "paymentNumber", required = false) String paymentNumber,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired");
+    @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
+public ResponseEntity<?> onboarding(
+        @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
+        @RequestParam("bio") String bio, // This line caused the error; ensure it matches frontend
+         @RequestParam("subjects") String subjectsJson,
+        @RequestParam("grades") String gradesJson,
+        @RequestParam(value = "paymentNumber", required = false) String paymentNumber,
+        @AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired");
 
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            TeacherProfile profile = getOrCreateProfile(user);
+        // 1. GET THE USER
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            ObjectMapper mapper = new ObjectMapper();
-            List<String> subjects = new ArrayList<>();
-            try { if(subjectsJson != null && !subjectsJson.isEmpty()) subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
-            
-            List<String> grades = new ArrayList<>();
-            try { if(gradesJson != null && !gradesJson.isEmpty()) grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); } catch(Exception e){}
+        // 2. CHANGE ROLE TO TEACHER (CRITICAL FIX FOR 403)
+        // This ensures that after onboarding, the user has permission to view the dashboard
+        user.setRole("TEACHER"); 
+        userRepository.save(user);
 
-            profile.setBio(bio);
-            profile.setSubjects(subjects);
-            profile.setGrades(grades);
-            
-            if (paymentNumber != null && !paymentNumber.isEmpty()) {
-                profile.setPaymentNumber(paymentNumber);
-            }
+        // 3. GET OR CREATE PROFILE
+        TeacherProfile profile = getOrCreateProfile(user);
 
-            if (profilePic != null && !profilePic.isEmpty()) {
-                Map uploadResult = fileUploadService.uploadFile(profilePic);
-                profile.setProfilePicPath((String) uploadResult.get("secure_url"));
-            }
+        // 4. PARSE SUBJECTS AND GRADES (KEEP YOUR EXISTING LOGIC)
+        ObjectMapper mapper = new ObjectMapper();
+        List<String> subjects = new ArrayList<>();
+        try { 
+            if(subjectsJson != null && !subjectsJson.isEmpty()) 
+                subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); 
+        } catch(Exception e){ System.err.println("Error parsing subjects"); }
+        
+        List<String> grades = new ArrayList<>();
+        try { 
+            if(gradesJson != null && !gradesJson.isEmpty()) 
+                grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); 
+        } catch(Exception e){ System.err.println("Error parsing grades"); }
 
-            teacherProfileRepository.save(profile);
-            return ResponseEntity.ok("Profile updated");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed: " + e.getMessage());
+        // 5. UPDATE PROFILE FIELDS
+        profile.setBio(bio);
+        profile.setSubjects(subjects);
+        profile.setGrades(grades);
+        
+        if (paymentNumber != null && !paymentNumber.isEmpty()) {
+            profile.setPaymentNumber(paymentNumber);
         }
-    }
 
-    // --- GET SETTINGS ---
+        // 6. HANDLE IMAGE UPLOAD
+        if (profilePic != null && !profilePic.isEmpty()) {
+            Map uploadResult = fileUploadService.uploadFile(profilePic);
+            profile.setProfilePicPath((String) uploadResult.get("secure_url"));
+        }
+
+        teacherProfileRepository.save(profile);
+
+        // Return a JSON object instead of a string
+        return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    } catch (Exception e) {
+        e.printStackTrace(); // Logs the error in your terminal
+        return ResponseEntity.status(500).body("Failed: " + e.getMessage());
+    }
+}
+
+   // --- GET SETTINGS ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -224,6 +245,15 @@ public class TeacherController {
             
             boolean isZoomConnected = currentUser.getZoomAccessToken() != null && !currentUser.getZoomAccessToken().isEmpty();
 
+            // FALLBACK LOGIC: 
+            // If profile has no custom pic, use the one from the User entity (Google Photo)
+            String finalPhotoUrl = null;
+            if (profile != null && profile.getProfilePicPath() != null && !profile.getProfilePicPath().isEmpty()) {
+                finalPhotoUrl = profile.getProfilePicPath();
+            } else {
+                finalPhotoUrl = currentUser.getProfilePic(); // Google photo
+            }
+
             Map<String, Object> responseData = new HashMap<>();
             Map<String, String> userData = new HashMap<>();
             userData.put("name", currentUser.getName());
@@ -231,13 +261,14 @@ public class TeacherController {
             
             Map<String, Object> profileData = new HashMap<>();
             profileData.put("user", userData);
+            profileData.put("profilePicPath", finalPhotoUrl); // The synced photo
             
             if (profile != null) {
                 profileData.put("bio", profile.getBio());
                 profileData.put("subjects", profile.getSubjects());
                 profileData.put("grades", profile.getGrades());
                 profileData.put("paymentNumber", profile.getPaymentNumber());
-                profileData.put("profilePicPath", profile.getProfilePicPath()); 
+                // We already set profilePicPath above via the fallback logic
             }
 
             responseData.put("profile", profileData);
