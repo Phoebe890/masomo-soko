@@ -1,9 +1,12 @@
-/* 1. Import Open Sans (The font from the image) */
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
-
-/* --- GLOBAL SCALE CONTROL --- */
+/* 1. Import Inter from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');
+/* --- GLOBAL LOCK CONTROL --- */
 html {
   font-size: 14px; 
+  /* PREVENT phone from auto-resizing text based on system accessibility settings */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 @media (max-width: 600px) {
@@ -13,20 +16,14 @@ html {
 }
 
 :root {
-  /* REMOVED font-family from here so MUI Theme can control it */
   line-height: 1.6;
   font-weight: 400;
 
   /* --- COLOR PALETTE (CSS Variables) --- */
-  --primary-main: #2563eb;       
-  --primary-dark: #1e40af;       
-  --primary-light: #eff6ff;      
-  --accent-main: #ea580c;        
-  --accent-hover: #c2410c;       
-  --accent-light: #fff7ed;       
-  --text-main: #374253; /* Updated to match the dark gray in your nav image */
+  --primary-main: #2F6BFF;       
+  --secondary-main: #0E243C;           
+  --text-main: #1a1b1d; 
   --text-muted: #64748b;         
-  --bg-light: #f8fafc;           
   --border-color: #e2e8f0;       
 
   font-synthesis: none;
@@ -35,13 +32,26 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 2. FORCE FONT LOCKING */
+/* We apply !important to ensure phone system fonts cannot override this */
+* {
+  font-family: 'Inter', sans-serif !important;
+}
+.logo-font {
+  font-family: 'Chewy', cursive !important;
+}
+
 body {
   margin: 0;
   padding: 0;
-  /* Ensure the body uses Open Sans */
-  font-family: 'Open Sans', sans-serif; 
+  font-family: 'Inter', sans-serif !important; 
   min-width: 320px;
   min-height: 100vh;
   background-color: #ffffff;
   color: var(--text-main);
+}
+
+/* Ensure form elements don't revert to system fonts (common mobile issue) */
+input, button, textarea, select {
+  font-family: 'Inter', sans-serif !important;
 }

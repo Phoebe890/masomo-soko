@@ -138,6 +138,7 @@ const Header: React.FC = () => {
               
               <Typography 
                 variant="h5" 
+                className="logo-font" 
                 sx={{ 
                     fontFamily: "'Chewy', cursive", // CHANGED: Using Chewy font
                     fontWeight: 400, // Chewy only has regular weight
