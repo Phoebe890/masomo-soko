@@ -54,18 +54,22 @@ public class TeacherController {
 
     // 1. Get All Resources (Public)
     @GetMapping("/resources")
-    public ResponseEntity<?> getAllResources() {
+    public ResponseEntity<?> getAllResources(@RequestParam(required = false) String search) {
         try {
-            List<TeacherResource> resources = teacherResourceRepository.findAll();
+            List<TeacherResource> resources;
             
-            // Map to DTOs
+            // Logic: If user typed something, search by title. If not, get all.
+            if (search != null && !search.trim().isEmpty()) {
+                resources = teacherResourceRepository.findByTitleContainingIgnoreCase(search);
+            } else {
+                resources = teacherResourceRepository.findAll();
+            }
+            
             List<TeacherResourceDTO> resourceDtos = resources.stream().map(res -> {
-                // Determine Average Rating
                 List<Review> reviews = reviewRepository.findByResource(res);
                 return new TeacherResourceDTO(res, reviews); 
             }).collect(Collectors.toList());
 
-            // Return { resources: [...] } structure expected by frontend
             Map<String, Object> response = new HashMap<>();
             response.put("resources", resourceDtos);
             
@@ -108,7 +112,9 @@ public class TeacherController {
                     : 0;
 
                 map.put("name", name);
-                map.put("profilePicPath", profile.getProfilePicPath());
+                 map.put("profilePicPath", upgradeGooglePhotoResolution(profile.getProfilePicPath()));
+                  map.put("headline", profile.getHeadline()); // Ensure getHeadline() exists in your Entity
+            map.put("bio", profile.getBio());
                 map.put("subjects", profile.getSubjects());
                 map.put("resourceCount", resourceCount);
                 return map;
@@ -249,9 +255,11 @@ public ResponseEntity<?> onboarding(
             // If profile has no custom pic, use the one from the User entity (Google Photo)
             String finalPhotoUrl = null;
             if (profile != null && profile.getProfilePicPath() != null && !profile.getProfilePicPath().isEmpty()) {
-                finalPhotoUrl = profile.getProfilePicPath();
+                // Fixes custom uploaded or synced pics
+                finalPhotoUrl = upgradeGooglePhotoResolution(profile.getProfilePicPath());
             } else {
-                finalPhotoUrl = currentUser.getProfilePic(); // Google photo
+                // Fixes the direct Google photo
+                finalPhotoUrl = upgradeGooglePhotoResolution(currentUser.getProfilePic()); 
             }
 
             Map<String, Object> responseData = new HashMap<>();
@@ -463,5 +471,13 @@ public ResponseEntity<?> onboarding(
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
+    }
+     private String upgradeGooglePhotoResolution(String url) {
+        if (url == null) return null;
+        if (url.contains("googleusercontent.com")) {
+            // Replaces =s96 or =s96-c with =s400-c
+           return url.replaceAll("=s\\d+(-c)?", "=s200-c");
+        }
+        return url;
     }
 }

@@ -31,8 +31,12 @@ const UploadFirstResource = () => {
     };
 
     const handleSubmit = async () => {
-        if (!formData.title || !formData.resourceFile) {
-            setSnackbar({ open: true, msg: "Title and Resource File are required", type: 'error' });
+        if (!formData.title || !formData.resourceFile || !formData.thumbnailFile) {
+            setSnackbar({ 
+                open: true, 
+                msg: "All fields are required: Title, Resource File, and Cover Image", 
+                type: 'error' 
+            });
             return;
         }
 

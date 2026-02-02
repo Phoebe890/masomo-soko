@@ -107,7 +107,36 @@ const RevenueIllustration = () => (
     </svg>
   </Box>
 );
-
+// --- SVG 3: GROWTH ---
+const GrowthIllustration = () => (
+  <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', maxWidth: '450px' }}>
+      {/* Soft Background Growth Circle */}
+      <circle cx="200" cy="150" r="120" fill="#e8f5e9" /> 
+      
+      {/* Connecting Lines (Reach) - Teal Color */}
+      <path d="M200 120L280 60M200 120L320 150M200 120L100 60M200 120L80 150" stroke="#81c784" strokeWidth="3" strokeDasharray="6 4" />
+      
+      {/* Central Teacher - Safaricom Green */}
+      <circle cx="200" cy="120" r="30" fill="#43B02A" />
+      <path d="M150 200C150 172.386 172.386 150 200 150C227.614 150 250 172.386 250 200" fill="#43B02A" />
+      
+      {/* Reached Nodes - Blue/Teal Mix */}
+      <circle cx="280" cy="60" r="15" fill="#2F6BFF" />
+      <circle cx="320" cy="150" r="15" fill="#00acc1" />
+      <circle cx="100" cy="60" r="15" fill="#2F6BFF" />
+      <circle cx="80" cy="150" r="15" fill="#00acc1" />
+      
+      {/* Large Growth Arrow - Vibrant Green */}
+      <path d="M280 230L350 230L350 160" stroke="#2e7d32" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M220 290L350 230" stroke="#2e7d32" strokeWidth="5" strokeLinecap="round" />
+      
+      {/* Tiny "Plus" symbols representing new students */}
+      <path d="M120 180H130M125 175V185" stroke="#43B02A" strokeWidth="2" />
+      <path d="M280 110H290M285 105V115" stroke="#43B02A" strokeWidth="2" />
+    </svg>
+  </Box>
+);
 const SellerLanding: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -205,8 +234,9 @@ const SellerLanding: React.FC = () => {
               >
                 <Box 
                   component="img"
-                  src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" 
-                  alt="Teacher holding tablet"
+                  src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" 
+      alt="Organized educational workspace"
+                 
                   sx={{
                     width: '100%',
                     height: 'auto',
@@ -282,30 +312,26 @@ const SellerLanding: React.FC = () => {
             Everything you need to grow your teaching business
           </Typography>
           
-          <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" sx={{ mb: { xs: 8, md: 12 } }}>
-            <Grid item xs={12} md={6}>
-              <Box>
-                <Typography variant="overline" color="primary" fontWeight={700} sx={{ letterSpacing: 2 }}>
-                  GROWTH
-                </Typography>
-                <Typography variant="h3" fontWeight={700} sx={{ mt: 1, mb: 2, fontSize: { xs: '1.5rem', md: '2.25rem' }, color: TEXT_DARK }}>
-                  Reach students beyond your classroom
-                </Typography>
-                <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, color: TEXT_MUTED }}>
-                  Your notes are valuable. Don't let them sit in a drawer. <strong>Mwalimu Soko</strong> markets your resources to thousands of students and parents across Kenya. We handle the SEO and advertising so you can focus on creating.
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box 
-                component="img"
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
-                alt="Students studying"
-                sx={{ width: '100%', borderRadius: 3, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-              />
-            </Grid>
-          </Grid>
-
+         <Grid container spacing={{ xs: 4, md: 8 }} alignItems="center" sx={{ mb: { xs: 8, md: 12 } }}>
+  <Grid item xs={12} md={6}>
+    <Box>
+      <Typography variant="overline" color="success.main" fontWeight={800} sx={{ letterSpacing: 2 }}>
+        GROWTH
+      </Typography>
+      <Typography variant="h3" fontWeight={800} sx={{ mt: 1, mb: 2, fontSize: { xs: '1.8rem', md: '2.5rem' }, color: TEXT_DARK }}>
+        Reach students beyond your classroom
+      </Typography>
+      <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, color: TEXT_MUTED }}>
+        Your notes are valuable. Don't let them sit in a drawer. <strong>Masomo Soko</strong> markets your resources to thousands of students and parents across Kenya. We handle the SEO and advertising so you can focus on creating.
+      </Typography>
+    </Box>
+  </Grid>
+  
+  <Grid item xs={12} md={6}>
+      {/* No Box, no Card, no Shadow - Just the SVG blending into the page */}
+      <GrowthIllustration />
+  </Grid>
+</Grid>
           <Grid 
             container 
             spacing={{ xs: 4, md: 8 }} 
@@ -433,38 +459,46 @@ const SellerLanding: React.FC = () => {
       </Box>
 
       {/* SECTION 5: HIGH CONTRAST FEATURE */}
-      <Box sx={{ bgcolor: DARK_SECTION, color: '#fff', py: { xs: 8, md: 10 } }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-             <Grid item xs={12} md={6}>
-                <DashboardIllustration />
-             </Grid>
-             <Grid item xs={12} md={6}>
-                <Typography variant="h3" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
-                  You are in control
+<Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 } }}>
+  <Box 
+    sx={{ 
+      bgcolor: DARK_SECTION, 
+      color: '#fff', 
+      py: { xs: 8, md: 12 }, // More vertical padding for a premium feel
+      px: { xs: 4, md: 10 }, // Matches the banner above
+      borderRadius: 8,
+      overflow: 'hidden'
+    }}
+  >
+    <Grid container spacing={10} alignItems="center"> {/* Wider spacing for XL layout */}
+       <Grid item xs={12} md={6}>
+          <DashboardIllustration />
+       </Grid>
+       <Grid item xs={12} md={6}>
+          <Typography variant="h3" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.75rem', md: '3rem' } }}>
+            You are in control
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 4, fontSize: '1.2rem', opacity: 0.9, lineHeight: 1.7, color: '#94a3b8' }}>
+             <strong>Mwalimu Soko</strong> gives you full autonomy over your content. Manage your pricing, edit your files, and interact with students directly.
+          </Typography>
+          <Stack spacing={3}>
+            {[
+              "Set your own prices",
+              "Edit or remove content anytime",
+              "Secure file protection"
+            ].map((text, i) => (
+              <Box display="flex" alignItems="center" key={i}>
+                <CheckCircleIcon color="success" sx={{ mr: 2, fontSize: 28 }} />
+                <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 500 }}>
+                  {text}
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 4, fontSize: '1.1rem', opacity: 0.9, lineHeight: 1.7, color: '#94a3b8' }}>
-                   <strong>Mwalimu Soko</strong> gives you full autonomy over your content. Manage your pricing, edit your files, and interact with students directly.
-                </Typography>
-                <Stack spacing={2}>
-                  {[
-                    "Set your own prices",
-                    "Edit or remove content anytime",
-                    "Secure file protection"
-                  ].map((text, i) => (
-                    <Box display="flex" alignItems="center" key={i}>
-                      <CheckCircleIcon color="success" sx={{ mr: 2 }} />
-                      <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                        {text}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-             </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
+              </Box>
+            ))}
+          </Stack>
+       </Grid>
+    </Grid>
+  </Box>
+</Container>
       {/* SECTION 6: BOTTOM CTA */}
       <Box sx={{ bgcolor: '#fff', py: { xs: 8, md: 12 }, textAlign: 'center' }}>
         <Container maxWidth="sm">

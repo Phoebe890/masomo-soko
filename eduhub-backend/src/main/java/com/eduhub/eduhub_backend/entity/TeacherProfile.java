@@ -35,11 +35,12 @@ public class TeacherProfile {
     @Column(length = 1024)
     private String zoomRefreshToken;
     private Instant zoomTokenExpiresAt;
-
+private String headline;
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
+public String getHeadline() { return headline; }
+public void setHeadline(String headline) { this.headline = headline; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 

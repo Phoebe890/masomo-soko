@@ -95,7 +95,42 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }
     }
+// --- STANDARD SIGNUP ---
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String password = request.get("password");
+            String name = request.get("name");
+            String role = request.getOrDefault("role", "STUDENT").toUpperCase();
 
+            // 1. Check if user already exists
+            if (userRepository.findByEmail(email).isPresent()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already in use");
+            }
+
+            // 2. Create new User
+            User user = new User();
+            user.setName(name);
+            user.setEmail(email);
+            user.setRole(role);
+            user.setPassword(passwordEncoder.encode(password)); // Hash the password
+            user.setEnabled(true);
+            
+            userRepository.save(user);
+
+            // 3. If Teacher, create empty profile so dashboard works immediately
+            if ("TEACHER".equals(role)) {
+                TeacherProfile profile = new TeacherProfile();
+                profile.setUser(user);
+                teacherProfileRepository.save(profile);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "User registered successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
+        }
+    }
     // --- GOOGLE LOGIN ---
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {

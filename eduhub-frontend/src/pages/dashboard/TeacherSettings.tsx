@@ -96,22 +96,31 @@ const TeacherSettings = () => {
                 ) : (
                     <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #E5E7EB', maxWidth: 800 }}>
                         
-                        {/* PROFILE PICTURE SECTION */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
-                            <Avatar 
-                                src={profilePic} 
-                                sx={{ width: 100, height: 100, border: '2px solid #E5E7EB', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} 
-                            />
-                            <Box>
-                                <Typography variant="h6" fontWeight={700}>Profile Picture</Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    {profilePic && profilePic.includes('googleusercontent') 
-                                        ? "Synced from Google Account" 
-                                        : "Personalized Profile Photo"}
-                                </Typography>
-                            </Box>
-                        </Box>
-
+                       {/* PROFILE PICTURE SECTION */}
+<Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
+    <Avatar 
+        src={profilePic} 
+        imgProps={{ 
+            referrerPolicy: "no-referrer", // Fixes Google 429 "Too Many Requests" errors
+            style: { objectFit: 'cover' } 
+        }}
+        sx={{ 
+            width: 100, 
+            height: 100, 
+            border: 'none', // White border removed
+            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+            bgcolor: '#f1f5f9' // Soft background color while loading
+        }} 
+    />
+    <Box>
+        <Typography variant="h6" fontWeight={700}>Profile Picture</Typography>
+        <Typography variant="body2" color="text.secondary">
+            {profilePic && profilePic.includes('googleusercontent') 
+                ? "Synced from Google Account" 
+                : "Personalized Profile Photo"}
+        </Typography>
+    </Box>
+</Box>
                         <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Public Profile</Typography>
                         
                         <Grid container spacing={3}>

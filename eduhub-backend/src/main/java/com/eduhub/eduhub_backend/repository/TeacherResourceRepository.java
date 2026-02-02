@@ -22,7 +22,8 @@ public interface TeacherResourceRepository extends JpaRepository<TeacherResource
     List<TeacherResource> findBySubjectAndGrade(String subject, String grade);
 
     List<TeacherResource> findBySubjectAndGradeAndCurriculum(String subject, String grade, String curriculum);
-
+ // --- NEW METHOD FOR SEARCH SUGGESTIONS ---
+    List<TeacherResource> findByTitleContainingIgnoreCase(String title);
     // Custom query to get user IDs and resource counts, ordered by count descending
     @Query("SELECT tr.user.id, COUNT(tr) as resourceCount FROM TeacherResource tr GROUP BY tr.user.id ORDER BY resourceCount DESC")
     List<Object[]> findTopContributors();
