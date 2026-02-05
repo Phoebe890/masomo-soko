@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://masomosoko.co.ke/sitemap.xml

@@ -26,7 +26,9 @@ import EngineeringIcon from '@mui/icons-material/Engineering';
 // --- RESTORED ORIGINAL ASSETS ---
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg'; 
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg'; 
+import { Helmet } from 'react-helmet-async'; 
 
+const SafeHelmet = Helmet as any; // FIX FOR REACT 19 TYPES
 // --- CONSTANTS ---
 const TEXT_DARK = '#0f172a'; 
 const TEXT_MUTED = '#475569';
@@ -164,7 +166,17 @@ const Home: React.FC = () => {
 
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
+       {/* --- SEO METADATA --- */}
+    <SafeHelmet>
+      <title>Masomo Soko | Best CBC & KCSE Revision Resources Kenya</title>
+      <meta name="description" content="Access high-quality Kenyan teaching resources. Buy and sell Grade 7, 8, 9 CBC notes, KCSE past papers, and lesson plans on Kenya's top education marketplace." />
+      <meta name="keywords" content="CBC resources Kenya, Junior School revision notes, KCSE past papers, Kenyan teachers marketplace, Masomo Soko, Grade 9 exams" />
       
+      {/* Social Media Sharing Tags */}
+      <meta property="og:title" content="Masomo Soko - Kenya's Education Marketplace" />
+      <meta property="og:description" content="Empowering Kenyan teachers and students with verified learning materials." />
+      <meta property="og:type" content="website" />
+    </SafeHelmet>
      {/* --- HERO SECTION --- */}
       <Box 
         component="section" 
@@ -291,7 +303,7 @@ const Home: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5 }}>
            <Box>
               <Typography variant="overline" sx={{ color: PRIMARY_BLUE, letterSpacing: 2, fontSize: '0.85rem', fontWeight: 800 }}>EXPLORE PATHWAYS</Typography>
-              <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, mt: 1, fontSize: { xs: '2.2rem', md: '3rem' } }}>Browse Curriculum</Typography>
+              <Typography variant="h2" fontWeight={800} sx={{ color: TEXT_DARK, mt: 1, fontSize: { xs: '2.2rem', md: '3rem' } }}>Browse Curriculum</Typography>
            </Box>
            <Button 
             component={RouterLink} 
@@ -342,6 +354,7 @@ const Home: React.FC = () => {
                         component="img"
                         className="cat-img"
                         src={cat.image} 
+                         alt={`${cat.label} resources for Kenyan schools`}
                         sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
                     />
                   </Box>
@@ -449,7 +462,7 @@ const Home: React.FC = () => {
                           className="resource-img"
                           component="img" 
                           image={displayImage} 
-                          alt={res.title} 
+                          alt={`${res.title} revision material by ${teacherName}`}  
                           sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s' }} 
                         />
                     ) : (
