@@ -16,20 +16,12 @@ html {
 }
 
 :root {
-  line-height: 1.6;
-  font-weight: 400;
-
-  /* --- COLOR PALETTE (CSS Variables) --- */
-  --primary-main: #2F6BFF;       
-  --secondary-main: #0E243C;           
-  --text-main: #1a1b1d; 
-  --text-muted: #64748b;         
-  --border-color: #e2e8f0;       
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* High-end Clarity Palette */
+  --bg-main: #F9FAFB;      /* The "Stripe" light grey background */
+  --card-white: #FFFFFF;    /* Pure white for containers */
+  --border-light: #E5E7EB;  /* Very thin grey border */
+  --text-primary: #111827;  /* Deep navy/black for clarity */
+  --text-secondary: #6B7280; /* Neutral grey for captions */
 }
 
 /* 2. FORCE FONT LOCKING */
@@ -41,14 +33,17 @@ html {
   font-family: 'Chewy', cursive !important;
 }
 
+
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif !important; 
-  min-width: 320px;
-  min-height: 100vh;
-  background-color: #ffffff;
-  color: var(--text-main);
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased; /* Makes text look sharper */
+}
+
+/* Make all MUI Papers look flat and clean globally */
+.MuiPaper-root {
+  box-shadow: none !important; 
+  border: 1px solid var(--border-light) !important;
 }
 
 /* Ensure form elements don't revert to system fonts (common mobile issue) */
