@@ -6,6 +6,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPayouts from './pages/admin/AdminPayouts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminResources from './pages/admin/AdminResources';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Layout and Standard Pages
 import Layout from './components/layout/Layout';
@@ -14,7 +15,7 @@ import BrowseResources from './pages/BrowseResources';
 import ResourceDetail from './pages/ResourceDetail';
 import PurchaseConfirmation from './pages/PurchaseConfirmation';
 import SellerLanding from './pages/seller/SellerLanding';
-import NotFound from './pages/NotFound.tsx';
+import NotFound from './pages/NotFound';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -78,12 +79,15 @@ function App() {
   const isDashboardRoute = 
     location.pathname.startsWith('/dashboard') || 
     location.pathname.startsWith('/teacher') ||
-    location.pathname.startsWith('/admin');
-
+    location.pathname.startsWith('/admin')||
+ location.pathname === '/forgot-password' ; // Add this
+  
   
   const appRoutes = (
     <Routes>
       {/* Main Public Routes */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+  
       <Route path="/" element={<Home />} />
       {/* ---  ABOUT ROUTE HERE --- */}
       <Route path="/about" element={<About />} />

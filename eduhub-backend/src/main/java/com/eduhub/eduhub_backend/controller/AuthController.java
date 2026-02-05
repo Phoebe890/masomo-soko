@@ -1,11 +1,14 @@
 package com.eduhub.eduhub_backend.controller;
 
+import com.eduhub.eduhub_backend.dto.ForgotPasswordRequest;
 import com.eduhub.eduhub_backend.dto.LoginRequest;
+import com.eduhub.eduhub_backend.dto.ResetPasswordRequest;
 import com.eduhub.eduhub_backend.entity.TeacherProfile;
 import com.eduhub.eduhub_backend.entity.User;
 import com.eduhub.eduhub_backend.repository.TeacherProfileRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.security.JwtService;
+import com.eduhub.eduhub_backend.service.AuthService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -39,6 +42,8 @@ public class AuthController {
     @Autowired private JwtService jwtService;
     @Autowired private PasswordEncoder passwordEncoder;
 
+@Autowired
+private AuthService authService;
     @Value("${google.client.id}")
     private String googleClientId;
 
@@ -131,6 +136,29 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
         }
     }
+     // 1. Endpoint to request the OTP
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        String message = authService.processForgotPassword(request.getEmail());
+        return ResponseEntity.ok(message);
+    }
+
+    // 2. Endpoint to verify OTP and change password
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        String result = authService.verifyAndResetPassword(
+            request.getEmail(), 
+            request.getOtp(), 
+            request.getPassword()
+        );
+
+        if (result.equals("Password updated successfully.")) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+    
     // --- GOOGLE LOGIN ---
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {

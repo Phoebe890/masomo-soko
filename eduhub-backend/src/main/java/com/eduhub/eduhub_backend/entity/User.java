@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
+import java.time.LocalDateTime;
 @Entity
 @Table(name = "users")
 public class User implements UserDetails { // <--- FIX 2: Implements UserDetails interface
@@ -27,7 +27,8 @@ public class User implements UserDetails { // <--- FIX 2: Implements UserDetails
     private String password;
 
     private String role; // STUDENT, TEACHER, ADMIN
-
+private String resetOtp;
+private LocalDateTime resetOtpExpiry;
     private Boolean active = true;
 
     // --- FIX 1: The missing profilePic field ---
@@ -66,7 +67,12 @@ public class User implements UserDetails { // <--- FIX 2: Implements UserDetails
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+//  Getters and Setters
+public String getResetOtp() { return resetOtp; }
+public void setResetOtp(String resetOtp) { this.resetOtp = resetOtp; }
 
+public LocalDateTime getResetOtpExpiry() { return resetOtpExpiry; }
+public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) { this.resetOtpExpiry = resetOtpExpiry; }
     // UserDetails requires getPassword()
     @Override
     public String getPassword() { return password; }
