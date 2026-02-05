@@ -182,6 +182,7 @@ public class TeacherController {
     @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
 public ResponseEntity<?> onboarding(
         @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
+        @RequestParam(value = "headline", required = false) String headline,
         @RequestParam("bio") String bio, // This line caused the error; ensure it matches frontend
          @RequestParam("subjects") String subjectsJson,
         @RequestParam("grades") String gradesJson,
@@ -218,6 +219,7 @@ public ResponseEntity<?> onboarding(
 
         // 5. UPDATE PROFILE FIELDS
         profile.setBio(bio);
+        profile.setHeadline(headline);
         profile.setSubjects(subjects);
         profile.setGrades(grades);
         
@@ -234,7 +236,7 @@ public ResponseEntity<?> onboarding(
         teacherProfileRepository.save(profile);
 
         // Return a JSON object instead of a string
-        return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+        return ResponseEntity.ok(profile);
     } catch (Exception e) {
         e.printStackTrace(); // Logs the error in your terminal
         return ResponseEntity.status(500).body("Failed: " + e.getMessage());
@@ -449,6 +451,26 @@ public ResponseEntity<?> onboarding(
             return ResponseEntity.status(500).body("Error");
         }
     }
+    // 1. Mark ALL as read (more efficient than individual calls)
+@PostMapping("/notifications/read-all")
+public ResponseEntity<?> markAllRead(@AuthenticationPrincipal UserDetails userDetails) {
+    User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+    List<Notification> notifications = notificationRepository.findByTeacherOrderByCreatedAtDesc(user);
+    notifications.forEach(n -> n.setRead(true));
+    notificationRepository.saveAll(notifications);
+    return ResponseEntity.ok("All marked read");
+}
+
+// 2. Delete/Dismiss a notification
+@DeleteMapping("/notifications/{id}")
+public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+    try {
+        notificationRepository.deleteById(id);
+        return ResponseEntity.ok("Deleted");
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error deleting");
+    }
+}
 
     // --- PAYOUT SETUP ---
     @PostMapping("/payout")

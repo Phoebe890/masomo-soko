@@ -86,9 +86,19 @@ const TeacherDashboard = () => {
         return [];
     };
 
-    const handleDismissNotification = (id: number) => {
+   
+
+const handleDismissNotification = async (id: number) => {
+    try {
+        // Update local dashboard state
         setNotifications(prev => prev.filter(n => n.id !== id));
-    };
+        
+        // Call API to delete from Database
+        await api.delete(`/api/teacher/notifications/${id}`);
+    } catch (error) {
+        console.error("Error dismissing notification:", error);
+    }
+};
 
     // Updated Vibrant Stat Widget with Responsive Fonts
     const StatWidget = ({ title, value, icon, gradient, textColor = '#fff' }: any) => (

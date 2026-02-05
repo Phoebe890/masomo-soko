@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Box, IconButton, Typography, Avatar, Menu, MenuItem, 
     useTheme, AppBar, Toolbar, Badge, Divider, ListItemIcon,
-    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button 
+    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button ,ListItemSecondaryAction
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
@@ -20,21 +20,26 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import StarIcon from '@mui/icons-material/Star';
-
+import HomeIcon from '@mui/icons-material/HomeOutlined';
 // Environment variable for image paths
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 // Helper for time
+
 const getTimeAgo = (dateString: string) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return "Just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} mins ago`;
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "Just now";
+    const minutes = Math.floor(diffInSeconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hrs ago`;
-    return `${Math.floor(hours / 24)} days ago`;
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString(); 
 };
 
 interface TeacherLayoutProps {
@@ -89,28 +94,43 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
         return () => clearInterval(interval);
     }, []);
 
-    const handleMarkAllRead = async () => {
-        try {
-            // Assuming you have an endpoint for this, or loop through IDs
-            // For now, let's just update UI optimistically
-            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-            // Implement bulk read API if available: await api.post('/api/teacher/notifications/read-all');
-        } catch (e) { console.error(e); }
-    };
+   
+const handleMarkAllRead = async () => {
+    try {
+        // 1. Update UI immediately (Optimistic)
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        
+        // 2. Tell Backend to save this change permanently
+        await api.post('/api/teacher/notifications/read-all');
+    } catch (e) { 
+        console.error("Failed to mark all as read", e); 
+    }
+};
 
     const handleDeleteNotification = async (e: React.MouseEvent, id: number) => {
-        e.stopPropagation();
+    e.stopPropagation(); // Prevents the 'read' click from firing
+    try {
+        // 1. Update UI immediately
         setNotifications(prev => prev.filter(n => n.id !== id));
-        // If you have a delete endpoint: await api.delete(`/api/teacher/notifications/${id}`);
-    };
+        
+        // 2. Tell Backend to delete it permanently
+        await api.delete(`/api/teacher/notifications/${id}`);
+    } catch (e) { 
+        console.error("Failed to delete notification", e); 
+    }
+};
 
     const handleNotificationClick = async (id: number) => {
-        // Optimistic update
+    try {
+        // Update UI
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-        try {
-            await api.post(`/api/teacher/notifications/${id}/read`);
-        } catch (e) { console.error(e); }
-    };
+        
+        // Update Backend
+        await api.post(`/api/teacher/notifications/${id}/read`);
+    } catch (e) { 
+        console.error("Failed to mark notification as read", e); 
+    }
+};
 
     const handleLogout = () => {
         setAnchorEl(null);
@@ -199,99 +219,193 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                 </AppBar>
 
                 {/* --- NOTIFICATIONS POPOVER --- */}
-                <Popover
-                    open={Boolean(notifAnchorEl)}
-                    anchorEl={notifAnchorEl}
-                    onClose={() => setNotifAnchorEl(null)}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    PaperProps={{ sx: { width: 380, maxHeight: 500, borderRadius: 3, mt: 1.5 } }}
-                >
-                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        <Typography variant="subtitle1" fontWeight={700}>Notifications</Typography>
-                        {notifications.some(n => !n.read) && (
-                            <Button size="small" onClick={handleMarkAllRead} startIcon={<CheckCircleIcon fontSize="inherit" />}>Mark all read</Button>
-                        )}
-                    </Box>
-                    <List sx={{ p: 0 }}>
-                        {notifications.length === 0 ? (
-                            <Box sx={{ p: 4, textAlign: 'center' }}>
-                                <Typography variant="body2" color="text.secondary">No new notifications</Typography>
-                            </Box>
-                        ) : (
-                            notifications.map((notif) => {
-                                const isSale = notif.message.toLowerCase().includes('purchased');
-                                const isReview = notif.message.toLowerCase().includes('review');
-                                return (
-                                    <ListItem 
-                                        key={notif.id} 
-                                        button 
-                                        onClick={() => handleNotificationClick(notif.id)}
-                                        sx={{ 
-                                            bgcolor: notif.read ? 'white' : '#F0F7FF',
-                                            '&:hover .delete-btn': { opacity: 1 },
-                                            borderBottom: '1px solid #f9f9f9'
-                                        }}
+<Popover
+    open={Boolean(notifAnchorEl)}
+    anchorEl={notifAnchorEl}
+    onClose={() => setNotifAnchorEl(null)}
+    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+    PaperProps={{ 
+        sx: { 
+            width: 380, 
+            maxHeight: 500, 
+            borderRadius: 3, 
+            mt: 1.5,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        } 
+    }}
+>
+    {/* Header */}
+    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
+        <Typography variant="subtitle1" fontWeight={700}>Notifications</Typography>
+        {notifications.some(n => !n.read) && (
+            <Button 
+                size="small" 
+                onClick={handleMarkAllRead} 
+                startIcon={<CheckCircleIcon fontSize="inherit" />}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+                Mark all read
+            </Button>
+        )}
+    </Box>
+
+    {/* Notification List */}
+    <List sx={{ p: 0 }}>
+        {notifications.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+                <NotificationsActiveIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">No new notifications</Typography>
+            </Box>
+        ) : (
+            notifications.map((notif) => {
+                const isSale = notif.message.toLowerCase().includes('purchased');
+                const isReview = notif.message.toLowerCase().includes('review');
+                
+                return (
+                    <ListItem 
+                        key={notif.id} 
+                        onClick={() => handleNotificationClick(notif.id)}
+                        sx={{ 
+                            cursor: 'pointer',
+                            bgcolor: notif.read ? 'white' : 'rgba(37, 99, 235, 0.04)',
+                            borderBottom: '1px solid #f9f9f9',
+                            pr: 8, // Space for the 'X' button
+                            transition: 'background-color 0.2s',
+                            '&:hover': { bgcolor: '#f8fafc' },
+                            '&:hover .delete-btn': { opacity: 1 } 
+                        }}
+                    >
+                        {/* Icon/Avatar */}
+                        <ListItemAvatar>
+                            <Avatar sx={{ 
+                                width: 40, height: 40, 
+                                bgcolor: isSale ? '#DCFCE7' : isReview ? '#FEF3C7' : '#E0F2FE',
+                                color: isSale ? '#166534' : isReview ? '#B45309' : '#0284C7'
+                            }}>
+                                {isSale ? <AttachMoneyIcon fontSize="small"/> : isReview ? <StarIcon fontSize="small"/> : <NotificationsActiveIcon fontSize="small"/>}
+                            </Avatar>
+                        </ListItemAvatar>
+
+                        {/* Text Content */}
+                        <ListItemText 
+                            primary={
+                                <Box display="flex" alignItems="center" gap={1}>
+                                    <Typography 
+                                        variant="body2" 
+                                        fontWeight={notif.read ? 400 : 600}
+                                        sx={{ color: '#1f2937', lineHeight: 1.4 }}
                                     >
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ 
-                                                width: 40, height: 40, 
-                                                bgcolor: isSale ? '#DCFCE7' : isReview ? '#FEF3C7' : '#E0F2FE',
-                                                color: isSale ? '#166534' : isReview ? '#B45309' : '#0284C7'
-                                            }}>
-                                                {isSale ? <AttachMoneyIcon fontSize="small"/> : isReview ? <StarIcon fontSize="small"/> : <NotificationsActiveIcon fontSize="small"/>}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText 
-                                            primary={
-                                                <Box display="flex" alignItems="center" gap={1}>
-                                                    <Typography variant="body2" fontWeight={notif.read ? 400 : 600}>{notif.message}</Typography>
-                                                    {!notif.read && <FiberManualRecordIcon sx={{ fontSize: 10, color: theme.palette.primary.main }} />}
-                                                </Box>
-                                            }
-                                            secondary={<Typography variant="caption" color="text.secondary">{getTimeAgo(notif.createdAt)}</Typography>}
-                                        />
-                                        <Tooltip title="Dismiss">
-                                            <IconButton 
-                                                className="delete-btn" size="small" 
-                                                onClick={(e) => handleDeleteNotification(e, notif.id)}
-                                                sx={{ opacity: 0, transition: 'opacity 0.2s', '&:hover': { color: 'error.main' } }}
-                                            >
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </ListItem>
-                                )
-                            })
-                        )}
-                    </List>
-                </Popover>
+                                        {notif.message}
+                                    </Typography>
+                                    {!notif.read && (
+                                        <FiberManualRecordIcon sx={{ fontSize: 10, color: '#2563EB' }} />
+                                    )}
+                                </Box>
+                            }
+                            secondary={
+                                <Typography variant="caption" sx={{ color: '#9ca3af', mt: 0.5, display: 'block' }}>
+                                    {getTimeAgo(notif.createdAt)}
+                                </Typography>
+                            }
+                        />
+
+                        {/* Dismiss Button (The 'X') */}
+                        <ListItemSecondaryAction>
+                            <Tooltip title="Dismiss">
+                                 <IconButton 
+            className="delete-btn" 
+            size="small" 
+            onClick={(e) => handleDeleteNotification(e, notif.id)}
+            sx={{ 
+                // Visible on mobile, hover-only on desktop
+                opacity: { xs: 0.7, md: 0 }, 
+                transition: 'all 0.2s', 
+                color: '#9ca3af', // Subtle grey color
+                '&:hover': { 
+                    opacity: 1,
+                    color: 'error.main', 
+                    bgcolor: 'rgba(239, 68, 68, 0.08)' // Light red background on hover
+                } 
+            }}
+        >
+            <CloseIcon fontSize="small" />
+        </IconButton>
+                            </Tooltip>
+                        </ListItemSecondaryAction>
+                    </ListItem>
+                )
+            })
+        )}
+    </List>
+
+    {/* Footer */}
+    {notifications.length > 0 && (
+        <Box sx={{ p: 1.5, textAlign: 'center', borderTop: '1px solid #f0f0f0' }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                End of notifications
+            </Typography>
+        </Box>
+    )}
+</Popover>
 
                 {/* --- USER PROFILE MENU --- */}
-                <Menu 
-                    anchorEl={anchorEl} 
-                    open={Boolean(anchorEl)} 
-                    onClose={() => setAnchorEl(null)}
-                    PaperProps={{ sx: { minWidth: 200, mt: 1.5, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
-                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                >
-                    <Box sx={{ px: 2, py: 1.5 }}>
-                        <Typography variant="subtitle2" fontWeight={700}>{userProfile.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">{userProfile.email}</Typography>
-                    </Box>
-                    <Divider />
-                    <MenuItem onClick={handleProfileClick}>
-                        <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> Profile
-                    </MenuItem>
-                    <MenuItem onClick={handleProfileClick}>
-                        <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon> Settings
-                    </MenuItem>
-                    <Divider />
-                    <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-                        <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> Logout
-                    </MenuItem>
-                </Menu>
+<Menu 
+    anchorEl={anchorEl} 
+    open={Boolean(anchorEl)} 
+    onClose={() => setAnchorEl(null)}
+    PaperProps={{ sx: { minWidth: 200, mt: 1.5, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
+    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+>
+    <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="subtitle2" fontWeight={700}>
+            {userProfile.name}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+            {userProfile.email}
+        </Typography>
+    </Box>
+    <Divider />
+<MenuItem onClick={() => {
+        setAnchorEl(null);
+        navigate('/'); // Navigates to the main landing page
+    }}>
+        <ListItemIcon><HomeIcon fontSize="small" /></ListItemIcon> 
+        Home
+    </MenuItem>
+    {/* Profile Link */}
+    <MenuItem onClick={() => {
+        setAnchorEl(null);
+        navigate('/teacher/settings'); // Navigates to the route in your sidebar
+    }}>
+        <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> 
+        Profile
+    </MenuItem>
+
+    {/* Settings Link */}
+    <MenuItem onClick={() => {
+        setAnchorEl(null);
+        navigate('/teacher/settings'); // Navigates to the same settings route
+    }}>
+        <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon> 
+        Settings
+    </MenuItem>
+
+    <Divider />
+
+    {/* Logout Link */}
+    <MenuItem 
+        onClick={() => {
+            setAnchorEl(null);
+            handleLogout(); // Ensure this function clears storage and navigates to login
+        }} 
+        sx={{ color: 'error.main' }}
+    >
+        <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> 
+        Logout
+    </MenuItem>
+</Menu>
 
                 {/* --- CONTENT AREA --- */}
                 <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1, overflowX: 'hidden' }}>
