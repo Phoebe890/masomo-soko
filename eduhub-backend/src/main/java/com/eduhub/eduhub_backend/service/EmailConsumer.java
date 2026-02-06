@@ -30,7 +30,7 @@ public class EmailConsumer {
             message.setSubject(emailRequest.getSubject());
             message.setText(emailRequest.getBody());
             
-            message.setFrom("Masomo Soko <chey45634@gmail.com>");
+            message.setFrom("chey45634@gmail.com>");
 
             mailSender.send(message);
             logger.info("Email successfully sent to: {}", emailRequest.getTo());
