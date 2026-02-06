@@ -5,7 +5,7 @@ import {
     IconButton, Avatar 
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import logoIcon from '@/assets/logo-icon.svg';
 // --- ICONS ---
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -61,7 +61,7 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
         <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            height: '100%', 
+            height: '100vh', 
             p: 2,
             // Darker Blue Gradient
             background: 'linear-gradient(180deg, #2563EB 0%, #1e40af 100%)', 
@@ -74,53 +74,56 @@ const TeacherSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, selectedR
                 {`@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');`}
             </style>
 
-            {/* --- HEADER: LOGO + CLOSE BUTTON --- */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 3, mb: 1 }}>
-                <Box 
-                    onClick={handleHomeClick}
-                    sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1.5, 
-                        cursor: 'pointer',
-                        '&:hover': { opacity: 0.9 }
-                    }}
-                >
-                    {/* School Icon */}
-                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', width: 42, height: 42 }}>
-                        <SchoolIcon fontSize="medium" />
-                    </Avatar>
-                    
-                    {/* Masomo Soko Text */}
-                    <Typography 
-                        variant="h5" 
-                        sx={{ 
-                            fontFamily: "'Chewy', cursive", 
-                            fontSize: '1.6rem',
-                            letterSpacing: '0.5px',
-                            lineHeight: 1
-                        }}
-                    >
-                        Masomo Soko.
-                    </Typography>
-                </Box>
+           {/* --- HEADER: LOGO (COMPACT VERSION) --- */}
+<Box sx={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    position: 'relative',
+    px: 1, 
+    py: 1.5, // Reduced from 4 to 1.5
+    mb: 0     // Removed margin-bottom
+}}>
+    <Box 
+        onClick={handleHomeClick}
+        sx={{ 
+            cursor: 'pointer',
+            transition: 'transform 0.2s ease',
+            '&:hover': { transform: 'scale(1.05)' }
+        }}
+    >
+        <Box 
+            component="img"
+            src={logoIcon}
+            alt="Masomo Soko"
+            sx={{ 
+                height: 50, // Reduced from 60 to 50
+                width: 50,
+                objectFit: 'contain'
+            }}
+        />
+    </Box>
 
-                {/* Mobile Close Button */}
-                {isMobile && (
-                    <IconButton 
-                        onClick={onClose} 
-                        sx={{ 
-                            color: 'rgba(255,255,255,0.9)', 
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' } 
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                )}
-            </Box>
+    {isMobile && (
+        <IconButton 
+            onClick={onClose} 
+            sx={{ position: 'absolute', right: 8, top: 12, color: 'rgba(255,255,255,0.8)' }}
+        >
+            <CloseIcon />
+        </IconButton>
+    )}
+</Box>
 
             {/* --- NAVIGATION LIST --- */}
-            <List sx={{ flexGrow: 1 }}>
+           <List sx={{ 
+    flexGrow: 1, 
+    overflowY: 'auto', // Allows scrolling if menu is too long
+    pr: 1,             // Space for the scrollbar
+    // Hide scrollbar for Chrome/Safari/Firefox but keep functionality
+    '&::-webkit-scrollbar': { display: 'none' },
+    msOverflowStyle: 'none',
+    scrollbarWidth: 'none',
+}}>
                 {menuItems.map((item) => {
                     const isActive = location.pathname === item.path || selectedRoute === item.path;
                     

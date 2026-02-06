@@ -8,7 +8,7 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { api } from '@/api/axios';
-
+import logo from '@/assets/logo.svg';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -139,21 +139,17 @@ const Header: React.FC = () => {
               </IconButton>
             )}
             
-            <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                    fontFamily: "'Chewy', cursive !important", // ADDED !important to override defaults
-                    fontWeight: 400, 
-                    color: '#ea580c', 
-                    fontSize: { xs: '1.6rem', md: '2rem' },
-                    letterSpacing: '-0.5px',
-                    lineHeight: 1,
-                }}
-              >
-                Masomo Soko.
-              </Typography>
-            </Box>
+           <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
+  <img 
+    src={logo} 
+    alt="Masomo Soko" 
+    style={{ 
+      height: '45px', // Adjust this to fit your 70px navbar
+      width: 'auto',
+      display: 'block'
+    }} 
+  />
+</Box>
           </Box>
 
           {/* --- CENTER: DESKTOP SEARCH --- */}
@@ -252,26 +248,38 @@ const Header: React.FC = () => {
           </Box>
         </Toolbar>
 
-        {/* --- MOBILE DRAWER (RESTORED FULL LIST) --- */}
-        <Drawer
-          anchor="left" 
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
-        >
-          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
-            <Typography 
-                variant="h6" 
-                sx={{ 
-                    fontFamily: "'Chewy', cursive", 
-                    color: '#ea580c', 
-                    fontSize: '1.6rem' 
-                }}
-            >
-                Masomo Soko.
-            </Typography>
-            <IconButton onClick={() => setDrawerOpen(false)}><CloseIcon sx={{ color: charcoal }} /></IconButton>
-          </Box>
+       {/* --- MOBILE DRAWER --- */}
+<Drawer
+  anchor="left" 
+  open={drawerOpen}
+  onClose={() => setDrawerOpen(false)}
+  PaperProps={{ sx: { width: '85%', maxWidth: 300 } }}
+>
+  <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee' }}>
+    
+    {/* --- NEW LOGO FOR DRAWER --- */}
+    <Box 
+      component={RouterLink} 
+      to="/" 
+      onClick={() => setDrawerOpen(false)} // Closes drawer when navigating home
+      sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+    >
+      <Box 
+        component="img"
+        src={logo} // This is the logo you imported at the top
+        alt="Masomo Soko"
+        sx={{ 
+          height: 40, // Height for mobile drawer (slightly smaller than navbar)
+          width: 'auto',
+          objectFit: 'contain' 
+        }}
+      />
+    </Box>
+
+    <IconButton onClick={() => setDrawerOpen(false)}>
+      <CloseIcon sx={{ color: charcoal }} />
+    </IconButton>
+  </Box>
 
           <Box sx={{ p: 2 }}>
             <List>

@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import TeacherSidebar from './TeacherSidebar';
-
+import logoIcon from '@/assets/logo-icon.svg';
 // Icons
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -167,55 +167,104 @@ const handleMarkAllRead = async () => {
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` }, display: 'flex', flexDirection: 'column' }}>
                 
                 <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E5E7EB', color: '#1F2937' }}>
-                    <Toolbar sx={{ justifyContent: 'space-between' }}>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <IconButton 
-                                onClick={() => setSidebarOpen(true)} 
-                                sx={{ display: { md: 'none' }, color: '#374151' }}
-                            >
-                                <MenuIcon />
-                            </IconButton>
-                            <Typography variant="h6" fontWeight={800} noWrap sx={{ color: '#111827' }}>
-                                {title || 'Instructor Dashboard'}
-                            </Typography>
-                        </Box>
+                   <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 3 } }}>
+    
+    {/* --- LEFT SIDE: MENU + MOBILE LOGO + TITLE --- */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+        {/* Hamburger Menu (Mobile Only) */}
+        <IconButton 
+            onClick={() => setSidebarOpen(true)} 
+            sx={{ display: { md: 'none' }, color: '#374151', ml: -1 }}
+        >
+            <MenuIcon />
+        </IconButton>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            
-                            {/* --- BELL ICON --- */}
-                            <IconButton onClick={(e) => setNotifAnchorEl(e.currentTarget)}>
-                                <Badge badgeContent={unreadCount} color="error">
-                                    <NotificationsNoneIcon />
-                                </Badge>
-                            </IconButton>
+        {/* MOBILE LOGO (Visible only on small screens) */}
+        <Box 
+            onClick={() => navigate('/')}
+            sx={{ 
+                display: { xs: 'flex', md: 'none' }, 
+                alignItems: 'center',
+                cursor: 'pointer'
+            }}
+        >
+            <Box 
+                component="img"
+                src={logoIcon}
+                alt="Logo"
+                sx={{ height: 32, width: 'auto' }}
+            />
+        </Box>
 
-                            {/* --- USER PROFILE DROPDOWN TRIGGER --- */}
-                            <Box 
-                                onClick={(e) => setAnchorEl(e.currentTarget)}
-                                sx={{ 
-                                    display: 'flex', alignItems: 'center', gap: 1.5, 
-                                    cursor: 'pointer', p: 0.5, pr: 1.5, borderRadius: 4,
-                                    '&:hover': { bgcolor: '#F3F4F6' }
-                                }}
-                            >
-                                <Avatar 
-                                    src={getAvatarSrc(userProfile.profilePic)}
-                                    sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36, fontSize: '0.9rem' }}
-                                >
-                                    {userProfile.name.charAt(0).toUpperCase()}
-                                </Avatar>
-                                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                                    <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2}>
-                                        {userProfile.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Instructor
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Box>
-                    </Toolbar>
+        {/* DASHBOARD TITLE */}
+        <Typography 
+            variant="h6" 
+            fontWeight={800} 
+            noWrap 
+            sx={{ 
+                color: '#111827', 
+                fontSize: { xs: '0.95rem', md: '1.25rem' },
+                letterSpacing: '-0.5px'
+            }}
+        >
+            {title || 'Instructor Dashboard'}
+        </Typography>
+    </Box>
+
+    {/* --- RIGHT SIDE: NOTIFICATIONS + PROFILE --- */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 2 } }}>
+        
+        {/* Notification Bell */}
+        <IconButton 
+            onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+            sx={{ color: '#6B7280', '&:hover': { color: '#2563EB' } }}
+        >
+            <Badge badgeContent={unreadCount} color="error">
+                <NotificationsNoneIcon />
+            </Badge>
+        </IconButton>
+
+        {/* Vertical Divider (Desktop Only) */}
+        <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 24, alignSelf: 'center', display: { xs: 'none', md: 'block' } }} />
+
+        {/* User Profile Section */}
+        <Box 
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5, 
+                cursor: 'pointer', 
+                p: 0.5, 
+                borderRadius: 2,
+                transition: 'all 0.2s',
+                '&:hover': { bgcolor: '#F3F4F6' }
+            }}
+        >
+            <Avatar 
+                src={getAvatarSrc(userProfile.profilePic)}
+                sx={{ 
+                    bgcolor: theme.palette.primary.main, 
+                    width: { xs: 32, md: 36 }, 
+                    height: { xs: 32, md: 36 }, 
+                    fontSize: '0.85rem',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+            >
+                {userProfile.name.charAt(0).toUpperCase()}
+            </Avatar>
+            
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="subtitle2" fontWeight={700} color="#111827" lineHeight={1.2}>
+                    {userProfile.name}
+                </Typography>
+                <Typography variant="caption" color="#6B7280" fontWeight={500}>
+                    Instructor
+                </Typography>
+            </Box>
+        </Box>
+    </Box>
+</Toolbar>
                 </AppBar>
 
                 {/* --- NOTIFICATIONS POPOVER --- */}

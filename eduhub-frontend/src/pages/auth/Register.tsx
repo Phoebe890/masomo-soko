@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLoading } from '../../context/LoadingContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { api } from '@/api/axios'; 
-
+import logoIcon from '@/assets/logo-icon.svg';
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -119,7 +119,7 @@ const Register: React.FC = () => {
           >
             {/* LEFT SIDE: FORM */}
             <Grid item xs={12} md={6}>
-              <Box sx={{ maxWidth: '440px', mx: { xs: 'auto', md: '0' } }}>
+              <Box sx={{ maxWidth: '440px', mx: 'auto' }}>
                 <AnimatePresence mode="wait">
                   <motion.div 
                     key={formData.role} 
@@ -128,15 +128,38 @@ const Register: React.FC = () => {
                     exit={{ opacity: 0, y: -10 }} 
                     transition={{ duration: 0.3 }}
                   >
+                   {/* --- CHANGE 2: ADD THE LOGO ICON HERE --- */}
+        <Box 
+          component={RouterLink} 
+          to="/"
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', // Centers logo horizontally
+            mb: { xs: 3, md: 1 },    // Small gap on desktop, larger on mobile
+            textDecoration: 'none'
+          }}
+        >
+          <Box 
+            component="img"
+            src={logoIcon}
+            alt="Masomo Soko"
+            sx={{ 
+              height: { xs: 50, md: 70 }, 
+              width: 'auto',
+              objectFit: 'contain'
+            }}
+          />
+        </Box>
+  
                     <Typography 
                       variant="h3" 
                       fontWeight={800} 
                       gutterBottom 
-                      sx={{ color: '#1a1b1d', fontSize: { xs: '2.2rem', md: '2.5rem' }, lineHeight: 1.1 }}
+                      sx={{ color: '#1a1b1d', fontSize: { xs: '2.2rem', md: '2.5rem' }, lineHeight: 1.1 ,textAlign: 'center'}}
                     >
                       Sign up as a {formData.role === 'teacher' ? 'Teacher' : 'Student'}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: '1rem' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: '1rem', textAlign: 'center' }}>
                       {formData.role === 'teacher' 
                         ? 'Start your journey to financial freedom.' 
                         : 'Join thousands of students mastering their coursework.'}

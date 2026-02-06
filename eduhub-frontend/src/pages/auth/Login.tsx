@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { useLoading } from '../../context/LoadingContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { api } from '@/api/axios';
-
+import logoIcon from '@/assets/logo-icon.svg'; // --- IMPORT LOGO ---
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -98,8 +98,31 @@ const Login: React.FC = () => {
           >
             {/* LEFT SIDE: FORM */}
             <Grid item xs={12} md={6}>
-              <Box sx={{ maxWidth: '420px', mx: { xs: 'auto', md: '0' } }}>
+              <Box sx={{ maxWidth: '420px', mx: 'auto'  }}>
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                    {/* --- ADD THE LOGO ICON HERE --- */}
+      <Box 
+        component={RouterLink} 
+        to="/"
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center',
+           mb: { xs: 3, md: 1 },// Space between icon and "Welcome back"
+          textDecoration: 'none'
+        }}
+      >
+        <Box 
+          component="img"
+          src={logoIcon}
+          alt="Masomo Soko"
+          sx={{ 
+            height: { xs: 60, md: 70 }, // 60px on mobile, 70px on desktop
+            width: 'auto',
+            objectFit: 'contain'
+          }}
+        />
+      </Box>
+      {/* --- END OF LOGO ICON --- */}
                   <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: '#1a1b1d', fontSize: { xs: '2.2rem', md: '2.8rem' }, lineHeight: 1.1 }}>
                     Welcome back
                   </Typography>

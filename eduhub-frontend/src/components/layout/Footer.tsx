@@ -18,7 +18,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 // --- IMPORT LOGO ---
-import logo from '../../assets/logo.png'; 
+import logo from '../../assets/logo.svg'; 
 
 const Footer: React.FC = () => {
   // Styles based on the image

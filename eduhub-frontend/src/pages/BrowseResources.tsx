@@ -5,8 +5,8 @@ import {
   useTheme, useMediaQuery, Accordion, AccordionSummary, AccordionDetails, 
   FormControlLabel, Radio, RadioGroup, Pagination, Stack, Rating, InputAdornment, CardMedia
 } from '@mui/material';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import TuneIcon from '@mui/icons-material/Tune';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import SearchIcon from '@mui/icons-material/Search';
 import SchoolIcon from '@mui/icons-material/School';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -140,9 +140,12 @@ const BrowseResources = () => {
             borderBottom: `1px solid ${BORDER_COLOR}` 
         }}
     >
-      <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, minHeight: 48 }}>
-        <Typography fontWeight={700} sx={{ color: TEXT_DARK, fontSize: '0.95rem' }}>{title}</Typography>
-      </AccordionSummary>
+      <AccordionSummary 
+  expandIcon={<KeyboardArrowDownIcon sx={{ color: theme.palette.primary.main }} />} 
+  sx={{ px: 0, minHeight: 48 }}
+>
+  <Typography fontWeight={700} sx={{ color: TEXT_DARK, fontSize: '0.95rem' }}>{title}</Typography>
+</AccordionSummary>
       <AccordionDetails sx={{ px: 0, pb: 2, pt: 0 }}>
         <RadioGroup value={value} onChange={(e) => onChange(e.target.value)}>
           <FormControlLabel 
@@ -204,35 +207,63 @@ const BrowseResources = () => {
                 }}
              />
            </Grid>
-           <Grid item xs={6} md={3}>
-              <FormControl fullWidth size="small">
-                <Select 
-                    value={sortBy} 
-                    onChange={(e) => setSortBy(e.target.value)}
-                    sx={{ borderRadius: 1, bgcolor: 'white', height: 48, fontWeight: 600, color: TEXT_DARK }}
-                    displayEmpty
-                >
-                    <MenuItem value="newest">Sort by: Newest</MenuItem>
-                    <MenuItem value="popular">Sort by: Popularity</MenuItem>
-                    <MenuItem value="rating">Sort by: Highest Rated</MenuItem>
-                    <MenuItem value="price_asc">Price: Low to High</MenuItem>
-                    <MenuItem value="price_desc">Price: High to Low</MenuItem>
-                </Select>
-              </FormControl>
-           </Grid>
-           {isMobile && (
-               <Grid item xs={6}>
-                   <Button 
-                    fullWidth 
-                    variant="outlined" 
-                    startIcon={<FilterListIcon />} 
-                    onClick={() => setSidebarOpen(true)}
-                    sx={{ height: 48, borderRadius: 1, borderColor: TEXT_DARK, color: TEXT_DARK }}
-                   >
-                       Filter ({filtered.length})
-                   </Button>
-               </Grid>
-           )}
+          <Grid item xs={6} md={3}>
+  <FormControl fullWidth size="small">
+    <Select 
+      value={sortBy} 
+      onChange={(e) => setSortBy(e.target.value)}
+      // This part adds the custom arrow and colors it blue
+      IconComponent={() => (
+        <KeyboardArrowDownIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
+      )}
+      sx={{ 
+        borderRadius: '8px', 
+        bgcolor: 'white', 
+        height: 48, 
+        fontWeight: 600, 
+        color: TEXT_DARK,
+        border: `1px solid ${BORDER_COLOR}`,
+        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, // Clean look
+        '&:hover': { border: `1px solid ${theme.palette.primary.main}` },
+        // Custom padding for the arrow
+        '& .MuiSelect-select': { pr: '40px !important' } 
+      }}
+      displayEmpty
+    >
+      {/* Updated the labels to match the "Sort: " style in your image */}
+      <MenuItem value="newest">Sort: Newest</MenuItem>
+      <MenuItem value="popular">Sort: Popularity</MenuItem>
+      <MenuItem value="rating">Sort: Highest Rated</MenuItem>
+      <MenuItem value="price_asc">Sort: Price Low to High</MenuItem>
+      <MenuItem value="price_desc">Sort: Price High to Low</MenuItem>
+    </Select>
+  </FormControl>
+</Grid>
+          {isMobile && (
+  <Grid item xs={6}>
+    <Button 
+      fullWidth 
+      variant="outlined" 
+      startIcon={<TuneIcon />} // New Icon
+      onClick={() => setSidebarOpen(true)}
+      sx={{ 
+        height: 48, 
+        borderRadius: '8px', // Matches the image
+        borderColor: theme.palette.primary.main, // Your brand blue
+        color: theme.palette.primary.main, // Your brand blue
+        textTransform: 'none',
+        fontWeight: 600,
+        fontSize: '1rem',
+        '&:hover': {
+          borderColor: theme.palette.primary.dark,
+          bgcolor: 'rgba(47, 107, 255, 0.04)', // Subtle blue tint on hover
+        }
+      }}
+    >
+      Filter
+    </Button>
+  </Grid>
+)}
         </Grid>
       </Box>
 
