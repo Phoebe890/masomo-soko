@@ -21,27 +21,26 @@ public class EmailConsumer {
     private JavaMailSender mailSender;
 
     // Listen for messages on the email_queue
-    @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
-    public void receiveMessage(EmailRequest emailRequest) {
-        try {
-            logger.info("Attempting to send email to: {}", emailRequest.getTo());
+   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
+public void receiveMessage(EmailRequest emailRequest) {
+    try {
+        logger.info("CONSUMER: Received request for: {}", emailRequest.getTo());
 
-            // 1. Create a MimeMessage instead of SimpleMailMessage
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-        // 2. Set the details
         helper.setTo(emailRequest.getTo());
         helper.setSubject(emailRequest.getSubject());
-        helper.setText(emailRequest.getBody(), false); // 'false' means it's plain text, not HTML
-
-        // 3. Set From with a Display Name
-        // Format: setFrom(email, display name)
+        helper.setText(emailRequest.getBody(), false);
         helper.setFrom("chey45634@gmail.com", "Masomo Soko");
 
         mailSender.send(mimeMessage);
-        logger.info("Email successfully sent to: {}", emailRequest.getTo());
-        } catch (Exception e) {
-        logger.error("Failed to send email to {}. Error: {}", emailRequest.getTo(), e.getMessage(), e);
+        logger.info("CONSUMER: Email successfully sent to: {}", emailRequest.getTo());
+    } catch (Exception e) {
+        // This is the most important log
+        logger.error("CONSUMER ERROR for {}: Type: {}, Message: {}", 
+                     emailRequest.getTo(), e.getClass().getSimpleName(), e.getMessage());
+        e.printStackTrace(); 
     }
-}}
+}
+}
