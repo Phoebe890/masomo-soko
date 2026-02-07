@@ -65,6 +65,7 @@ const TeacherSettings = () => {
         setSaving(true);
         try {
             const uploadData = new FormData();
+             uploadData.append('name', formData.displayName);
             uploadData.append('bio', formData.bio);
             uploadData.append('headline', formData.headline);
             uploadData.append('paymentNumber', formData.mpesaNumber);
@@ -156,8 +157,8 @@ const TeacherSettings = () => {
                         <Grid item xs={12}>
                             <TextField 
                                 fullWidth label="Display Name" name="displayName" 
-                                value={formData.displayName} disabled 
-                                helperText="Contact support to change your display name"
+                                value={formData.displayName} onChange={handleChange}
+                                helperText="This is how your name will appear to students"
                             />
                         </Grid>
                         <Grid item xs={12}>

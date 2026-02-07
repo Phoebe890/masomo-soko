@@ -179,13 +179,14 @@ public class TeacherController {
     }
 
     // --- ONBOARDING ---
-    @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
+   @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
 public ResponseEntity<?> onboarding(
+        @RequestParam(value = "name", required = false) String name,        // ADDED
         @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
         @RequestParam(value = "headline", required = false) String headline,
-        @RequestParam("bio") String bio, // This line caused the error; ensure it matches frontend
-         @RequestParam("subjects") String subjectsJson,
-        @RequestParam("grades") String gradesJson,
+        @RequestParam(value = "bio", required = false) String bio,          // CHANGED TO OPTIONAL
+        @RequestParam(value = "subjects", required = false) String subjectsJson, // CHANGED TO OPTIONAL
+        @RequestParam(value = "grades", required = false) String gradesJson,     // CHANGED TO OPTIONAL
         @RequestParam(value = "paymentNumber", required = false) String paymentNumber,
         @AuthenticationPrincipal UserDetails userDetails) {
     try {
@@ -195,29 +196,35 @@ public ResponseEntity<?> onboarding(
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2. CHANGE ROLE TO TEACHER (CRITICAL FIX FOR 403)
-        // This ensures that after onboarding, the user has permission to view the dashboard
+        // --- NEW LOGIC FOR NAME CHANGE ---
+        if (name != null && !name.trim().isEmpty()) {
+            user.setName(name);
+        }
+
+        // --- YOUR EXISTING ROLE LOGIC (KEPT) ---
         user.setRole("TEACHER"); 
         userRepository.save(user);
 
-        // 3. GET OR CREATE PROFILE
+        // --- YOUR EXISTING PROFILE LOGIC (KEPT) ---
         TeacherProfile profile = getOrCreateProfile(user);
 
-        // 4. PARSE SUBJECTS AND GRADES (KEEP YOUR EXISTING LOGIC)
+        // --- YOUR EXISTING JSON PARSING LOGIC (KEPT & PROTECTED) ---
         ObjectMapper mapper = new ObjectMapper();
         List<String> subjects = new ArrayList<>();
-        try { 
-            if(subjectsJson != null && !subjectsJson.isEmpty()) 
+        if(subjectsJson != null && !subjectsJson.isEmpty()) {
+            try { 
                 subjects = mapper.readValue(subjectsJson, new TypeReference<List<String>>(){}); 
-        } catch(Exception e){ System.err.println("Error parsing subjects"); }
+            } catch(Exception e){ System.err.println("Error parsing subjects"); }
+        }
         
         List<String> grades = new ArrayList<>();
-        try { 
-            if(gradesJson != null && !gradesJson.isEmpty()) 
+        if(gradesJson != null && !gradesJson.isEmpty()) {
+            try { 
                 grades = mapper.readValue(gradesJson, new TypeReference<List<String>>(){}); 
-        } catch(Exception e){ System.err.println("Error parsing grades"); }
+            } catch(Exception e){ System.err.println("Error parsing grades"); }
+        }
 
-        // 5. UPDATE PROFILE FIELDS
+        // --- YOUR EXISTING FIELD UPDATES (KEPT) ---
         profile.setBio(bio);
         profile.setHeadline(headline);
         profile.setSubjects(subjects);
@@ -227,7 +234,7 @@ public ResponseEntity<?> onboarding(
             profile.setPaymentNumber(paymentNumber);
         }
 
-        // 6. HANDLE IMAGE UPLOAD
+        // --- YOUR EXISTING IMAGE UPLOAD LOGIC (KEPT) ---
         if (profilePic != null && !profilePic.isEmpty()) {
             Map uploadResult = fileUploadService.uploadFile(profilePic);
             profile.setProfilePicPath((String) uploadResult.get("secure_url"));
@@ -235,14 +242,12 @@ public ResponseEntity<?> onboarding(
 
         teacherProfileRepository.save(profile);
 
-        // Return a JSON object instead of a string
         return ResponseEntity.ok(profile);
     } catch (Exception e) {
-        e.printStackTrace(); // Logs the error in your terminal
+        e.printStackTrace(); 
         return ResponseEntity.status(500).body("Failed: " + e.getMessage());
     }
 }
-
    // --- GET SETTINGS ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {

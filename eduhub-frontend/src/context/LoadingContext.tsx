@@ -1,49 +1,81 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Backdrop, CircularProgress } from '@mui/material';
+import { Backdrop, Box, keyframes } from '@mui/material';
 
-// 1. Define the Context Type
+// Faster rotation for the "oval" effect
+const rotate = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
 interface LoadingContextType {
-    isLoading: boolean;
-    startLoading: () => void;
-    stopLoading: () => void;
+  isLoading: boolean;
+  startLoading: () => void;
+  stopLoading: () => void;
 }
 
-// 2. Create the Context
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
-// 3. Create the Provider (Wrapper)
 export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-    const startLoading = () => setIsLoading(true);
-    const stopLoading = () => setIsLoading(false);
+  const startLoading = () => setIsLoading(true);
+  const stopLoading = () => setIsLoading(false);
 
-    return (
-        <LoadingContext.Provider value={{ isLoading, startLoading, stopLoading }}>
-            {children}
+  // Balanced thickness: Adjusted radii so they are closer together 
+  // and lengthened the arc so the gaps are smaller.
+  const SleekTaperedArc = () => (
+    <path
+      d="M 50 10 
+         A 40 40 0 0 1 85 75 
+         A 35 40 0 0 0 50 10 Z" 
+      fill="#032966"
+    />
+  );
+
+  return (
+    <LoadingContext.Provider value={{ isLoading, startLoading, stopLoading }}>
+      {children}
+
+      <Backdrop
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 9999,
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        }}
+        open={isLoading}
+      >
+        <Box
+          sx={{
+            width: 70,
+            height: 70,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Spun up to 0.5s for a high-performance "whirring" feel
+            animation: `${rotate} 0.55s linear infinite`, 
+          }}
+        >
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            {/* Top Arc */}
+            <g>
+              <SleekTaperedArc />
+            </g>
             
-            {/* --- SIMPLE GLOBAL LOADER --- */}
-            <Backdrop
-                sx={{
-                    // High z-index to sit on top of everything
-                    zIndex: (theme) => theme.zIndex.drawer + 9999,
-                    // Simple transparent black background (standard dimming)
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)', 
-                    color: '#fff',
-                }}
-                open={isLoading}
-            >
-                <CircularProgress color="primary" size={60} thickness={4} />
-            </Backdrop>
-        </LoadingContext.Provider>
-    );
+            {/* Bottom Arc - Rotated 180deg. 
+                Longer arcs mean the gaps between them are now much tighter. */}
+            <g transform="rotate(180 50 50)">
+              <SleekTaperedArc />
+            </g>
+          </svg>
+        </Box>
+      </Backdrop>
+    </LoadingContext.Provider>
+  );
 };
 
-// 4. Create a custom hook for easy usage
 export const useLoading = () => {
-    const context = useContext(LoadingContext);
-    if (!context) {
-        throw new Error('useLoading must be used within a LoadingProvider');
-    }
-    return context;
+  const context = useContext(LoadingContext);
+  if (!context) {
+    throw new Error('useLoading must be used within a LoadingProvider');
+  }
+  return context;
 };

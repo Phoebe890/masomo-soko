@@ -14,8 +14,8 @@ import logoIcon from '@/assets/logo-icon.svg';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'; 
-import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+//import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined'; 
+//import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import DashboardIcon from '@mui/icons-material/Dashboard'; 
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -212,8 +212,8 @@ const Header: React.FC = () => {
                 {!isMobile && (
                   <>
                      {isTeacher && <Button component={RouterLink} to="/dashboard/teacher/upload-first-resource" sx={styles.navLink}>Teach</Button>}
-                     <IconButton component={RouterLink} to="/cart" size="small"><ShoppingCartOutlinedIcon /></IconButton>
-                     <IconButton size="small"><Badge color="error" variant="dot"><NotificationsNoneOutlinedIcon /></Badge></IconButton>
+                    {/* <IconButton component={RouterLink} to="/cart" size="small"><ShoppingCartOutlinedIcon /></IconButton>
+                     <IconButton size="small"><Badge color="error" variant="dot"><NotificationsNoneOutlinedIcon /></Badge></IconButton>*/}
                   </>
                 )}
                 <IconButton onClick={handleAvatarClick} size="small" sx={{ ml: 1, p: 0.5 }}>
