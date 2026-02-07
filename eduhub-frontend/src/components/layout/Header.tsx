@@ -9,6 +9,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { api } from '@/api/axios';
 import logo from '@/assets/logo.svg';
+import logoIcon from '@/assets/logo-icon.svg';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -141,10 +142,10 @@ const Header: React.FC = () => {
             
            <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center' }}>
   <img 
-    src={logo} 
+     src={isMobile ? logoIcon : logo}
     alt="Masomo Soko" 
     style={{ 
-      height: '45px', // Adjust this to fit your 70px navbar
+     height: isMobile ? '32px' : '45px', // Adjust this to fit your 70px navbar
       width: 'auto',
       display: 'block'
     }} 
@@ -266,7 +267,7 @@ const Header: React.FC = () => {
     >
       <Box 
         component="img"
-        src={logo} // This is the logo you imported at the top
+         src={isMobile ? logoIcon : logo} // This is the logo you imported at the top
         alt="Masomo Soko"
         sx={{ 
           height: 40, // Height for mobile drawer (slightly smaller than navbar)
