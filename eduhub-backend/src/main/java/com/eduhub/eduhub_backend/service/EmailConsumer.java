@@ -9,7 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
+import jakarta.mail.internet.MimeMessage; // Import this
+import org.springframework.mail.javamail.MimeMessageHelper; // Import this
 @Service
 public class EmailConsumer {
 
@@ -25,18 +26,22 @@ public class EmailConsumer {
         try {
             logger.info("Attempting to send email to: {}", emailRequest.getTo());
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(emailRequest.getTo());
-            message.setSubject(emailRequest.getSubject());
-            message.setText(emailRequest.getBody());
-            
-            message.setFrom("chey45634@gmail.com>");
+            // 1. Create a MimeMessage instead of SimpleMailMessage
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-            mailSender.send(message);
-            logger.info("Email successfully sent to: {}", emailRequest.getTo());
+        // 2. Set the details
+        helper.setTo(emailRequest.getTo());
+        helper.setSubject(emailRequest.getSubject());
+        helper.setText(emailRequest.getBody(), false); // 'false' means it's plain text, not HTML
+
+        // 3. Set From with a Display Name
+        // Format: setFrom(email, display name)
+        helper.setFrom("chey45634@gmail.com", "Masomo Soko");
+
+        mailSender.send(mimeMessage);
+        logger.info("Email successfully sent to: {}", emailRequest.getTo());
         } catch (Exception e) {
-            // Log the full error stack trace for effective debugging
-            logger.error("Failed to send email to {}. Error: {}", emailRequest.getTo(), e.getMessage(), e);
-        }
+        logger.error("Failed to send email to {}. Error: {}", emailRequest.getTo(), e.getMessage(), e);
     }
-}
+}}
