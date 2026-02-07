@@ -102,7 +102,52 @@ const TeacherIllustration = () => (
     </svg>
   </Box>
 );
+const StatCounter = ({ end, label, color }: { end: number, label: string, color: string }) => {
+  const [count, setCount] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const element = document.getElementById('impact-stats');
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        if (rect.top <= window.innerHeight && rect.bottom >= 0) {
+          setHasStarted(true);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+    let start = 0;
+    const increment = end / 50; // Speed of counting
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 30);
+    return () => clearInterval(timer);
+  }, [hasStarted, end]);
+
+  return (
+    <Box>
+      <Typography variant="h2" fontWeight={900} sx={{ color, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
+        {count.toLocaleString()}+
+      </Typography>
+      <Typography variant="body2" fontWeight={700} sx={{ color: '#475569', textTransform: 'uppercase', letterSpacing: 1 }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+};
 const Home: React.FC = () => {
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -297,7 +342,108 @@ const Home: React.FC = () => {
           </Grid>
         </Container>
       </Box>
+{/* --- MISSION & IMPACT SECTION (FLIPPED LAYOUT) --- */}
+<Box id="impact-stats" sx={{ py: { xs: 10, md: 15 }, bgcolor: '#fff', overflow: 'hidden' }}>
+  <Container maxWidth="xl">
+    <Grid container spacing={10} alignItems="center">
+      
+      {/* LEFT COLUMN: TEXT & ANIMATED STATS */}
+      <Grid item xs={12} md={6}>
+        <Typography variant="overline" sx={{ color: '#ea580c', fontWeight: 800, letterSpacing: 2 }}>
+          OUR SHARED MISSION
+        </Typography>
+         <Typography variant="h2" fontWeight={800} sx={{ color: TEXT_DARK, mt: 1, fontSize: { xs: '2.2rem', md: '3rem' } }}>
+          The Bridge to <br/>Educational Success
+        </Typography>
+        <Typography variant="body1" sx={{ color: '#475569', fontSize: '1.2rem', mb: 6, lineHeight: 1.8, maxWidth: '550px' }}>
+          Geography should never dictate the quality of education. We provide a sustainable ecosystem where Kenya's best educators are fairly rewarded for their expertise, and every student accesses premium CBC and KCSE materials instantly.
+        </Typography>
+        
+        {/* ANIMATED STATS ROW */}
+        <Grid container spacing={4} sx={{ mb: 6 }}>
+          <Grid item xs={6}>
+            <StatCounter end={500} label="Resources Sold" color="#062a4e" />
+          </Grid>
+          <Grid item xs={6}>
+            <StatCounter end={200} label="Verified Teachers" color="#ea580c" />
+          </Grid>
+        </Grid>
 
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Button 
+            component={RouterLink} 
+            to="/about" 
+            variant="contained" 
+            sx={{ 
+              bgcolor: '#004180', 
+              px: 5, 
+              py: 2, 
+              borderRadius: 1, 
+              fontWeight: 800, 
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              '&:hover': { bgcolor: '#002d5a' }
+            }}
+          >
+            Learn Our Story
+          </Button>
+          <Button 
+            component={RouterLink} 
+            to="/register" 
+            variant="outlined" 
+            sx={{ 
+              px: 5, 
+              py: 2, 
+              borderRadius: 1, 
+              fontWeight: 800, 
+              textTransform: 'none', 
+              fontSize: '1.1rem',
+              color: '#004180',
+              borderColor: '#004180',
+              borderWidth: 2,
+              '&:hover': { borderWidth: 2, borderColor: '#004180', bgcolor: 'rgba(0, 65, 128, 0.05)' }
+            }}
+          >
+            Join the Community
+          </Button>
+        </Stack>
+      </Grid>
+
+      {/* RIGHT COLUMN: IMAGE (NO PEOPLE) */}
+      <Grid item xs={12} md={6}>
+        <Box sx={{ position: 'relative' }}>
+          {/* Decorative background block (moved to the right side) */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: -40, 
+            right: -40, 
+            width: '80%', 
+            height: '80%', 
+            bgcolor: 'rgba(0, 65, 128, 0.04)', 
+            borderRadius: 8, 
+            zIndex: 0 
+          }} />
+          
+          <CardMedia
+            component="img"
+            // Abstract Image: An artistic, high-quality open book/lit knowledge theme
+            image="https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=600&auto=format&fit=crop&q=60"
+            alt="Empowering Kenyan Education"
+            sx={{ 
+              borderRadius: '24px', 
+              height: { xs: 350, md: 550 },
+              objectFit: 'cover',
+              position: 'relative',
+              zIndex: 1,
+              boxShadow: '0 40px 80px rgba(0, 65, 128, 0.12)' 
+            }}
+          />
+        </Box>
+      </Grid>
+
+    </Grid>
+  </Container>
+</Box>
      {/* --- BROWSE CURRICULUM SECTION (CLEAN SPLIT DESIGN) --- */}
       <Container maxWidth="xl" sx={{ mt: { xs: 8, md: 10 }, mb: { xs: 8, md: 10 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5 }}>

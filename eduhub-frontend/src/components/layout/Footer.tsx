@@ -48,13 +48,16 @@ const Footer: React.FC = () => {
                 component={RouterLink} 
                 to="/"
                 sx={{ 
-                    display: 'inline-block', 
+                    display: 'inline-flex', 
                     bgcolor: 'white', 
-                    borderRadius: 2, 
-                    px: 2, 
-                    py: 1, 
+                    borderRadius: '8px', 
+                    px: 2.5, 
+                    py: 1.2, 
                     mb: 3,
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                     transition: 'transform 0.2s',
+      '&:hover': { transform: 'scale(1.02)' }
                 }}
             >
                 <Box 
@@ -62,7 +65,7 @@ const Footer: React.FC = () => {
                     src={logo} 
                     alt="Masomo Soko"
                     sx={{ 
-                        height: 45, 
+                        height: { xs: 45, md: 52 }, 
                         width: 'auto', 
                         objectFit: 'contain',
                         display: 'block' 
