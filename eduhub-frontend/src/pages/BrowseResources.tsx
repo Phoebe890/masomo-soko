@@ -14,13 +14,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/api/axios';
 
 // UPDATED: Constants for CBC Curriculum
-const CATEGORIES = ['Exams & Assessments', 'Notes', 'Schemes of Work', 'Project Guides', 'Revision Materials', 'CBA Tools'];
+const CATEGORIES = [
+  'Exams & Assessments', 'Notes', 'Schemes of Work', 
+  'Project Guides', 'Revision Materials', 'CBA Tools', 
+  'Books & Novels' // Added
+];;
 
 const LEVELS = [
   'Junior School (Gr 7-9)', 
   'Senior School (Gr 10-12)', 
   'Primary (Gr 1-6)', 
-  'KCSE / 8-4-4 (Legacy)'
+  'KCSE / 8-4-4 (Legacy)',
+  'General Audience / Books' // Added
 ];
 
 const CLASSES = [
@@ -30,17 +35,18 @@ const CLASSES = [
 ];
 
 const SUBJECTS = [
+  // Books & Authorship
+  'Literature / Novels', 'Fiction', 'Non-Fiction', 'Poetry', 'Set Books Analysis',
   // Common
-  'Mathematics', 'English', 'Kiswahili', 'Religious Education',
+  'Mathematics', 'English', 'Kiswahili', 'Religious Education (CRE/IRE/HRE)',
+  // Primary Specific
+  'Environmental Activities', 'Hygiene & Nutrition', 'Science & Technology',
   // Junior School Specific
   'Integrated Science', 'Social Studies', 'Pre-Technical Studies', 
-  'Agriculture & Nutrition', 'Creative Arts & Sports',
-  // Senior School - STEM Pathway
-  'Biology', 'Chemistry', 'Physics', 'Computer Studies', 'Agriculture', 'Home Science',
-  // Senior School - Social Sciences Pathway
-  'History & Citizenship', 'Geography', 'Business Studies', 'Economics',
-  // Senior School - Arts & Sports
-  'Visual Arts', 'Performing Arts', 'Music', 'Sports Science'
+  'Agriculture & Nutrition', 'Creative Arts & Sports', 'Health Education',
+  // Senior School
+  'Biology', 'Chemistry', 'Physics', 'Computer Science', 'History & Citizenship', 
+  'Geography', 'Business Studies', 'Home Science', 'Music', 'Performing Arts'
 ];
 
 const TERMS = ['Term 1', 'Term 2', 'Term 3'];

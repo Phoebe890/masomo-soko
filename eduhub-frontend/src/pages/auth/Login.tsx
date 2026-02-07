@@ -40,20 +40,24 @@ const Login: React.FC = () => {
     localStorage.setItem('email', data.email);
     localStorage.setItem('role', data.role);
     api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
-
-    setToast({ open: true, message: "Login Successful! Accessing your account...", severity: 'success' });
-
-    setTimeout(() => {
-         const userRole = data.role?.toUpperCase();
-         if (userRole === 'TEACHER') {
-             if (data.onboardingComplete === true) navigate('/dashboard/teacher');
-             else navigate('/dashboard/teacher/onboarding');
-         }
-         else if (userRole === 'STUDENT') navigate('/dashboard/student');
-         else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-         else navigate('/');
-    }, 1000);
-  };
+ const userRole = data.role?.toUpperCase();
+    if (userRole === 'TEACHER' && data.onboardingComplete !== true) {
+      localStorage.setItem('role', 'STUDENT'); 
+      setToast({ open: true, message: "Please complete your profile setup.", severity: 'success' });
+      setTimeout(() => navigate('/dashboard/teacher/onboarding'), 1000);
+  } else {
+      // If they are a student, admin, or a teacher who IS finished:
+      localStorage.setItem('role', data.role);
+      setToast({ open: true, message: "Login Successful!", severity: 'success' });
+      
+      setTimeout(() => {
+          if (userRole === 'TEACHER') navigate('/dashboard/teacher');
+          else if (userRole === 'STUDENT') navigate('/dashboard/student');
+          else if (userRole === 'ADMIN') navigate('/admin/dashboard');
+          else navigate('/');
+      }, 1000);
+  }
+};
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {

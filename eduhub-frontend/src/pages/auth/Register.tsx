@@ -44,22 +44,18 @@ const Register: React.FC = () => {
     localStorage.setItem('name', data.name);
     if(data.photoUrl) localStorage.setItem('photoUrl', data.photoUrl);
 
-    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-    
-    setToast({ open: true, message: "Account created successfully! Redirecting...", severity: 'success' });
+    const userRole = data.role?.toUpperCase();
 
-    setTimeout(() => {
-        const userRole = data.role?.toUpperCase();
-        if (userRole === 'TEACHER') {
-            if (data.onboardingComplete === true) navigate('/dashboard/teacher');
-            else navigate('/dashboard/teacher/onboarding');
-        }
-        else if (userRole === 'STUDENT') navigate('/dashboard/student');
-        else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-        else navigate('/');
-    }, 1500);
-  };
-
+  if (userRole === 'TEACHER') {
+      // Force them to be a 'STUDENT' in localStorage so the TeacherGuard kicks them out of the dashboard
+      localStorage.setItem('role', 'STUDENT'); 
+      setToast({ open: true, message: "Account created! Let's set up your teacher profile.", severity: 'success' });
+      setTimeout(() => navigate('/dashboard/teacher/onboarding'), 1500);
+  } else {
+      localStorage.setItem('role', data.role);
+      navigate('/dashboard/student');
+  }
+};
   const googleSignup = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();

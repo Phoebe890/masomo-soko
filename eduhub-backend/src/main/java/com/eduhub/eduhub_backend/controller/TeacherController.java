@@ -230,9 +230,26 @@ public ResponseEntity<?> onboarding(
         profile.setSubjects(subjects);
         profile.setGrades(grades);
         
-        if (paymentNumber != null && !paymentNumber.isEmpty()) {
-            profile.setPaymentNumber(paymentNumber);
-        }
+       if (paymentNumber != null && !paymentNumber.isEmpty()) {
+    // Safaricom Regex for Backend (Handles 07..., 7..., or 254...)
+    String safaricomRegex = "^(?:254|0)?(7(?:[0129][0-9]|4[0123568]|5[789]|6[89])|11[0-5])[0-9]{6}$";
+    
+    if (!paymentNumber.matches(safaricomRegex)) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                             .body("Error: Payouts only support Safaricom M-Pesa numbers.");
+    }
+
+    // STANDARDIZATION: Always save in the format 2547XXXXXXXX
+    String cleanNumber = paymentNumber.replaceAll("[^0-9]", ""); // Remove any weird characters
+    
+    if (cleanNumber.startsWith("0")) {
+        cleanNumber = "254" + cleanNumber.substring(1);
+    } else if (cleanNumber.length() == 9) {
+        cleanNumber = "254" + cleanNumber;
+    }
+    
+    profile.setPaymentNumber(cleanNumber);
+}
 
         // --- YOUR EXISTING IMAGE UPLOAD LOGIC (KEPT) ---
         if (profilePic != null && !profilePic.isEmpty()) {
@@ -280,6 +297,7 @@ public ResponseEntity<?> onboarding(
             
             if (profile != null) {
                 profileData.put("bio", profile.getBio());
+                 profileData.put("headline", profile.getHeadline());
                 profileData.put("subjects", profile.getSubjects());
                 profileData.put("grades", profile.getGrades());
                 profileData.put("paymentNumber", profile.getPaymentNumber());

@@ -75,33 +75,44 @@ const UploadFirstResource = () => {
                 </Box>
 
                 <Grid container spacing={4}>
+                    {/* LEFT COLUMN: FORM DETAILS */}
                     <Grid item xs={12} md={8}>
                         <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #E5E7EB' }}>
                             <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Resource Details</Typography>
+                            
                             <Grid container spacing={3}>
                                 <Grid item xs={12}>
                                     <TextField label="Title" name="title" fullWidth value={formData.title} onChange={handleChange} placeholder="e.g. Grade 9 Integrated Science Project" />
                                 </Grid>
-                                
+
+                                {/* CURRICULUM SELECTION */}
                                 <Grid item xs={12} md={6}>
                                     <TextField select label="Curriculum" name="curriculum" fullWidth value={formData.curriculum} onChange={handleChange}>
                                         <MenuItem value="CBC">CBC (Competency Based)</MenuItem>
                                         <MenuItem value="8-4-4">8-4-4 / KCSE (Legacy)</MenuItem>
                                         <MenuItem value="IGCSE">IGCSE</MenuItem>
+                                        <MenuItem value="General">General / Books & Novels</MenuItem>
                                     </TextField>
                                 </Grid>
-
+                                
+                                {/* GRADE / FORM SECTION */}
                                 <Grid item xs={12} md={6}>
                                     <TextField select label="Grade / Form" name="grade" fullWidth value={formData.grade} onChange={handleChange}>
-                                        <ListSubheader>Junior School</ListSubheader>
+                                        <ListSubheader>General</ListSubheader>
+                                        <MenuItem value="General Audience">General Audience (Books)</MenuItem>
+                                        <MenuItem value="All Grades">All Grades</MenuItem>
+                                        
+                                        <ListSubheader>Junior School (CBC)</ListSubheader>
                                         <MenuItem value="Grade 7">Grade 7</MenuItem>
                                         <MenuItem value="Grade 8">Grade 8</MenuItem>
                                         <MenuItem value="Grade 9">Grade 9</MenuItem>
-                                        <ListSubheader>Senior School</ListSubheader>
+                                        
+                                        <ListSubheader>Senior School (CBC)</ListSubheader>
                                         <MenuItem value="Grade 10">Grade 10</MenuItem>
                                         <MenuItem value="Grade 11">Grade 11</MenuItem>
                                         <MenuItem value="Grade 12">Grade 12</MenuItem>
-                                        <ListSubheader>Legacy System</ListSubheader>
+
+                                        <ListSubheader>Legacy System (8-4-4)</ListSubheader>
                                         <MenuItem value="Form 1">Form 1</MenuItem>
                                         <MenuItem value="Form 2">Form 2</MenuItem>
                                         <MenuItem value="Form 3">Form 3</MenuItem>
@@ -109,43 +120,61 @@ const UploadFirstResource = () => {
                                     </TextField>
                                 </Grid>
 
+                                {/* SUBJECT / LEARNING AREA SECTION */}
                                 <Grid item xs={12} md={12}>
                                     <TextField select label="Subject / Learning Area" name="subject" fullWidth value={formData.subject} onChange={handleChange}>
-                                        <ListSubheader>Core Subjects</ListSubheader>
-                                        <MenuItem value="Mathematics">Mathematics</MenuItem>
-                                        <MenuItem value="English">English</MenuItem>
-                                        <MenuItem value="Kiswahili">Kiswahili</MenuItem>
-                                        
-                                        <ListSubheader>Junior School</ListSubheader>
-                                        <MenuItem value="Integrated Science">Integrated Science (Bio/Chem/Phys)</MenuItem>
-                                        <MenuItem value="Social Studies">Social Studies (Hist/Geo/Cit)</MenuItem>
+                                        <ListSubheader sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Books & Creative Works</ListSubheader>
+                                        <MenuItem value="Literature">Literature / Novels</MenuItem>
+                                        <MenuItem value="Fiction">Fiction / Storybooks</MenuItem>
+                                        <MenuItem value="Non-Fiction">Non-Fiction / Biographies</MenuItem>
+                                        <MenuItem value="Poetry">Poetry & Anthologies</MenuItem>
+                                        <MenuItem value="Set Books">Set Books Analysis</MenuItem>
+
+                                        <ListSubheader sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Primary School (CBC)</ListSubheader>
+                                        <MenuItem value="Mathematics Primary">Mathematics</MenuItem>
+                                        <MenuItem value="English Primary">English Language / Literacy</MenuItem>
+                                        <MenuItem value="Kiswahili Primary">Kiswahili / Kusoma na Kuandika</MenuItem>
+                                        <MenuItem value="Environmental Activities">Environmental Activities</MenuItem>
+                                        <MenuItem value="Hygiene and Nutrition">Hygiene and Nutrition</MenuItem>
+                                        <MenuItem value="Religious Education">Religious Education (CRE/IRE/HRE)</MenuItem>
+                                        <MenuItem value="Science and Technology">Science and Technology</MenuItem>
+
+                                        <ListSubheader sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Junior School (CBC)</ListSubheader>
+                                        <MenuItem value="Integrated Science">Integrated Science</MenuItem>
+                                        <MenuItem value="Health Education">Health Education</MenuItem>
                                         <MenuItem value="Pre-Technical Studies">Pre-Technical Studies</MenuItem>
-                                        <MenuItem value="Agriculture">Agriculture & Nutrition</MenuItem>
-                                        <MenuItem value="Creative Arts">Creative Arts & Sports</MenuItem>
-                                        
-                                        <ListSubheader>Senior School - STEM</ListSubheader>
+                                        <MenuItem value="Social Studies">Social Studies</MenuItem>
+                                        <MenuItem value="Agriculture and Nutrition">Agriculture and Nutrition</MenuItem>
+                                        <MenuItem value="Creative Arts and Sports">Creative Arts and Sports</MenuItem>
+                                        <MenuItem value="Business Studies JS">Business Studies</MenuItem>
+                                        <MenuItem value="Computer Studies JS">Computer Studies</MenuItem>
+
+                                        <ListSubheader sx={{ bgcolor: '#f8fafc', fontWeight: 'bold' }}>Senior School (CBC Pathways)</ListSubheader>
                                         <MenuItem value="Biology">Biology</MenuItem>
                                         <MenuItem value="Chemistry">Chemistry</MenuItem>
                                         <MenuItem value="Physics">Physics</MenuItem>
-                                        <MenuItem value="Computer Studies">Computer Studies</MenuItem>
-                                        
-                                        <ListSubheader>Senior School - Humanities</ListSubheader>
-                                        <MenuItem value="History">History & Citizenship</MenuItem>
+                                        <MenuItem value="History and Citizenship">History and Citizenship</MenuItem>
                                         <MenuItem value="Geography">Geography</MenuItem>
-                                        <MenuItem value="Business Studies">Business Studies</MenuItem>
+                                        <MenuItem value="Business Studies Senior">Business Studies</MenuItem>
+                                        <MenuItem value="Home Science">Home Science</MenuItem>
+                                        <MenuItem value="Computer Science">Computer Science</MenuItem>
+                                        <MenuItem value="Media Studies">Media Studies</MenuItem>
+                                        <MenuItem value="Performing Arts">Performing Arts</MenuItem>
                                     </TextField>
                                 </Grid>
                                 
                                 <Grid item xs={12} md={6}>
                                     <TextField label="Price (KES)" name="price" type="number" fullWidth value={formData.price} onChange={handleChange} InputProps={{ startAdornment: <InputAdornment position="start">KES</InputAdornment> }} placeholder="0 for Free" />
                                 </Grid>
+
                                 <Grid item xs={12}>
-                                    <TextField label="Description" name="description" multiline rows={4} fullWidth value={formData.description} onChange={handleChange} placeholder="Describe the resource contents..." />
+                                    <TextField label="Description" name="description" multiline rows={4} fullWidth value={formData.description} onChange={handleChange} placeholder="Describe the content or provide a book summary..." />
                                 </Grid>
-                            </Grid>
+                            </Grid> {/* End of inner Grid container */}
                         </Paper>
                     </Grid>
 
+                    {/* RIGHT COLUMN: FILE UPLOAD & SUBMIT */}
                     <Grid item xs={12} md={4}>
                         <Stack spacing={3}>
                             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #E5E7EB' }}>
