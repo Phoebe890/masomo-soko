@@ -158,19 +158,21 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const slides = [
-    {
-      type: 'student',
-      image: heroImage1,
-      title: <>Master the <br/><span style={{ color: '#60a5fa' }}>CBC Curriculum</span></>,
-      subtitle: "Junior School (Grades 7–9) & Senior School (Grades 10–12). Download Notes, Projects, and KJSEA/KCSE Exams instantly.",
-    },
-    {
-      type: 'teacher',
-      image: heroImage2,
-      title: <>Turn Your Knowledge <br/><span style={{ color: ACCENT_ORANGE }}>Into Income</span></>,
-      subtitle: "Upload resources for STEM, Social Sciences, and Arts Pathways. Earn money every time a student downloads.",
-    }
-  ];
+  {
+    type: 'student',
+    // NEW UNSPLASH STUDENT IMAGE
+    image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1600&auto=format&fit=crop",
+    title: <>Master the <br/><span style={{ color: '#60a5fa' }}>CBC Curriculum</span></>,
+    subtitle: "Junior School (Grades 7–9) & Senior School (Grades 10–12). Download Notes, Projects, and KJSEA/KCSE Exams instantly.",
+  },
+  {
+    type: 'teacher',
+    // NEW UNSPLASH TEACHER IMAGE
+    image: "https://images.unsplash.com/photo-1610473068872-908afb1a7317?q=80&w=1600&auto=format&fit=crop",
+    title: <>Turn Your Knowledge <br/><span style={{ color: ACCENT_ORANGE }}>Into Income</span></>,
+    subtitle: "Upload resources for STEM, Social Sciences, and Arts Pathways. Earn money every time a student downloads.",
+  }
+];
 
   useEffect(() => {
     document.title = "Masomo Soko - Kenya's Best Education Marketplace";
@@ -240,27 +242,49 @@ const Home: React.FC = () => {
             {`@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`}
         </style>
         {slides.map((slide, index) => (
-          <Box
-            key={index}
-            sx={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${slide.image})`, 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center', // Reverted to center for local images
-              transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
-              opacity: currentSlide === index ? 1 : 0, 
-              transition: 'opacity 1.5s ease-in-out, transform 8s linear', 
-              zIndex: 0,
-            }}
-          />
-        ))}
-        {/* Dark overlay for readability */}
-        <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0.75) 100%)', zIndex: 1 }} />
+  <Box
+    key={index}
+    sx={{
+      position: 'absolute', inset: 0,
+      backgroundImage: `url(${slide.image})`, 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', // This ensures faces stay visible
+      transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
+      opacity: currentSlide === index ? 1 : 0, 
+      transition: 'opacity 1.5s ease-in-out, transform 8s linear', 
+      zIndex: 0,
+    }}
+  />
+))}
+
+{/* --- REINFORCED OVERLAY --- */}
+<Box 
+  sx={{ 
+    position: 'absolute', 
+    inset: 0, 
+    background: 'linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.6) 50%, rgba(15,23,42,0.9) 100%)', 
+    zIndex: 1 
+  }} 
+/>
 
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, textAlign: 'center', color: 'white', mt: 4 }}>
           {slides.map((slide, index) => (
              currentSlide === index && (
                 <Box key={index} sx={{ maxWidth: '900px', mx: 'auto', animation: 'fadeIn 0.8s ease-out' }}>
+                   <Typography 
+              variant="overline" 
+              sx={{ 
+                color: slide.type === 'student' ? '#60a5fa' : ACCENT_ORANGE, 
+                fontWeight: 900, 
+                letterSpacing: 4, // Spaced out for a premium look
+                fontSize: { xs: '0.75rem', md: '0.9rem' },
+                mb: 1,
+                display: 'block',
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+              }}
+            >
+              WELCOME TO MASOMO SOKO
+            </Typography>
                     <Typography variant="h1" fontWeight={800} sx={{ fontSize: { xs: '2.5rem', md: '4rem' }, lineHeight: 1.1, mb: 2, letterSpacing: '-1px', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
                       {slide.title}
                     </Typography>
