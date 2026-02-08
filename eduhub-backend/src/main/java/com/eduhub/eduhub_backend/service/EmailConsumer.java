@@ -32,7 +32,7 @@ public void receiveMessage(EmailRequest emailRequest) {
         helper.setTo(emailRequest.getTo());
         helper.setSubject(emailRequest.getSubject());
         helper.setText(emailRequest.getBody(), false);
-        helper.setFrom("chey45634@gmail.com", "Masomo Soko");
+        helper.setFrom("info@masomosoko.co.ke", "Masomo Soko");
 
         mailSender.send(mimeMessage);
         logger.info("CONSUMER: Email successfully sent to: {}", emailRequest.getTo());
