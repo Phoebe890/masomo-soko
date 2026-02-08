@@ -17,7 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.multipart.MultipartFile;
+import com.eduhub.eduhub_backend.service.FileUploadService;
+import org.springframework.web.multipart.MultipartFile;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -33,7 +35,7 @@ import java.util.stream.Collectors;
     allowedHeaders = "*"
 )
 public class StudentController {
-
+@Autowired private FileUploadService fileUploadService;
     @Autowired private UserRepository userRepository;
     @Autowired private TeacherResourceRepository teacherResourceRepository;
     @Autowired private PurchaseRepository purchaseRepository;
@@ -122,40 +124,61 @@ public ResponseEntity<?> purchaseResource(
     Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
     purchase.setPrice(resource.getPrice()); 
     purchaseRepository.save(purchase);
+// 2. CHECK IF RESOURCE IS FREE
+    boolean isFree = (resource.getPrice() == null || resource.getPrice() <= 0);
 
-    // 2. Create In-App Notification for Teacher
-    Notification notification = new Notification(
-            resource.getUser(),
-            "Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
-            LocalDateTime.now(),
-            false);
-    notificationRepository.save(notification);
-
-    // 3. SEND PROFESSIONAL EMAIL TO TEACHER
-    try {
-        String teacherEmail = resource.getUser().getEmail();
-        String teacherName = resource.getUser().getName();
-        String subject = "New Sale Alert! - Masomo Soko";
+    if (isFree) {
+        // --- FREE DOWNLOAD LOGIC ---
         
-        String body = "<h3>Hello " + teacherName + ",</h3>" +
-                      "<p>Congratulations! You have a new sale on <strong>Masomo Soko</strong>.</p>" +
-                      "<div style='background-color: #f9f9f9; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0;'>" +
-                      "  <strong>Resource:</strong> " + resource.getTitle() + "<br/>" +
-                      "  <strong>Buyer:</strong> " + student.getName() + "<br/>" +
-                      "  <strong>Amount:</strong> KES " + resource.getPrice() + "" +
-                      "</div>" +
-                      "<p>The funds have been credited to your account balance. Keep up the great work of empowering students!</p>";
+        // In-App Notification
+        notificationRepository.save(new Notification(
+                resource.getUser(),
+                "Student " + student.getName() + " added your free resource '" + resource.getTitle() + "' to their library.",
+                LocalDateTime.now(),
+                false));
 
-        emailProducer.sendEmail(teacherEmail, subject, body);
-        
-    } catch (Exception e) {
-        // Log error but don't fail the purchase if the email fails to queue
-        System.err.println("Failed to send sale notification email: " + e.getMessage());
+        // Email Notification
+        try {
+            String subject = "New Free Download: " + resource.getTitle();
+            String body = "<h3>Hello " + resource.getUser().getName() + ",</h3>" +
+                          "<p>A student has just added your free resource <strong>\"" + resource.getTitle() + "\"</strong> to their library.</p>" +
+                          "<p>Providing free resources is a great way to build your brand and attract more students to your paid content. Keep up the great work!</p>";
+            
+            emailProducer.sendEmail(resource.getUser().getEmail(), subject, body);
+        } catch (Exception e) {
+            System.err.println("Failed to send free download email: " + e.getMessage());
+        }
+
+    } else {
+        // --- PAID SALE LOGIC ---
+
+        // In-App Notification
+        notificationRepository.save(new Notification(
+                resource.getUser(),
+                "New Sale! Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
+                LocalDateTime.now(),
+                false));
+
+        // Email Notification
+        try {
+            String subject = "New Sale Alert! - Masomo Soko";
+            String body = "<h3>Hello " + resource.getUser().getName() + ",</h3>" +
+                          "<p>Congratulations! You have a new sale on <strong>Masomo Soko</strong>.</p>" +
+                          "<div style='background-color: #f9f9f9; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0;'>" +
+                          "  <strong>Resource:</strong> " + resource.getTitle() + "<br/>" +
+                          "  <strong>Buyer:</strong> " + student.getName() + "<br/>" +
+                          "  <strong>Earnings:</strong> KES " + resource.getPrice() + "" +
+                          "</div>" +
+                          "<p>The funds have been credited to your account balance. Log in to your dashboard to view your total earnings.</p>";
+
+            emailProducer.sendEmail(resource.getUser().getEmail(), subject, body);
+        } catch (Exception e) {
+            System.err.println("Failed to send sale notification email: " + e.getMessage());
+        }
     }
 
-    return ResponseEntity.ok("Purchase successful");
+    return ResponseEntity.ok("Resource added to library");
 }
-
     @GetMapping("/download/{resourceId}")
     public ResponseEntity<?> downloadResource(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long resourceId) {
         User student = getAuthenticatedStudent(userDetails);
@@ -218,22 +241,48 @@ public ResponseEntity<?> purchaseResource(
         return ResponseEntity.ok("Review submitted");
     }
 
-    @GetMapping("/account-settings")
-    public ResponseEntity<?> getAccountSettings(@AuthenticationPrincipal UserDetails userDetails) {
-        User student = getAuthenticatedStudent(userDetails);
-        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
-        return ResponseEntity.ok(Map.of("name", student.getName(), "email", student.getEmail()));
-    }
+  @GetMapping("/account-settings")
+public ResponseEntity<?> getAccountSettings(@AuthenticationPrincipal UserDetails userDetails) {
+    User student = getAuthenticatedStudent(userDetails);
+    if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+    
+    // Create a map to return all relevant data
+    Map<String, Object> settings = new HashMap<>();
+    settings.put("name", student.getName());
+    settings.put("email", student.getEmail());
+    settings.put("profilePicPath", student.getProfilePicPath()); // <--- THIS WAS MISSING
+    
+    return ResponseEntity.ok(settings);
+}
 
-    @PostMapping("/account-settings")
-    public ResponseEntity<?> updateAccountSettings(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("name") String name) {
-        User student = getAuthenticatedStudent(userDetails);
-        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
-        
+  @PostMapping("/account-settings")
+public ResponseEntity<?> updateAccountSettings(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestParam(value = "name", required = false) String name,
+        @RequestParam(value = "profilePic", required = false) MultipartFile profilePic) {
+    
+    User student = getAuthenticatedStudent(userDetails);
+    if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+    
+    if (name != null && !name.isBlank()) {
         student.setName(name);
-        userRepository.save(student);
-        return ResponseEntity.ok("Settings updated");
     }
+    
+    if (profilePic != null && !profilePic.isEmpty()) {
+        try {
+            // Upload the file and save the path
+            String filePath = fileUploadService.uploadFile(profilePic, "profiles");
+            student.setProfilePicPath(filePath);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Failed to upload profile picture");
+        }
+    }
+    
+    userRepository.save(student);
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", "Profile updated");
+    response.put("profilePicPath", student.getProfilePicPath());
+    return ResponseEntity.ok(response);
+}
 }

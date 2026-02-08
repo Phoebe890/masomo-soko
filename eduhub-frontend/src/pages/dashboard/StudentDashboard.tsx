@@ -3,7 +3,7 @@ import {
   Box, Typography, Button, Grid, Paper, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, TextField, Chip, Card, 
   CardContent, CardMedia, CardActions, Stack, CircularProgress, 
-  IconButton, alpha, Snackbar, Alert, Avatar
+  IconButton, alpha, Snackbar, Alert, Avatar,Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios'; 
@@ -228,7 +228,36 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('All');
+const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
+const handleDownload = async (resourceId: number, title: string, openInNewTab: boolean = false) => {
+    try {
+        setDownloadingId(resourceId);
+        // This uses your 'api' instance which HAS the token
+        const response = await api.get(`/api/student/download/${resourceId}`, {
+            responseType: 'blob', // Important for files
+        });
+
+        const file = new Blob([response.data], { type: response.headers['content-type'] });
+        const fileURL = URL.createObjectURL(file);
+
+        if (openInNewTab) {
+            window.open(fileURL, '_blank');
+        } else {
+            const link = document.createElement('a');
+            link.href = fileURL;
+            link.setAttribute('download', `${title}.pdf`); 
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+    } catch (error) {
+        console.error("Download failed", error);
+        alert("Access Denied or File not found.");
+    } finally {
+        setDownloadingId(null);
+    }
+};
     useEffect(() => {
         api.get('/api/student/purchases')
             .then(res => {
@@ -306,22 +335,40 @@ function LibrarySection({ onReview }: { onReview: (res: Resource) => void }) {
                                         <VerifiedIcon sx={{ fontSize: 14, color: BRAND_BLUE, mr: 0.5 }} /> {res.teacherName || 'Instructor'}
                                     </Typography>
                                 </CardContent>
-                                <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
-                                    <Button 
-                                        variant="contained" fullWidth 
-                                        href={`${BACKEND_API_BASE}/api/student/download/${res.id}`} 
-                                        startIcon={<CloudDownloadOutlinedIcon />} 
-                                        sx={{ borderRadius: 2, fontWeight: 700, bgcolor: BRAND_BLUE, textTransform: 'none' }}
-                                    >
-                                        Download
-                                    </Button>
-                                    <IconButton 
-                                        onClick={() => onReview(res)} 
-                                        sx={{ border: '1px solid #E5E7EB', borderRadius: 2, color: BRAND_ORANGE }}
-                                    >
-                                        <RateReviewOutlinedIcon fontSize="small" />
-                                    </IconButton>
-                                </CardActions>
+                               <CardActions sx={{ p: 2, pt: 0, flexDirection: 'column', gap: 1 }}>
+    {/* NEW: READ ONLINE BUTTON */}
+    <Button 
+        variant="outlined" 
+        fullWidth
+        startIcon={<PlayArrowIcon />}
+        onClick={() => handleDownload(res.id, res.title, true)}
+        disabled={downloadingId === res.id}
+        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, borderColor: BRAND_BLUE, color: BRAND_BLUE }}
+    >
+        Read Online
+    </Button>
+
+    <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+        {/* UPDATED: DOWNLOAD BUTTON (No more href) */}
+        <Button 
+            variant="contained" 
+            fullWidth 
+            onClick={() => handleDownload(res.id, res.title, false)}
+            disabled={downloadingId === res.id}
+           startIcon={downloadingId === res.id ? <CircularProgress size={20} color="inherit"/> : <CloudDownloadOutlinedIcon />}
+            sx={{ borderRadius: 2, fontWeight: 700, bgcolor: BRAND_BLUE, textTransform: 'none' }}
+        >
+            {downloadingId === res.id ? "Loading..." : "Download"}
+        </Button>
+        
+        <IconButton 
+            onClick={() => onReview(res)} 
+            sx={{ border: '1px solid #E5E7EB', borderRadius: 2, color: BRAND_ORANGE }}
+        >
+            <RateReviewOutlinedIcon fontSize="small" />
+        </IconButton>
+    </Stack>
+</CardActions>
                             </Card>
                         </Grid>
                     ))}
@@ -388,42 +435,159 @@ function HistorySection() {
 }
 
 function AccountSettingsSection() {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    
+    // Identity State
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState<{open: boolean, msg: string, type: 'success'|'error'}>({ open: false, msg: '', type: 'success' });
+    const [profilePicPath, setProfilePicPath] = useState('');
+    
+    // File Upload State
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string>('');
 
-    useEffect(() => {
-        api.get('/api/student/account-settings').then(res => { setName(res.data.name || ''); setEmail(res.data.email || ''); });
-    }, []);
+    const [toast, setToast] = useState({ open: false, msg: '', severity: 'success' as 'success' | 'error' });
+    const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
-    const handleSave = () => {
-        setSaving(true);
-        const params = new URLSearchParams();
-        params.append('name', name);
-        api.post('/api/student/account-settings', params)
-            .then(() => setToast({ open: true, msg: 'Profile updated!', type: 'success' }))
-            .catch(() => setToast({ open: true, msg: 'Error saving profile', type: 'error' }))
-            .finally(() => setSaving(false));
+   useEffect(() => {
+    api.get('/api/student/account-settings').then(res => {
+        setName(res.data.name || '');
+        setEmail(res.data.email || '');
+        // Ensure this matches the key from the backend exactly
+        setProfilePicPath(res.data.profilePicPath || ''); 
+        setLoading(false);
+    });
+}, []);
+
+    // Helper to determine which image to show in the Avatar
+    const getAvatarSrc = () => {
+        if (previewUrl) return previewUrl; // Show local preview first
+        if (!profilePicPath) return undefined; // Show initials if no pic
+        // If it's a full Cloudinary URL, use it; otherwise, prefix with backend URL
+        return profilePicPath.startsWith('http') ? profilePicPath : `${BACKEND_URL}/${profilePicPath}`;
     };
 
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const uploadData = new FormData();
+            uploadData.append('name', name);
+            if (selectedFile) {
+                uploadData.append('profilePic', selectedFile);
+            }
+
+            const response = await api.post('/api/student/account-settings', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (response.data.profilePicPath) {
+                setProfilePicPath(response.data.profilePicPath);
+                setPreviewUrl('');
+                setSelectedFile(null);
+            }
+
+            setToast({ open: true, msg: 'Profile updated successfully!', severity: 'success' });
+        } catch (error) {
+            setToast({ open: true, msg: 'Failed to update profile.', severity: 'error' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) return <Box sx={{ py: 5, textAlign: 'center' }}><CircularProgress /></Box>;
+
     return (
-        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, maxWidth: 600, border: '1px solid #E5E7EB' }}>
-            <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Edit Profile</Typography>
-            <Stack spacing={3}>
-                <TextField label="Full Name" value={name} onChange={e => setName(e.target.value)} fullWidth />
-                <TextField label="Email" value={email} disabled fullWidth helperText="Email cannot be changed" />
+        <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, borderRadius: 4, border: '1px solid #E5E7EB', maxWidth: 700 }}>
+            
+            {/* 1. PROFILE PICTURE SECTION (Teacher Style) */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
+                <Avatar 
+                    src={getAvatarSrc()} 
+                    sx={{ width: 100, height: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', bgcolor: '#f1f5f9' }} 
+                />
+                <Box>
+                    <Typography variant="h6" fontWeight={700}>Profile Picture</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                        {previewUrl ? "Unsaved changes" : "PNG or JPG (max. 2MB)"}
+                    </Typography>
+                    
+                    <input
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        id="student-pic-upload"
+                        type="file"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                setSelectedFile(file);
+                                setPreviewUrl(URL.createObjectURL(file));
+                            }
+                        }}
+                    />
+                    <label htmlFor="student-pic-upload">
+                        <Button variant="outlined" component="span" size="small" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+                            Change Photo
+                        </Button>
+                    </label>
+                    
+                    {previewUrl && (
+                        <Button 
+                            variant="text" color="error" size="small" sx={{ ml: 1, textTransform: 'none' }}
+                            onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
+                        >
+                            Cancel
+                        </Button>
+                    )}
+                </Box>
+            </Box>
+
+            <Divider sx={{ my: 4 }} />
+
+            {/* 2. FORM SECTION */}
+            <Grid container spacing={3}>
+                <Grid item xs={12}>
+                    <TextField 
+                        fullWidth label="Full Name" 
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)}
+                        helperText="This is how teachers will see your name on reviews"
+                    />
+                </Grid>
+                <Grid item xs={12}>
+                    <TextField 
+                        fullWidth label="Email Address" 
+                        value={email} 
+                        disabled 
+                        helperText="Your email is your login ID and cannot be changed"
+                    />
+                </Grid>
+            </Grid>
+
+            {/* 3. SAVE BUTTON (Vibrant Green like Teacher Settings) */}
+            <Box sx={{ mt: 4 }}>
                 <Button 
                     variant="contained" 
+                    size="large"
                     onClick={handleSave} 
-                    disabled={saving} 
-                    startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />} 
-                    sx={{ fontWeight: 700, bgcolor: BRAND_BLUE, py: 1.5 }}
+                    disabled={saving}
+                    //startIcon={saving ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
+                    sx={{ 
+                        fontWeight: 700, 
+                        borderRadius: 2,
+                        px: 4,
+                        bgcolor: '#43B02A', 
+                        '&:hover': { bgcolor: '#388E3C' },
+                        '&.Mui-disabled': { bgcolor: '#A5D6A7', color: 'white' }
+                    }}
                 >
-                    Save Changes
+                    {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
-            </Stack>
-            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})}><Alert severity={toast.type} variant="filled">{toast.msg}</Alert></Snackbar>
+            </Box>
+
+            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})}>
+                <Alert severity={toast.severity} variant="filled">{toast.msg}</Alert>
+            </Snackbar>
         </Paper>
     );
 }
@@ -459,7 +623,7 @@ const StudentDashboard = () => {
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
 
     return (
-        <StudentLayout activeTab={activeTab} onTabChange={setActiveTab} userAvatar={data?.student.avatar} userName={data?.student.name}>
+       <StudentLayout activeTab={activeTab} onTabChange={setActiveTab}>
             
             {activeTab === 'overview' && data && (
                 <>

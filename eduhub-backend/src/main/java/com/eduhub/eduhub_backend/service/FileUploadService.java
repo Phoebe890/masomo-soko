@@ -17,35 +17,41 @@ public class FileUploadService {
     @Autowired
     private Cloudinary cloudinary;
 
+    /**
+     * EXISTING METHOD: Returns a Map (Used for Resource Uploads with previews)
+     */
     public Map uploadFile(MultipartFile file) throws IOException {
+        return uploadToCloudinary(file, "eduhub_resources");
+    }
+
+    /**
+     * NEW METHOD: Returns a String (Used for Profile Pictures)
+     * This fixes the error: uploadFile(MultipartFile, String)
+     */
+    public String uploadFile(MultipartFile file, String folderName) throws IOException {
+        Map result = uploadToCloudinary(file, folderName);
+        return (String) result.get("secure_url"); // Return the direct URL string
+    }
+
+    /**
+     * Private helper to avoid repeating Cloudinary logic
+     */
+    private Map uploadToCloudinary(MultipartFile file, String folder) throws IOException {
         try {
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            
-            // Extract extension safely
-            if (originalFilename != null && originalFilename.contains(".")) {
-                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            
-            // Generate clean unique ID
             String publicId = UUID.randomUUID().toString();
 
             Map params = ObjectUtils.asMap(
                 "resource_type", "auto",
-                "folder", "eduhub_resources",
+                "folder", folder,
                 "public_id", publicId, 
                 "use_filename", true,
                 "unique_filename", false
             );
 
-            // Upload
             return cloudinary.uploader().upload(file.getBytes(), params);
-            
         } catch (Exception e) {
-            // Log the error so we can see it in the console
             System.err.println("Cloudinary Upload Error: " + e.getMessage());
-            e.printStackTrace();
-            throw new IOException("Failed to upload file to cloud storage: " + e.getMessage());
+            throw new IOException("Cloudinary upload failed: " + e.getMessage());
         }
     }
 
@@ -53,27 +59,17 @@ public class FileUploadService {
         String publicId = (String) uploadResult.get("public_id");
         String format = (String) uploadResult.get("format");
 
-        if (publicId == null) {
-            return null;
-        }
+        if (publicId == null) return null;
 
-        // Generate thumbnail for Documents (PDF, DOC, PPT)
+        // Generate thumbnail for Documents
         if ("pdf".equals(format) || "doc".equals(format) || "docx".equals(format) || "ppt".equals(format) || "pptx".equals(format)) {
             return cloudinary.url()
                     .transformation(new Transformation<>()
-                            .page("1")
-                            .width(400)
-                            .crop("limit")
-                            .fetchFormat("jpg")
+                            .page("1").width(400).crop("limit").fetchFormat("jpg")
                     )
                     .generate(publicId);
         }
 
-        // Just return URL for Images
-        if ("jpg".equals(format) || "jpeg".equals(format) || "png".equals(format) || "gif".equals(format)) {
-            return (String) uploadResult.get("secure_url");
-        }
-        
-        return null;
+        return (String) uploadResult.get("secure_url");
     }
 }

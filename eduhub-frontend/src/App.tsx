@@ -33,8 +33,6 @@ import ResourceManagement from './pages/dashboard/ResourceManagement';
 
 // Teacher Settings & Coaching
 import TeacherSettings from './pages/dashboard/TeacherSettings';
-import CoachingServiceManager from './pages/teacher/CoachingServiceManager';
-import AvailabilityCalendar from './pages/teacher/AvailabilityCalendar';
 
 // --- UTILITY COMPONENTS ---
 
@@ -115,8 +113,7 @@ function App() {
       <Route path="/dashboard/teacher/upload-first-resource" element={<TeacherGuard><UploadFirstResource /></TeacherGuard>} />
       <Route path="/teacher/earnings" element={<TeacherGuard><TeacherEarnings /></TeacherGuard>} />
       <Route path="/teacher/settings" element={<TeacherGuard><TeacherSettings /></TeacherGuard>} />
-      <Route path="/teacher/coaching-services" element={<TeacherGuard><CoachingServiceManager /></TeacherGuard>} />
-      <Route path="/teacher/availability" element={<TeacherGuard><AvailabilityCalendar /></TeacherGuard>} />
+      
       <Route path="/teacher/reviews" element={<TeacherGuard><TeacherReviews /></TeacherGuard>} />
 
       {/* --- ADMIN FLOW --- */}

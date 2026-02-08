@@ -79,7 +79,7 @@ private AuthService authService;
             response.put("role", user.getRole());
             response.put("email", user.getEmail());
             response.put("name", user.getName());
-            response.put("photoUrl", user.getProfilePic());
+          response.put("photoUrl", user.getProfilePicPath());
             response.put("onboardingComplete", onboardingComplete);
 
             return ResponseEntity.ok(response);
@@ -192,22 +192,21 @@ private AuthService authService;
                 pictureUrl = (String) payload.get("picture");
             }
 
-            User user = userRepository.findByEmail(email).orElse(null);
+           User user = userRepository.findByEmail(email).orElse(null);
             
-            // Register new user if not exists
             if (user == null) {
                 user = new User();
                 user.setEmail(email);
                 user.setName(name);
                 user.setRole(role.toUpperCase());
-                // SET PLACEHOLDER PASSWORD FOR GOOGLE USERS
                 user.setPassword(passwordEncoder.encode("GOOGLE_AUTH"));
                 user.setEnabled(true);
-                user.setProfilePic(pictureUrl);
+                user.setProfilePicPath(pictureUrl); // Save to User entity
                 userRepository.save(user);
             } else {
-                if (user.getProfilePic() == null) {
-                    user.setProfilePic(pictureUrl);
+                // Update photo if missing
+                if (user.getProfilePicPath() == null || user.getProfilePicPath().isEmpty()) {
+                    user.setProfilePicPath(pictureUrl);
                     userRepository.save(user);
                 }
             }
@@ -216,9 +215,11 @@ private AuthService authService;
             if ("TEACHER".equalsIgnoreCase(user.getRole())) {
                 TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
                 if (profile.getUser() == null) profile.setUser(user);
-                 if (profile.getProfilePicPath() == null || profile.getProfilePicPath().isEmpty()) {
-        profile.setProfilePicPath(pictureUrl); 
-    }
+                
+                // CRITICAL: Save Google pic to TeacherProfile so TeacherLayout sees it
+                if (profile.getProfilePicPath() == null || profile.getProfilePicPath().isEmpty()) {
+                    profile.setProfilePicPath(pictureUrl); 
+                }
                 teacherProfileRepository.save(profile);
             }
 
@@ -234,7 +235,7 @@ private AuthService authService;
             response.put("role", user.getRole());
             response.put("email", user.getEmail());
             response.put("name", user.getName());
-            response.put("photoUrl", user.getProfilePic());
+           response.put("photoUrl", user.getProfilePicPath());
             response.put("onboardingComplete", onboardingComplete);
 
             return ResponseEntity.ok(response);

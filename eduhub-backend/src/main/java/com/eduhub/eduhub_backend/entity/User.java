@@ -23,7 +23,7 @@ public class User implements UserDetails { // <--- FIX 2: Implements UserDetails
 
     @Column(columnDefinition = "TEXT", unique = true, nullable = false)
     private String email;
-
+private String profilePicPath;
     private String password;
 
     private String role; // STUDENT, TEACHER, ADMIN
@@ -61,7 +61,8 @@ private LocalDateTime resetOtpExpiry;
     // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
+public String getProfilePicPath() { return profilePicPath; }
+public void setProfilePicPath(String profilePicPath) { this.profilePicPath = profilePicPath; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
