@@ -1,46 +1,50 @@
 package com.eduhub.eduhub_backend.service;
 
-import com.eduhub.eduhub_backend.config.RabbitMQConfig;
 import com.eduhub.eduhub_backend.dto.EmailRequest;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import jakarta.mail.internet.MimeMessage; // Import this
-import org.springframework.mail.javamail.MimeMessageHelper; // Import this
+
 @Service
 public class EmailConsumer {
 
-    // Use SLF4J logger for better logging practices
     private static final Logger logger = LoggerFactory.getLogger(EmailConsumer.class);
 
-    @Autowired
-    private JavaMailSender mailSender;
+   // If EMAIL_PASSWORD isn't found, it will use "dummy_key" instead of crashing
+@Value("${EMAIL_PASSWORD:dummy_key}")
+private String resendApiKey;
 
-    // Listen for messages on the email_queue
-   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
-public void receiveMessage(EmailRequest emailRequest) {
-    try {
-        logger.info("CONSUMER: Received request for: {}", emailRequest.getTo());
+    @RabbitListener(queues = "eduhub_email_queue")
+    public void receiveMessage(EmailRequest emailRequest) {
+        try {
+            logger.info("API ATTEMPT: Sending email to: {}", emailRequest.getTo());
 
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            // 1. Initialize Resend Client (Uses HTTPS Port 443)
+            Resend resend = new Resend(resendApiKey);
 
-        helper.setTo(emailRequest.getTo());
-        helper.setSubject(emailRequest.getSubject());
-        helper.setText(emailRequest.getBody(), false);
-        helper.setFrom("info@masomosoko.co.ke", "Masomo Soko");
+            // 2. Build the Email
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from("Masomo Soko <info@masomosoko.co.ke>")
+                    .to(emailRequest.getTo())
+                    .subject(emailRequest.getSubject())
+                    .html(emailRequest.getBody()) // or .text() for plain text
+                    .build();
 
-        mailSender.send(mimeMessage);
-        logger.info("CONSUMER: Email successfully sent to: {}", emailRequest.getTo());
-    } catch (Exception e) {
-        // This is the most important log
-        logger.error("CONSUMER ERROR for {}: Type: {}, Message: {}", 
-                     emailRequest.getTo(), e.getClass().getSimpleName(), e.getMessage());
-        e.printStackTrace(); 
+            // 3. Send via API
+            CreateEmailResponse response = resend.emails().send(params);
+            
+            logger.info("API SUCCESS: Email sent! ID: {}", response.getId());
+
+        } catch (ResendException e) {
+            logger.error("RESEND API ERROR: {}", e.getMessage());
+        } catch (Exception e) {
+            logger.error("GENERAL ERROR: {}", e.getMessage());
+        }
     }
-}
 }
