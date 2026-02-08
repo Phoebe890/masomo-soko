@@ -72,23 +72,7 @@ public class AdminController {
         }
     }
 
-    // --- 2. PAYOUTS MANAGEMENT ---
-    @GetMapping("/payouts")
-    public ResponseEntity<?> getAllWithdrawals() {
-        List<Withdrawal> withdrawals = withdrawalRepository.findAll(Sort.by(Sort.Direction.DESC, "requestedAt"));
-        List<Map<String, Object>> result = withdrawals.stream().map(w -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", w.getId());
-            map.put("teacherName", w.getTeacher().getName());
-            map.put("amount", w.getAmount());
-            map.put("mpesaNumber", w.getMpesaNumber());
-            map.put("status", w.getStatus());
-            map.put("date", w.getRequestedAt());
-            return map;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-
+   // --- 2. PAYOUTS MANAGEMENT ---
     @PostMapping("/payouts/{id}/{action}")
     public ResponseEntity<?> processPayout(@PathVariable Long id, @PathVariable String action) {
         Withdrawal withdrawal = withdrawalRepository.findById(id).orElse(null);
@@ -102,16 +86,15 @@ public class AdminController {
                     LocalDateTime.now(), false));
 
             try {
-                emailProducer.sendEmail(
-                    withdrawal.getTeacher().getEmail(),
-                    "Payout Processed - EduHub",
-                    "Your withdrawal request of KES " + withdrawal.getAmount() + " was successful."
-                );
+                // PROFESSIONAL EMAIL FOR APPROVAL
+                String subject = "Withdrawal Successful - Masomo Soko";
+                String body = "<h3>Hello " + withdrawal.getTeacher().getName() + ",</h3>" +
+                              "<p>Good news! Your withdrawal request of <strong>KES " + withdrawal.getAmount() + "</strong> has been processed successfully.</p>" +
+                              "<p>The funds have been sent to your registered M-Pesa number. Thank you for your valuable contribution to the Masomo Soko community.</p>";
+                
+                emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), subject, body);
             } catch (Exception e) {
-                // **ADDED ERROR LOGGING HERE**
                 System.err.println("CRITICAL: Failed to queue email for payout confirmation (ID: " + id + "): " + e.getMessage());
-                e.printStackTrace();
-                // Decide if you want to return an error or just log and continue
             }
 
         } else if ("reject".equals(action)) {
@@ -121,17 +104,17 @@ public class AdminController {
                 profile.setAccountBalance(profile.getAccountBalance() + withdrawal.getAmount());
                 teacherProfileRepository.save(profile);
             }
-            // Optionally send an email about rejection
+
              try {
-                emailProducer.sendEmail(
-                    withdrawal.getTeacher().getEmail(),
-                    "Payout Rejected - EduHub",
-                    "Your withdrawal request of KES " + withdrawal.getAmount() + " has been rejected. Please contact support for details."
-                );
+                // PROFESSIONAL EMAIL FOR REJECTION
+                String subject = "Withdrawal Request Update - Masomo Soko";
+                String body = "<h3>Hello " + withdrawal.getTeacher().getName() + ",</h3>" +
+                              "<p>We were unable to process your withdrawal request of <strong>KES " + withdrawal.getAmount() + "</strong> at this time.</p>" +
+                              "<p>The amount has been returned to your account balance. If you believe this is an error or need further clarification, please reply to this email or contact support.</p>";
+                
+                emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), subject, body);
             } catch (Exception e) {
-                // **ADDED ERROR LOGGING HERE**
                 System.err.println("CRITICAL: Failed to queue email for payout rejection (ID: " + id + "): " + e.getMessage());
-                e.printStackTrace();
             }
         }
 
@@ -139,188 +122,28 @@ public class AdminController {
         return ResponseEntity.ok("Payout status updated");
     }
 
-    // --- 3. USER MANAGEMENT (PAGINATED & FILTERED) ---
-    @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) String status
-    ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-
-        Boolean enabled = null;
-        if ("ACTIVE".equalsIgnoreCase(status)) enabled = true;
-        else if ("BANNED".equalsIgnoreCase(status)) enabled = false;
-
-        String roleFilter = (role != null && !role.equals("ALL")) ? role : null;
-        String searchFilter = (search != null && !search.isEmpty()) ? search : null;
-
-        // Custom repository method: searchUsers(search, role, enabled, pageable)
-        Page<User> userPage = userRepository.searchUsers(searchFilter, roleFilter, enabled, pageable);
-
-        Page<Map<String, Object>> dtoPage = userPage.map(u -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", u.getId());
-            map.put("name", u.getName());
-            map.put("email", u.getEmail());
-            map.put("role", u.getRole());
-            map.put("enabled", u.isEnabled());
-            return map;
-        });
-
-        return ResponseEntity.ok(dtoPage);
-    }
-
-    // --- 4. USER ACTIONS (BAN, ROLE, DELETE) ---
-    @PostMapping("/users/{id}/toggle-status")
-    public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null) return ResponseEntity.notFound().build();
-
-        user.setEnabled(!user.isEnabled());
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("enabled", user.isEnabled()));
-    }
-
-    @PostMapping("/users/{id}/role")
-    public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null) return ResponseEntity.notFound().build();
-
-        String newRole = body.get("role").toUpperCase();
-        user.setRole(newRole);
-        userRepository.save(user);
-        return ResponseEntity.ok("Role updated");
-    }
-
-   
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            User user = userRepository.findById(id).orElse(null);
-            if (user == null) return ResponseEntity.notFound().build();
-
-            // --- 1. CLEANUP AS STUDENT (Buying/Paying) ---
-            
-            // Delete Transactions made BY this user
-            List<PaymentTransaction> userTransactions = transactionRepository.findByUser(user);
-            transactionRepository.deleteAll(userTransactions);
-
-            // Delete Reviews written BY this user
-            List<Review> reviewsWritten = reviewRepository.findByStudent(user);
-            reviewRepository.deleteAll(reviewsWritten);
-
-            // Delete Purchases made BY this user
-            List<Purchase> purchasesMade = purchaseRepository.findByStudent(user);
-            purchaseRepository.deleteAll(purchasesMade);
-
-            // --- 2. CLEANUP AS TEACHER (Selling/Receiving) ---
-
-            // Delete Withdrawals
-            List<Withdrawal> withdrawals = withdrawalRepository.findAll().stream()
-                    .filter(w -> w.getTeacher().getId().equals(id))
-                    .collect(Collectors.toList());
-            withdrawalRepository.deleteAll(withdrawals);
-
-            // Handle Resources owned by this user
-            List<TeacherResource> resources = resourceRepository.findByUserId(id);
-            for (TeacherResource resource : resources) {
-                // A. Delete Transactions linked to this resource (CRITICAL FIX)
-                List<PaymentTransaction> resourceTransactions = transactionRepository.findByResource(resource);
-                transactionRepository.deleteAll(resourceTransactions);
-
-                // B. Delete Sales (Purchases) of this resource
-                List<Purchase> sales = purchaseRepository.findByResource(resource);
-                purchaseRepository.deleteAll(sales);
-
-                // C. Delete Reviews of this resource
-                List<Review> resourceReviews = reviewRepository.findByResource(resource);
-                reviewRepository.deleteAll(resourceReviews);
-                
-                // D. Finally, Delete the Resource
-                resourceRepository.delete(resource);
-            }
-
-            // Delete Teacher Profile
-            teacherProfileRepository.findByUserId(id).ifPresent(p -> teacherProfileRepository.delete(p));
-
-            // --- 3. FINAL CLEANUP ---
-
-            // Delete Notifications
-            List<Notification> notifications = notificationRepository.findAll().stream()
-                    .filter(n -> n.getTeacher().getId().equals(id))
-                    .collect(Collectors.toList());
-            notificationRepository.deleteAll(notifications);
-
-            // Delete User
-            userRepository.delete(user);
-            
-            return ResponseEntity.ok("User and all related data deleted successfully");
-            
-        } catch (Exception e) {
-            System.err.println("CRITICAL: Error deleting user (ID: " + id + "): " + e.getMessage());
-            e.printStackTrace(); 
-            return ResponseEntity.status(500).body("Delete failed: " + e.getMessage());
-        }
-    }
-     // --- 5. RESOURCE MANAGEMENT ---
-    @GetMapping("/resources")
-    public ResponseEntity<?> getAllResources() {
-        List<TeacherResource> resources = resourceRepository.findAll();
-        List<Map<String, Object>> result = resources.stream().map(r -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", r.getId());
-            map.put("title", r.getTitle());
-            map.put("subject", r.getSubject());
-            map.put("price", r.getPrice());
-            // You must send these fields for the frontend to view the file/image
-            map.put("filePath", r.getFilePath()); 
-            map.put("coverImageUrl", r.getCoverImageUrl());
-            map.put("curriculum", r.getCurriculum()); // Helpful for display too
-            
-
-            map.put("user", Map.of("name", r.getUser() != null ? r.getUser().getName() : "Unknown"));
-            return map;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-
+    // --- 5. RESOURCE MANAGEMENT (Takedown) ---
     @PostMapping("/resources/{id}/takedown")
     public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> body) {
         TeacherResource resource = resourceRepository.findById(id).orElse(null);
         if (resource == null) return ResponseEntity.notFound().build();
 
-        String reason = body.getOrDefault("reason", "Violation of terms");
-        // Notify and delete
+        String reason = body.getOrDefault("reason", "Violation of platform terms and conditions");
         notificationRepository.save(new Notification(resource.getUser(), "Resource removed: " + reason, LocalDateTime.now(), false));
 
-        // **ADD ERROR LOGGING FOR EMAIL**
         try {
-            emailProducer.sendEmail(
-                resource.getUser().getEmail(),
-                "Resource Removed - EduHub",
-                "Your resource titled '" + resource.getTitle() + "' has been removed due to: " + reason
-            );
+            // PROFESSIONAL EMAIL FOR TAKEDOWN
+            String subject = "Resource Removal Notification - Masomo Soko";
+            String body = "<h3>Hello " + resource.getUser().getName() + ",</h3>" +
+                          "<p>We are writing to inform you that your resource titled <strong>\"" + resource.getTitle() + "\"</strong> has been removed from Masomo Soko.</p>" +
+                          "<p><strong>Reason for removal:</strong> " + reason + "</p>" +
+                          "<p>If you have questions regarding this action, please reach out to our administrative team.</p>";
+            
+            emailProducer.sendEmail(resource.getUser().getEmail(), subject, body);
         } catch (Exception e) {
             System.err.println("CRITICAL: Failed to queue email for resource takedown (Resource ID: " + id + "): " + e.getMessage());
-            e.printStackTrace();
         }
 
         resourceRepository.delete(resource);
         return ResponseEntity.ok("Resource removed");
     }
-
-    @DeleteMapping("/resources/{id}")
-    public ResponseEntity<?> deleteResource(@PathVariable Long id) {
-        try {
-            resourceRepository.deleteById(id);
-            return ResponseEntity.ok("Deleted");
-        } catch (Exception e) {
-            System.err.println("Error deleting resource (ID: " + id + "): " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Delete failed: " + e.getMessage());
-        }
-    }
-}

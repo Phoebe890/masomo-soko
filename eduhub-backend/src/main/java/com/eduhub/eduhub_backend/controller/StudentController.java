@@ -39,7 +39,7 @@ public class StudentController {
     @Autowired private PurchaseRepository purchaseRepository;
     @Autowired private ReviewRepository reviewRepository;
     @Autowired private NotificationRepository notificationRepository;
-
+@Autowired private EmailProducer emailProducer;
     private User getAuthenticatedStudent(UserDetails userDetails) {
         if (userDetails == null) return null;
         return userRepository.findByEmail(userDetails.getUsername()).orElse(null);
@@ -103,34 +103,58 @@ public class StudentController {
         return ResponseEntity.ok(Map.of("resources", resources));
     }
 
-    @PostMapping("/purchase")
-    public ResponseEntity<?> purchaseResource(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("resourceId") Long resourceId) {
+   @PostMapping("/purchase")
+public ResponseEntity<?> purchaseResource(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestParam("resourceId") Long resourceId) {
+    
+    User student = getAuthenticatedStudent(userDetails);
+    if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+
+    TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
+    if (resource == null) return ResponseEntity.status(404).body("Resource not found");
+
+    boolean alreadyPurchased = purchaseRepository.findByStudent(student).stream()
+            .anyMatch(p -> p.getResource().getId().equals(resourceId));
+    if (alreadyPurchased) return ResponseEntity.badRequest().body("Resource already purchased");
+
+    // 1. Save the purchase to DB
+    Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
+    purchase.setPrice(resource.getPrice()); 
+    purchaseRepository.save(purchase);
+
+    // 2. Create In-App Notification for Teacher
+    Notification notification = new Notification(
+            resource.getUser(),
+            "Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
+            LocalDateTime.now(),
+            false);
+    notificationRepository.save(notification);
+
+    // 3. SEND PROFESSIONAL EMAIL TO TEACHER
+    try {
+        String teacherEmail = resource.getUser().getEmail();
+        String teacherName = resource.getUser().getName();
+        String subject = "New Sale Alert! - Masomo Soko";
         
-        User student = getAuthenticatedStudent(userDetails);
-        if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+        String body = "<h3>Hello " + teacherName + ",</h3>" +
+                      "<p>Congratulations! You have a new sale on <strong>Masomo Soko</strong>.</p>" +
+                      "<div style='background-color: #f9f9f9; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0;'>" +
+                      "  <strong>Resource:</strong> " + resource.getTitle() + "<br/>" +
+                      "  <strong>Buyer:</strong> " + student.getName() + "<br/>" +
+                      "  <strong>Amount:</strong> KES " + resource.getPrice() + "" +
+                      "</div>" +
+                      "<p>The funds have been credited to your account balance. Keep up the great work of empowering students!</p>";
 
-        TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
-        if (resource == null) return ResponseEntity.status(404).body("Resource not found");
-
-        boolean alreadyPurchased = purchaseRepository.findByStudent(student).stream()
-                .anyMatch(p -> p.getResource().getId().equals(resourceId));
-        if (alreadyPurchased) return ResponseEntity.badRequest().body("Resource already purchased");
-
-        Purchase purchase = new Purchase(student, resource, LocalDateTime.now());
-        purchase.setPrice(resource.getPrice()); 
-        purchaseRepository.save(purchase);
-
-        Notification notification = new Notification(
-                resource.getUser(),
-                "Student " + student.getName() + " purchased '" + resource.getTitle() + "'",
-                LocalDateTime.now(),
-                false);
-        notificationRepository.save(notification);
-
-        return ResponseEntity.ok("Purchase successful");
+        emailProducer.sendEmail(teacherEmail, subject, body);
+        
+    } catch (Exception e) {
+        // Log error but don't fail the purchase if the email fails to queue
+        System.err.println("Failed to send sale notification email: " + e.getMessage());
     }
+
+    return ResponseEntity.ok("Purchase successful");
+}
 
     @GetMapping("/download/{resourceId}")
     public ResponseEntity<?> downloadResource(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long resourceId) {
