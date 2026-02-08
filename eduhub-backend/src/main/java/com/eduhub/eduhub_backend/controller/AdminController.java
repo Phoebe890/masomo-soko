@@ -123,27 +123,34 @@ public class AdminController {
     }
 
     // --- 5. RESOURCE MANAGEMENT (Takedown) ---
-    @PostMapping("/resources/{id}/takedown")
-    public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> body) {
+   @PostMapping("/resources/{id}/takedown")
+    public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> requestBody) {
         TeacherResource resource = resourceRepository.findById(id).orElse(null);
         if (resource == null) return ResponseEntity.notFound().build();
 
-        String reason = body.getOrDefault("reason", "Violation of platform terms and conditions");
+        // 1. Extract the reason from the request map
+        String reason = requestBody.getOrDefault("reason", "Violation of platform terms");
+
+        // 2. Save notification to DB
         notificationRepository.save(new Notification(resource.getUser(), "Resource removed: " + reason, LocalDateTime.now(), false));
 
         try {
-            // PROFESSIONAL EMAIL FOR TAKEDOWN
-            String subject = "Resource Removal Notification - Masomo Soko";
-            String body = "<h3>Hello " + resource.getUser().getName() + ",</h3>" +
-                          "<p>We are writing to inform you that your resource titled <strong>\"" + resource.getTitle() + "\"</strong> has been removed from Masomo Soko.</p>" +
-                          "<p><strong>Reason for removal:</strong> " + reason + "</p>" +
-                          "<p>If you have questions regarding this action, please reach out to our administrative team.</p>";
+            // 3. Prepare the Email
+            String subject = "Resource Removed - Masomo Soko";
             
-            emailProducer.sendEmail(resource.getUser().getEmail(), subject, body);
+            // We create a STRING here
+            String htmlEmailContent = "<h3>Hello " + resource.getUser().getName() + ",</h3>" +
+                          "<p>Your resource titled <strong>\"" + resource.getTitle() + "\"</strong> has been removed from Masomo Soko.</p>" +
+                          "<p><strong>Reason for removal:</strong> " + reason + "</p>" +
+                          "<p>If you have questions, please contact our support team.</p>";
+
+            // 4. Pass the STRING (htmlEmailContent), NOT the MAP (requestBody)
+            emailProducer.sendEmail(resource.getUser().getEmail(), subject, htmlEmailContent);
+            
         } catch (Exception e) {
-            System.err.println("CRITICAL: Failed to queue email for resource takedown (Resource ID: " + id + "): " + e.getMessage());
+            System.err.println("Error sending takedown email: " + e.getMessage());
         }
 
         resourceRepository.delete(resource);
         return ResponseEntity.ok("Resource removed");
-    }
+    }}

@@ -31,7 +31,7 @@ const ResourceDetail = () => {
   const [processing, setProcessing] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [loginPrompt, setLoginPrompt] = useState(false);
-
+  const isFree = resource && (!resource.price || resource.price === 0);
   const pollIntervalRef = useRef<any>(null);
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
@@ -107,6 +107,35 @@ const ResourceDetail = () => {
       setBuyOpen(false);
       setToast({ open: true, message: "Payment process cancelled.", severity: 'info' });
   };
+const handleGetFree = () => {
+    const isAuthenticated = !!localStorage.getItem('token'); 
+
+    if (!isAuthenticated) {
+        setLoginPrompt(true);
+        return;
+    }
+    setProcessing(true);
+    
+    // Create params for the existing purchase endpoint
+    const params = new URLSearchParams();
+    params.append('resourceId', id || '');
+
+    api.post('/api/student/purchase', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(() => {
+        setToast({ open: true, message: "Added to your library for free!", severity: 'success' });
+        setTimeout(() => navigate('/dashboard/student'), 1500);
+    })
+    .catch((err) => {
+         if (err.response?.status === 401 || err.response?.status === 403) {
+            setLoginPrompt(true);
+        } else {
+            setToast({ open: true, message: "Failed to process request.", severity: 'error' });
+        }
+    })
+    .finally(() => setProcessing(false));
+  };
 
   const handlePayment = () => {
     if (paymentMethod === 'mpesa' && !phoneNumber) {
@@ -177,7 +206,7 @@ const ResourceDetail = () => {
                                  <Typography color="text.secondary" fontWeight={500}>No Preview Available</Typography>
                              </Box>
                          )}
-                    </Box>
+                    </Box> bcv 
                     <Typography variant="h3" fontWeight={800} sx={{ mb: 2, lineHeight: 1.2, color: '#111827', fontSize: { xs: '1.8rem', md: '2.5rem' } }}>{resource.title}</Typography>
                     <Stack direction="row" spacing={2} sx={{ mb: 4 }} alignItems="center">
                          <Chip label={resource.subject} size="small" sx={{ fontWeight: 600, bgcolor: '#EFF6FF', color: '#1D4ED8' }} />
@@ -197,16 +226,32 @@ const ResourceDetail = () => {
                 <Grid item xs={12} md={4}>
                     <Box sx={{ position: 'sticky', top: 100 }}>
                         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #E5E7EB', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.08)' }}>
-                            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 3 }}><Typography variant="h3" fontWeight={800} color="#111827">KES {resource.price || 0}</Typography><Typography variant="body2" color="text.secondary" fontWeight={500}>One-time payment</Typography></Stack>
-                            <Button variant="contained" fullWidth size="large" onClick={handleBuyNow} sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', mb: 2, textTransform: 'none' }}>Buy Now</Button>
-                            <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 3 }}>Secure payment via M-Pesa</Typography>
+                            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 3 }}>
+                                 <Typography variant="h3" fontWeight={800} color="#111827">
+            {isFree ? "Free" : `KES ${resource.price}`}
+        </Typography>
+         {!isFree && <Typography variant="body2" color="text.secondary" fontWeight={500}>One-time payment</Typography>}
+        </Stack>
+                              <Button 
+        variant="contained" 
+        fullWidth 
+        size="large" 
+        disabled={processing}
+        onClick={isFree ? handleGetFree : handleBuyNow} 
+        sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', mb: 2, textTransform: 'none' }}
+    >
+        {processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Get for Free" : "Buy Now")}
+    </Button>
+                             <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 3 }}>
+        {isFree ? "No payment required" : "Secure payment via M-Pesa"}
+    </Typography>
                             <Stack spacing={2}><Stack direction="row" spacing={1.5} alignItems="center"><CheckCircleIcon color="success" fontSize="small" /><Typography variant="body2">Instant Download</Typography></Stack><Stack direction="row" spacing={1.5} alignItems="center"><VerifiedIcon color="primary" fontSize="small" /><Typography variant="body2">Quality Checked</Typography></Stack></Stack>
                         </Paper>
                     </Box>
                 </Grid>
             </Grid>
         </Container>
-
+=
         <Dialog open={buyOpen} onClose={handleManualCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
             <DialogTitle sx={{ fontWeight: 800 }}>{isPolling ? "Processing..." : "Checkout"}</DialogTitle>
             <DialogContent sx={{ textAlign: isPolling ? 'center' : 'left', py: isPolling ? 4 : 2 }}>
@@ -234,7 +279,28 @@ const ResourceDetail = () => {
             </DialogActions>
         </Dialog>
         
-        <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)}><DialogTitle sx={{ fontWeight: 700 }}>Log in Required</DialogTitle><DialogContent><Typography>Please log in to purchase this resource.</Typography></DialogContent><DialogActions sx={{ p: 2 }}><Button onClick={() => setLoginPrompt(false)} color="inherit">Cancel</Button><Button onClick={() => navigate('/login')} variant="contained">Log In</Button></DialogActions></Dialog>
+        <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)}>
+    <DialogTitle sx={{ fontWeight: 700 }}>
+        {isFree ? "Account Required" : "Log in Required"}
+    </DialogTitle>
+    <DialogContent>
+        <Typography>
+            {isFree 
+                ? "Please log in to add this free resource to your library so you can access it anytime." 
+                : "Please log in to purchase this resource."}
+        </Typography>
+    </DialogContent>
+    <DialogActions sx={{ p: 2 }}>
+        <Button onClick={() => setLoginPrompt(false)} color="inherit">Cancel</Button>
+        <Button 
+            onClick={() => navigate('/login')} 
+            variant="contained"
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+        >
+            Log In / Sign Up
+        </Button>
+    </DialogActions>
+</Dialog>
         <Snackbar open={toast.open} autoHideDuration={6000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert onClose={handleCloseToast} severity={toast.severity} variant="filled">{toast.message}</Alert></Snackbar>
     </Box>
   );

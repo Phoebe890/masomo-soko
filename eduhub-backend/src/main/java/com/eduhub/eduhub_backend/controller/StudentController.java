@@ -1,5 +1,5 @@
 package com.eduhub.eduhub_backend.controller;
-
+import com.eduhub.eduhub_backend.service.EmailProducer;
 import com.eduhub.eduhub_backend.dto.TeacherResourceDTO;
 import com.eduhub.eduhub_backend.entity.Purchase;
 import com.eduhub.eduhub_backend.entity.TeacherResource;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+ 
 @RestController
 @RequestMapping("/api/student")
 @CrossOrigin(
