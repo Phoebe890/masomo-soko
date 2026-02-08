@@ -124,7 +124,7 @@ const Footer: React.FC = () => {
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Email</Typography>
-                <Typography variant="body2" sx={{ color: textLightColor }}>phoebemuriithi608@gmail.com</Typography>
+                <Typography variant="body2" sx={{ color: textLightColor }}>info@masomosoko.co.ke</Typography>
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>Location</Typography>
