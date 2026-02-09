@@ -2,36 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { 
     Box, IconButton, Typography, Avatar, Menu, MenuItem, 
     useTheme, AppBar, Toolbar, Badge, Divider, ListItemIcon,
-    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button ,ListItemSecondaryAction
+    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button, ListItemSecondaryAction,alpha
 } from '@mui/material';
+// High-End Icons
+import { Bell, User, LogOut, Settings, Home, CheckCircle, DollarSign, Star, X, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import TeacherSidebar from './TeacherSidebar';
 import logoIcon from '@/assets/logo-icon.svg';
-// Icons
 import MenuIcon from '@mui/icons-material/Menu';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person';
-import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import StarIcon from '@mui/icons-material/Star';
-import HomeIcon from '@mui/icons-material/HomeOutlined';
-// Environment variable for image paths
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
-// Helper for time
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+const BORDER_COLOR = '#E2E8F0';
+const BRAND_BLUE = '#2563EB';
 
 const getTimeAgo = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
     if (diffInSeconds < 60) return "Just now";
     const minutes = Math.floor(diffInSeconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
@@ -52,85 +41,55 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     const navigate = useNavigate();
     const theme = useTheme();
 
-    // UI State
+    // Logic States Preserved
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);     
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
-
-    // Data State
     const [notifications, setNotifications] = useState<any[]>([]);
-    const [userProfile, setUserProfile] = useState({
-        name: '',
-        email: '',
-        profilePic: ''
-    });
+    const [userProfile, setUserProfile] = useState({ name: '', email: '', profilePic: '' });
 
-    // 1. Fetch User Profile & Notifications on Mount
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch Notifications
                 const notifRes = await api.get('/api/teacher/notifications');
                 setNotifications(notifRes.data);
-
-                // Fetch Settings for Profile Pic
                 const settingsRes = await api.get('/api/teacher/settings');
                 const profile = settingsRes.data.profile;
-                
                 setUserProfile({
                     name: profile?.user?.name || 'Instructor',
                     email: profile?.user?.email || '',
                     profilePic: profile?.profilePicPath || ''
                 });
-
             } catch (error) {
                 console.error("Failed to load layout data", error);
             }
         };
         fetchData();
-        
-        // Optional: Poll every 60s
         const interval = setInterval(fetchData, 60000);
         return () => clearInterval(interval);
     }, []);
 
-   
-const handleMarkAllRead = async () => {
-    try {
-        // 1. Update UI immediately (Optimistic)
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        
-        // 2. Tell Backend to save this change permanently
-        await api.post('/api/teacher/notifications/read-all');
-    } catch (e) { 
-        console.error("Failed to mark all as read", e); 
-    }
-};
+    const handleMarkAllRead = async () => {
+        try {
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            await api.post('/api/teacher/notifications/read-all');
+        } catch (e) { console.error(e); }
+    };
 
     const handleDeleteNotification = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // Prevents the 'read' click from firing
-    try {
-        // 1. Update UI immediately
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        
-        // 2. Tell Backend to delete it permanently
-        await api.delete(`/api/teacher/notifications/${id}`);
-    } catch (e) { 
-        console.error("Failed to delete notification", e); 
-    }
-};
+        e.stopPropagation();
+        try {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+            await api.delete(`/api/teacher/notifications/${id}`);
+        } catch (e) { console.error(e); }
+    };
 
     const handleNotificationClick = async (id: number) => {
-    try {
-        // Update UI
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-        
-        // Update Backend
-        await api.post(`/api/teacher/notifications/${id}/read`);
-    } catch (e) { 
-        console.error("Failed to mark notification as read", e); 
-    }
-};
+        try {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            await api.post(`/api/teacher/notifications/${id}/read`);
+        } catch (e) { console.error(e); }
+    };
 
     const handleLogout = () => {
         setAnchorEl(null);
@@ -138,136 +97,80 @@ const handleMarkAllRead = async () => {
         navigate('/login');
     };
 
-    const handleProfileClick = () => {
-        setAnchorEl(null);
-        // Correct path based on typical structure
-        navigate('/dashboard/teacher/settings'); 
-    };
-
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Helper to resolve image URL
     const getAvatarSrc = (path: string) => {
         if (!path) return undefined;
         if (path.startsWith('http')) return path;
-        // Clean double slashes
         const cleanPath = path.startsWith('/') ? path.substring(1) : path;
         return `${BACKEND_URL}/${cleanPath}`; 
     };
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F9FAFB' }}>
-            
-            <TeacherSidebar 
-                mobileOpen={sidebarOpen} 
-                onClose={() => setSidebarOpen(false)} 
-                selectedRoute={selectedRoute} 
-            />
+        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
+            <TeacherSidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} selectedRoute={selectedRoute} />
 
             <Box component="main" sx={{ flexGrow: 1, width: { sm: `calc(100% - 280px)` }, display: 'flex', flexDirection: 'column' }}>
                 
-                <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E5E7EB', color: '#1F2937' }}>
-                   <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 3 } }}>
-    
-    {/* --- LEFT SIDE: MENU + MOBILE LOGO + TITLE --- */}
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-        {/* Hamburger Menu (Mobile Only) */}
-        <IconButton 
-            onClick={() => setSidebarOpen(true)} 
-            sx={{ display: { md: 'none' }, color: '#374151', ml: -1 }}
-        >
-            <MenuIcon />
-        </IconButton>
+                {/* --- UPDATED APPBAR --- */}
+                <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white', borderBottom: `1px solid ${BORDER_COLOR}`, color: '#1F2937' }}>
+                    <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 3 }, minHeight: '64px !important' }}>
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <IconButton onClick={() => setSidebarOpen(true)} sx={{ display: { md: 'none' }, color: '#374151' }}>
+                                <MenuIcon />
+                            </IconButton>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                                {title || 'Dashboard'}
+                            </Typography>
+                        </Box>
 
-        {/* MOBILE LOGO (Visible only on small screens) */}
-        <Box 
-            onClick={() => navigate('/')}
-            sx={{ 
-                display: { xs: 'flex', md: 'none' }, 
-                alignItems: 'center',
-                cursor: 'pointer'
-            }}
-        >
-            <Box 
-                component="img"
-                src={logoIcon}
-                alt="Logo"
-                sx={{ height: 32, width: 'auto' }}
-            />
-        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            
+                            {/* Sharp Blue Notification Bell */}
+                            <IconButton 
+                                onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+                                sx={{ 
+                                    border: `1px solid ${BORDER_COLOR}`, 
+                                    borderRadius: '2px', // Sharp box
+                                    p: 1,
+                                    color: BRAND_BLUE 
+                                }}
+                            >
+                                <Badge badgeContent={unreadCount} color="error" sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 16, minWidth: 16 } }}>
+                                    <Bell size={18} strokeWidth={2.5} />
+                                </Badge>
+                            </IconButton>
 
-        {/* DASHBOARD TITLE */}
-        <Typography 
-            variant="h6" 
-            fontWeight={800} 
-            noWrap 
-            sx={{ 
-                color: '#111827', 
-                fontSize: { xs: '0.95rem', md: '1.25rem' },
-                letterSpacing: '-0.5px'
-            }}
-        >
-            {title || 'Instructor Dashboard'}
-        </Typography>
-    </Box>
+                            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: 'center' }} />
 
-    {/* --- RIGHT SIDE: NOTIFICATIONS + PROFILE --- */}
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 2 } }}>
-        
-        {/* Notification Bell */}
-        <IconButton 
-            onClick={(e) => setNotifAnchorEl(e.currentTarget)}
-            sx={{ color: '#6B7280', '&:hover': { color: '#2563EB' } }}
-        >
-            <Badge badgeContent={unreadCount} color="error">
-                <NotificationsNoneIcon />
-            </Badge>
-        </IconButton>
-
-        {/* Vertical Divider (Desktop Only) */}
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 24, alignSelf: 'center', display: { xs: 'none', md: 'block' } }} />
-
-        {/* User Profile Section */}
-        <Box 
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-            sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5, 
-                cursor: 'pointer', 
-                p: 0.5, 
-                borderRadius: 2,
-                transition: 'all 0.2s',
-                '&:hover': { bgcolor: '#F3F4F6' }
-            }}
-        >
-            <Avatar 
-                src={getAvatarSrc(userProfile.profilePic)}
-                sx={{ 
-                    bgcolor: theme.palette.primary.main, 
-                    width: { xs: 32, md: 36 }, 
-                    height: { xs: 32, md: 36 }, 
-                    fontSize: '0.85rem',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-            >
-                {userProfile.name.charAt(0).toUpperCase()}
-            </Avatar>
-            
-            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="subtitle2" fontWeight={700} color="#111827" lineHeight={1.2}>
-                    {userProfile.name}
-                </Typography>
-                <Typography variant="caption" color="#6B7280" fontWeight={500}>
-                    Instructor
-                </Typography>
-            </Box>
-        </Box>
-    </Box>
-</Toolbar>
+                            {/* Round Profile Avatar */}
+                            <Box 
+                                onClick={(e) => setAnchorEl(e.currentTarget)}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}
+                            >
+                                <Avatar 
+                                    src={getAvatarSrc(userProfile.profilePic)}
+                                    sx={{ 
+                                        width: 36, height: 36, 
+                                        border: `2px solid ${alpha(BRAND_BLUE, 0.1)}`,
+                                        // Keeping it ROUNDED as requested
+                                    }}
+                                >
+                                    {userProfile.name.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                                    <Typography variant="subtitle2" fontWeight={800} sx={{ color: '#0F172A', lineHeight: 1 }}>
+                                        {userProfile.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Teacher</Typography>
+                                </Box>
+                            </Box>
+                        </Box>
+                    </Toolbar>
                 </AppBar>
 
-                {/* --- NOTIFICATIONS POPOVER --- */}
+                {/* --- PREMIUM NOTIFICATIONS POPOVER --- */}
 <Popover
     open={Boolean(notifAnchorEl)}
     anchorEl={notifAnchorEl}
@@ -277,34 +180,55 @@ const handleMarkAllRead = async () => {
     PaperProps={{ 
         sx: { 
             width: 380, 
-            maxHeight: 500, 
-            borderRadius: 3, 
-            mt: 1.5,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+            mt: 1.5, 
+            borderRadius: '2px', // Sharp
+            border: `1px solid ${BORDER_COLOR}`, 
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            overflow: 'hidden'
         } 
     }}
 >
-    {/* Header */}
-    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
-        <Typography variant="subtitle1" fontWeight={700}>Notifications</Typography>
-        {notifications.some(n => !n.read) && (
+    {/* Header: Clean & Actionable */}
+    <Box sx={{ 
+        p: 2, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        bgcolor: '#FFF',
+        borderBottom: `1px solid #F1F5F9`
+    }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.9rem' }}>
+            Notifications
+        </Typography>
+        {unreadCount > 0 && (
             <Button 
-                size="small" 
-                onClick={handleMarkAllRead} 
-                startIcon={<CheckCircleIcon fontSize="inherit" />}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
+                onClick={handleMarkAllRead}
+                sx={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 800, 
+                    textTransform: 'none',
+                    color: BRAND_BLUE,
+                    '&:hover': { bgcolor: alpha(BRAND_BLUE, 0.05) }
+                }}
             >
-                Mark all read
+                Mark all as read
             </Button>
         )}
     </Box>
 
-    {/* Notification List */}
-    <List sx={{ p: 0 }}>
+    {/* Scrollable Feed */}
+    <Box sx={{ maxHeight: 420, overflow: 'auto', bgcolor: '#FFF' }}>
         {notifications.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-                <NotificationsActiveIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
-                <Typography variant="body2" color="text.secondary">No new notifications</Typography>
+            <Box sx={{ py: 8, textAlign: 'center', px: 4 }}>
+                <Box sx={{ 
+                    width: 48, height: 48, bgcolor: '#F8FAFC', borderRadius: '2px', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
+                    border: `1px solid ${BORDER_COLOR}`
+                }}>
+                    <Bell size={20} color="#94A3B8" strokeWidth={1.5} />
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>No new updates</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>We'll notify you when sales or reviews arrive.</Typography>
             </Box>
         ) : (
             notifications.map((notif) => {
@@ -312,152 +236,120 @@ const handleMarkAllRead = async () => {
                 const isReview = notif.message.toLowerCase().includes('review');
                 
                 return (
-                    <ListItem 
-                        key={notif.id} 
+                    <Box 
+                        key={notif.id}
                         onClick={() => handleNotificationClick(notif.id)}
                         sx={{ 
+                            p: 2,
+                            display: 'flex',
+                            gap: 2,
                             cursor: 'pointer',
-                            bgcolor: notif.read ? 'white' : 'rgba(37, 99, 235, 0.04)',
-                            borderBottom: '1px solid #f9f9f9',
-                            pr: 8, // Space for the 'X' button
-                            transition: 'background-color 0.2s',
-                            '&:hover': { bgcolor: '#f8fafc' },
-                            '&:hover .delete-btn': { opacity: 1 } 
+                            position: 'relative',
+                            transition: 'all 0.2s',
+                            bgcolor: notif.read ? 'transparent' : alpha(BRAND_BLUE, 0.02),
+                            borderBottom: '1px solid #F8FAFC',
+                            '&:hover': { 
+                                bgcolor: '#F8FAFC',
+                                '& .dismiss-btn': { opacity: 1 }
+                            }
                         }}
                     >
-                        {/* Icon/Avatar */}
-                        <ListItemAvatar>
-                            <Avatar sx={{ 
-                                width: 40, height: 40, 
-                                bgcolor: isSale ? '#DCFCE7' : isReview ? '#FEF3C7' : '#E0F2FE',
-                                color: isSale ? '#166534' : isReview ? '#B45309' : '#0284C7'
-                            }}>
-                                {isSale ? <AttachMoneyIcon fontSize="small"/> : isReview ? <StarIcon fontSize="small"/> : <NotificationsActiveIcon fontSize="small"/>}
-                            </Avatar>
-                        </ListItemAvatar>
+                        {/* Unread Indicator Dot */}
+                        {!notif.read && (
+                            <Box sx={{ 
+                                position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                                width: 6, height: 6, borderRadius: '50%', bgcolor: BRAND_BLUE 
+                            }} />
+                        )}
+
+                        {/* Icon Accent */}
+                        <Box sx={{ 
+                            minWidth: 36, height: 36, 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: '2px',
+                            bgcolor: isSale ? alpha('#10B981', 0.1) : isReview ? alpha('#F59E0B', 0.1) : alpha(BRAND_BLUE, 0.1),
+                            color: isSale ? '#059669' : isReview ? '#D97706' : BRAND_BLUE,
+                        }}>
+                            {isSale ? <DollarSign size={16} /> : isReview ? <Star size={16} /> : <Info size={16} />}
+                        </Box>
 
                         {/* Text Content */}
-                        <ListItemText 
-                            primary={
-                                <Box display="flex" alignItems="center" gap={1}>
-                                    <Typography 
-                                        variant="body2" 
-                                        fontWeight={notif.read ? 400 : 600}
-                                        sx={{ color: '#1f2937', lineHeight: 1.4 }}
-                                    >
-                                        {notif.message}
-                                    </Typography>
-                                    {!notif.read && (
-                                        <FiberManualRecordIcon sx={{ fontSize: 10, color: '#2563EB' }} />
-                                    )}
-                                </Box>
-                            }
-                            secondary={
-                                <Typography variant="caption" sx={{ color: '#9ca3af', mt: 0.5, display: 'block' }}>
-                                    {getTimeAgo(notif.createdAt)}
-                                </Typography>
-                            }
-                        />
+                        <Box sx={{ flexGrow: 1, pr: 2 }}>
+                            <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                    fontWeight: notif.read ? 500 : 700, 
+                                    color: '#1E293B', 
+                                    fontSize: '0.825rem',
+                                    lineHeight: 1.4,
+                                    mb: 0.5
+                                }}
+                            >
+                                {notif.message}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600 }}>
+                                {getTimeAgo(notif.createdAt)}
+                            </Typography>
+                        </Box>
 
-                        {/* Dismiss Button (The 'X') */}
-                        <ListItemSecondaryAction>
-                            <Tooltip title="Dismiss">
-                                 <IconButton 
-            className="delete-btn" 
-            size="small" 
-            onClick={(e) => handleDeleteNotification(e, notif.id)}
-            sx={{ 
-                // Visible on mobile, hover-only on desktop
-                opacity: { xs: 0.7, md: 0 }, 
-                transition: 'all 0.2s', 
-                color: '#9ca3af', // Subtle grey color
-                '&:hover': { 
-                    opacity: 1,
-                    color: 'error.main', 
-                    bgcolor: 'rgba(239, 68, 68, 0.08)' // Light red background on hover
-                } 
-            }}
-        >
-            <CloseIcon fontSize="small" />
-        </IconButton>
-                            </Tooltip>
-                        </ListItemSecondaryAction>
-                    </ListItem>
+                        {/* Action: Dismiss Button (Hover only) */}
+                        <IconButton 
+                            className="dismiss-btn"
+                            size="small" 
+                            onClick={(e) => handleDeleteNotification(e, notif.id)}
+                            sx={{ 
+                                opacity: 0, // Hidden until row hover
+                                position: 'absolute', right: 8, top: 12,
+                                transition: 'opacity 0.2s',
+                                '&:hover': { color: 'error.main' }
+                            }}
+                        >
+                            <X size={14} />
+                        </IconButton>
+                    </Box>
                 )
             })
         )}
-    </List>
+    </Box>
 
-    {/* Footer */}
-    {notifications.length > 0 && (
-        <Box sx={{ p: 1.5, textAlign: 'center', borderTop: '1px solid #f0f0f0' }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                End of notifications
-            </Typography>
-        </Box>
-    )}
+   
+    
 </Popover>
 
-                {/* --- USER PROFILE MENU --- */}
-<Menu 
-    anchorEl={anchorEl} 
-    open={Boolean(anchorEl)} 
-    onClose={() => setAnchorEl(null)}
-    PaperProps={{ sx: { minWidth: 200, mt: 1.5, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
-    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
->
-    <Box sx={{ px: 2, py: 1.5 }}>
-        <Typography variant="subtitle2" fontWeight={700}>
-            {userProfile.name}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-            {userProfile.email}
-        </Typography>
-    </Box>
-    <Divider />
-<MenuItem onClick={() => {
-        setAnchorEl(null);
-        navigate('/'); // Navigates to the main landing page
-    }}>
-        <ListItemIcon><HomeIcon fontSize="small" /></ListItemIcon> 
-        Home
-    </MenuItem>
-    {/* Profile Link */}
-    <MenuItem onClick={() => {
-        setAnchorEl(null);
-        navigate('/teacher/settings'); // Navigates to the route in your sidebar
-    }}>
-        <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon> 
-        Profile
-    </MenuItem>
+                {/* --- PROFILE MENU (LUCIDE ICONS) --- */}
+                <Menu 
+                    anchorEl={anchorEl} 
+                    open={Boolean(anchorEl)} 
+                    onClose={() => setAnchorEl(null)}
+                    PaperProps={{ sx: { minWidth: 200, mt: 1.5, borderRadius: '2px', border: `1px solid ${BORDER_COLOR}`, boxShadow: '0 10px 25px rgba(0,0,0,0.05)' } }}
+                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                    <Box sx={{ px: 2, py: 1.5 }}>
+                        <Typography variant="subtitle2" fontWeight={800}>{userProfile.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">{userProfile.email}</Typography>
+                    </Box>
+                    <Divider />
+                    <MenuItem onClick={() => navigate('/')} sx={{ py: 1.2 }}>
+                        <ListItemIcon><Home size={18} color="#0f6aea" /></ListItemIcon> 
+                        <Typography variant="body2" fontWeight={600}>Home</Typography>
+                    </MenuItem>
+                    <MenuItem onClick={() => navigate('/teacher/settings')} sx={{ py: 1.2 }}>
+                        <ListItemIcon><User size={18} color="#0f6aea" /></ListItemIcon> 
+                        <Typography variant="body2" fontWeight={600}>Profile</Typography>
+                    </MenuItem>
+                    <MenuItem onClick={() => navigate('/teacher/settings')} sx={{ py: 1.2 }}>
+                        <ListItemIcon><Settings size={18} color="#0f6aea" /></ListItemIcon> 
+                        <Typography variant="body2" fontWeight={600}>Settings</Typography>
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem onClick={handleLogout} sx={{ py: 1.2, color: 'error.main' }}>
+                        <ListItemIcon><LogOut size={18} color={theme.palette.error.main} /></ListItemIcon> 
+                        <Typography variant="body2" fontWeight={800}>Logout</Typography>
+                    </MenuItem>
+                </Menu>
 
-    {/* Settings Link */}
-    <MenuItem onClick={() => {
-        setAnchorEl(null);
-        navigate('/teacher/settings'); // Navigates to the same settings route
-    }}>
-        <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon> 
-        Settings
-    </MenuItem>
-
-    <Divider />
-
-    {/* Logout Link */}
-    <MenuItem 
-        onClick={() => {
-            setAnchorEl(null);
-            handleLogout(); // Ensure this function clears storage and navigates to login
-        }} 
-        sx={{ color: 'error.main' }}
-    >
-        <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon> 
-        Logout
-    </MenuItem>
-</Menu>
-
-                {/* --- CONTENT AREA --- */}
-                <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1, overflowX: 'hidden' }}>
+                <Box sx={{ p: { xs: 2, md: 4 }, flexGrow: 1 }}>
                     {children}
                 </Box>
             </Box>

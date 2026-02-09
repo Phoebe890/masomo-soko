@@ -1,47 +1,66 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
-    List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, useTheme,
-    IconButton
+    List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, 
+    IconButton, createTheme, ThemeProvider,Button,Snackbar, Alert
 } from '@mui/material';
+// Logic Imports
 import { api } from '@/api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import TeacherLayout from '../../components/TeacherLayout';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@mui/material';
+// High-End Icons (Lucide)
+import { 
+    DollarSign, ShoppingBag, Users, Star, 
+    TrendingUp, Bell, Edit3, Wallet, X, CheckCircle, ArrowUpRight ,Plus
+} from 'lucide-react';
+// --- 1. FORCE FONT LOADING (Google Fonts CDN) ---
+const FONT_LINK = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
 
-// Icons
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import PeopleIcon from '@mui/icons-material/PeopleOutline';
-import StarIcon from '@mui/icons-material/Star';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
-import EditIcon from '@mui/icons-material/Edit';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CloseIcon from '@mui/icons-material/Close'; 
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+// 1. LOCAL THEME FOR THIS PAGE ONLY (Sharp & Modern Font)
+import '@fontsource/plus-jakarta-sans/400.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
+
+// --- 2. THEME CONFIG (Sharp & Specific) ---
+const dashboardTheme = createTheme({
+    typography: {
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+    },
+    components: {
+        MuiTypography: {
+            styleOverrides: {
+                root: {
+                    fontFamily: "'Plus Jakarta Sans', sans-serif !important", // Forcing it
+                },
+            },
+        },
+    },
+});
+
 
 const TeacherDashboard = () => {
-    const theme = useTheme();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
     const [notifications, setNotifications] = useState<any[]>([]);
+const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-    // Brand Colors
+const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
+    // Color Palette
     const BRAND_BLUE = '#2563EB'; 
     const BRAND_ORANGE = '#F97316'; 
+    const BORDER_COLOR = '#E2E8F0';
 
+    // --- YOUR ORIGINAL LOGOIC (PRESERVED) ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Get Dashboard Data
                 const dashRes = await api.get('/api/teacher/dashboard');
                 setData(dashRes.data);
 
-                // Notifications
                 if (dashRes.data.notifications && Array.isArray(dashRes.data.notifications)) {
                     const mappedNotifs = dashRes.data.notifications.map((n: any) => ({
                         id: n.id,
@@ -52,7 +71,6 @@ const TeacherDashboard = () => {
                     setNotifications(mappedNotifs);
                 }
 
-                // 2. Get Analytics Data
                 const analyticsRes = await api.get('/api/teacher/analytics');
                 const rawSales = analyticsRes.data.salesLast30Days || {};
                 
@@ -78,6 +96,18 @@ const TeacherDashboard = () => {
         return count === 0 ? "0.0" : (total / count).toFixed(1);
     };
 
+    const handleDismissNotification = async (id: number) => {
+    try {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        await api.delete(`/api/teacher/notifications/${id}`);
+        
+        // Show Success Toast
+        setSnackbar({ open: true, message: 'Notification dismissed', severity: 'success' });
+    } catch (error) {
+        setSnackbar({ open: true, message: 'Failed to delete notification', severity: 'error' });
+    }
+};
+
     const parseArray = (item: any) => {
         if (Array.isArray(item)) return item;
         if (typeof item === 'string') {
@@ -86,84 +116,66 @@ const TeacherDashboard = () => {
         return [];
     };
 
-   
-
-const handleDismissNotification = async (id: number) => {
-    try {
-        // Update local dashboard state
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        
-        // Call API to delete from Database
-        await api.delete(`/api/teacher/notifications/${id}`);
-    } catch (error) {
-        console.error("Error dismissing notification:", error);
-    }
-};
-
-    // Updated Vibrant Stat Widget with Responsive Fonts
-    const StatWidget = ({ title, value, icon, gradient, textColor = '#fff' }: any) => (
+     // --- SHARP UI COMPONENTS ---
+    const StatWidget = ({ title, value, icon, color }: any) => (
         <Paper
-            elevation={3} 
-            sx={{
-                p: { xs: 2, md: 3 }, // Less padding on mobile
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'space-between',
-                borderRadius: 4,
-                background: gradient, 
-                color: textColor,
-                transition: 'all 0.3s ease', 
-                '&:hover': { 
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)' 
-                },
-                position: 'relative',
-                overflow: 'hidden',
-                minHeight: { xs: 140, md: 160 } // Ensure cards align in height
-            }}
+            elevation={0}
+           sx={{
+    p: 3,
+    height: '100%',
+    borderRadius: '2px',
+    border: `1px solid ${BORDER_COLOR}`,
+    bgcolor: '#FFF',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth high-end transition
+    '&:hover': { 
+        borderColor: color, // Border turns the brand color
+        boxShadow: `0 0 0 4px ${alpha(color, 0.05)}`, // Soft outer glow
+        transform: 'translateY(-2px)' 
+    }
+}}
         >
-            {/* Background Decoration Circle */}
-            <Box sx={{
-                position: 'absolute', top: -20, right: -20, width: 100, height: 100,
-                borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)', zIndex: 0
-            }} />
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, zIndex: 1 }}>
-                <Box sx={{ 
-                    p: 1, 
-                    borderRadius: 3, 
-                    bgcolor: 'rgba(255,255,255, 0.2)', 
-                    backdropFilter: 'blur(5px)',
-                    color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    {/* Make icon slightly smaller on mobile */}
-                    {React.cloneElement(icon, { fontSize: 'small' })} 
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ p: 1, bgcolor: alpha(color, 0.1), color: color, display: 'flex' }}>
+                    {React.cloneElement(icon, { size: 20 })}
                 </Box>
             </Box>
-            
-            <Box sx={{ zIndex: 1 }}>
-                {/* RESPONSIVE FONT SIZE: smaller on xs, bigger on md */}
-                <Typography 
-                    fontWeight={800} 
-                    sx={{ 
-                        fontSize: { xs: '1.25rem', md: '2rem' }, 
-                        mb: 0.5, 
-                        letterSpacing: '-0.5px',
-                        lineHeight: 1.2
-                    }}
-                >
+            <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5, letterSpacing: '-0.03em' }}>
                     {value}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                    {title}
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}>
+                    {title.toUpperCase()}
                 </Typography>
             </Box>
         </Paper>
     );
 
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
+
+   if (loading) return (
+    <TeacherLayout title="Dashboard" selectedRoute="/dashboard/teacher">
+        <Box sx={{ p: 1 }}>
+            <Skeleton variant="text" width={200} height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={300} height={20} sx={{ mb: 4 }} />
+            
+            <Grid container spacing={3}>
+                {[1, 2, 3, 4].map((i) => (
+                    <Grid item xs={12} sm={6} md={3} key={i}>
+                        <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '2px' }} />
+                    </Grid>
+                ))}
+                <Grid item xs={12} md={8}>
+                    <Skeleton variant="rectangular" height={450} sx={{ borderRadius: '2px' }} />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <Skeleton variant="rectangular" height={450} sx={{ borderRadius: '2px' }} />
+                </Grid>
+            </Grid>
+        </Box>
+    </TeacherLayout>
+);
 
     const profile = data?.profile || {};
     const user = profile?.user || {};
@@ -171,217 +183,305 @@ const handleDismissNotification = async (id: number) => {
     const subjects = parseArray(profile.subjects || []);
 
     return (
-        <TeacherLayout title="Dashboard" selectedRoute="/dashboard/teacher">
+        <ThemeProvider theme={dashboardTheme}>
+            {/* 1. Inject the Font Link */}
+            <link rel="stylesheet" href={FONT_LINK} />
             
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-                <Box>
-                    <Typography variant="h4" fontWeight={800} sx={{ color: '#111827', mb: 1, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-                        Hello, <span style={{ color: BRAND_BLUE }}>{user.name || 'Teacher'}</span> 
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        Here's what's happening today.
-                    </Typography>
-                </Box>
-            </Box>
-
-            {/* STAT CARDS GRID - CHANGED TO XS={6} */}
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Earnings" // Shortened title for mobile
-                        value={`KES ${data?.currentBalance?.toLocaleString() || 0}`} 
-                        icon={<AttachMoneyIcon />} 
-                        gradient="linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)"
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Total Sales" 
-                        value={data?.totalSales || 0} 
-                        icon={<ShoppingBagIcon />} 
-                        gradient="linear-gradient(135deg, #F97316 0%, #EA580C 100%)" 
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Resources" 
-                        value={data?.resources?.length || 0} 
-                        icon={<PeopleIcon />} 
-                        gradient="linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)"
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Avg Rating" 
-                        value={getAvgRating()} 
-                        icon={<StarIcon />} 
-                        gradient="linear-gradient(135deg, #F59E0B 0%, #D97706 100%)"
-                    />
-                </Grid>
-            </Grid>
-
-            {/* Charts & Profile Section */}
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={8}>
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 420, mb: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, mr: 2 }}>
-                                <TrendingUpIcon />
-                            </Box>
-                            <Typography variant="h6" fontWeight={700}>Revenue Analytics</Typography>
-                        </Box>
-                        
-                        <ResponsiveContainer width="100%" height="85%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={BRAND_BLUE} stopOpacity={0.2}/>
-                                        <stop offset="95%" stopColor={BRAND_BLUE} stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis 
-                                    dataKey="date" 
-                                    tick={{fontSize: 12, fill: '#6B7280'}} 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    tick={{fontSize: 12, fill: '#6B7280'}} 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                />
-                                <RechartsTooltip 
-                                    contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                                    cursor={{ stroke: BRAND_ORANGE, strokeWidth: 1, strokeDasharray: '4 4' }}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="sales" 
-                                    stroke={BRAND_BLUE} 
-                                    strokeWidth={4} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorSales)" 
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </Paper>
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                    {/* Profile Card */}
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, mb: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" fontWeight={700} sx={{ color: '#111827' }}>My Profile</Typography>
-                            <IconButton 
-                                size="small" 
-                                onClick={() => navigate('/dashboard/teacher/settings')}
-                                sx={{ bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, '&:hover': { bgcolor: alpha(BRAND_BLUE, 0.2) } }}
-                            >
-                                <EditIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
-                        
-                        <Box sx={{ mb: 2.5 }}>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" textTransform="uppercase">Bio</Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5, color: '#374151', lineHeight: 1.6 }}>
-                                {profile.bio || "No bio added yet."}
+            <TeacherLayout title="Dashboard" selectedRoute="/dashboard/teacher">
+                {/* 2. Main Container Box (Forces the font for everything inside) */}
+               <Box 
+    sx={{ 
+        fontFamily: "'Plus Jakarta Sans', sans-serif !important",
+        animation: 'fadeIn 0.6s ease-out', // Add the animation
+        "@keyframes fadeIn": {
+            "0%": { opacity: 0, transform: 'translateY(10px)' },
+            "100%": { opacity: 1, transform: 'translateY(0)' }
+        }
+    }}
+>
+                    
+                    {/* --- STEP 1: THE NEW COMMAND HEADER --- */}
+                    <Box sx={{ 
+                        mb: 4, 
+                        display: 'flex', 
+                        flexDirection: { xs: 'column', md: 'row' },
+                        justifyContent: 'space-between', 
+                        alignItems: { md: 'center' },
+                        gap: 2,
+                        pb: 3,
+                        borderBottom: `1px solid ${BORDER_COLOR}`
+                    }}>
+                        <Box>
+                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>
+                                Dashboard
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                Management and analytics for {user.name || 'Teacher'}
                             </Typography>
                         </Box>
 
-                        <Divider sx={{ my: 2 }} />
-
-                        <Box sx={{ mb: 2.5 }}>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary" textTransform="uppercase">Expertise</Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                {subjects.map((sub: string, i: number) => (
-                                    <Chip 
-                                        key={i} 
-                                        label={sub} 
-                                        size="small" 
-                                        sx={{ bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, fontWeight: 600, border: 'none' }} 
-                                    />
-                                ))}
-                                {skills.map((skill: string, i: number) => (
-                                    <Chip 
-                                        key={i} 
-                                        label={skill} 
-                                        size="small" 
-                                        sx={{ bgcolor: alpha(BRAND_ORANGE, 0.1), color: '#C2410C', fontWeight: 600 }} 
-                                    />
-                                ))}
-                            </Box>
+                        <Box sx={{ display: 'flex', gap: 1.5 }}>
+                            <Button 
+                                variant="outlined" 
+                                startIcon={<TrendingUp size={16} />}
+                                sx={{ 
+                                    borderRadius: '2px', 
+                                    borderColor: BORDER_COLOR, 
+                                    color: '#0F172A',
+                                    fontWeight: 700,
+                                    px: 3,
+                                    textTransform: 'none'
+                                }}
+                                onClick={() => navigate('/teacher/earnings')}
+                            >
+                                Reports
+                            </Button>
+                            <Button 
+                                variant="contained" 
+                                startIcon={<Plus size={16} />}
+                                sx={{ 
+                                    borderRadius: '2px', 
+                                    bgcolor: '#0F172A', 
+                                    '&:hover': { bgcolor: '#1E293B' },
+                                    fontWeight: 700,
+                                    px: 3,
+                                    boxShadow: 'none',
+                                    textTransform: 'none'
+                                }}
+                                onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
+                            >
+                                New Resource
+                            </Button>
                         </Box>
+                    </Box>
 
-                        <Box sx={{ 
-                            background: `linear-gradient(135deg, #fff 0%, ${alpha(BRAND_ORANGE, 0.05)} 100%)`, 
-                            p: 2, 
-                            borderRadius: 3, 
-                            border: `1px solid ${alpha(BRAND_ORANGE, 0.2)}`,
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 2 
-                        }}>
-                            <Box sx={{ p: 1, bgcolor: '#FFF7ED', borderRadius: '50%' }}>
-                                <AccountBalanceWalletIcon sx={{ color: BRAND_ORANGE }} />
-                            </Box>
-                            <Box>
-                                <Typography variant="caption" display="block" color="text.secondary">Payout Method</Typography>
-                                <Typography variant="body2" fontWeight={700} sx={{ color: '#111827' }}>
-                                    M-Pesa: {profile.paymentNumber ? `+254 ${profile.paymentNumber}` : 'Not Set'}
-                                </Typography>
-                            </Box>
-                        </Box>
-                    </Paper>
+                    {/* --- STAT CARDS GRID --- */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget title="Earnings" value={`KES ${data?.currentBalance?.toLocaleString() || 0}`} icon={<DollarSign />} color={BRAND_BLUE} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget title="Total Sales" value={data?.totalSales || 0} icon={<ShoppingBag />} color={BRAND_ORANGE} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget title="Resources" value={data?.resources?.length || 0} icon={<Users />} color="#0EA5E9" />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget title="Avg Rating" value={getAvgRating()} icon={<Star />} color="#F59E0B" />
+                        </Grid>
+                    </Grid>
 
-                    {/* Notifications Card */}
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, maxHeight: 300, overflowY: 'auto' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <NotificationsActiveIcon sx={{ color: BRAND_ORANGE, mr: 1, fontSize: 20 }} />
-                            <Typography variant="h6" fontWeight={700}>Notifications</Typography>
-                        </Box>
-                        
-                        <List disablePadding>
-                            {notifications.length === 0 ? (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, opacity: 0.5 }}>
-                                    <NotificationsActiveIcon fontSize="large" sx={{ mb: 1, color: '#ccc' }} />
-                                    <Typography variant="body2">No new notifications.</Typography>
-                                </Box>
-                            ) : (
-                                notifications.map((note) => (
-                                    <Box key={note.id}>
-                                        <ListItem 
-                                            secondaryAction={
-                                                <IconButton edge="end" size="small" onClick={() => handleDismissNotification(note.id)}>
-                                                    <CloseIcon fontSize="small" />
-                                                </IconButton>
-                                            }
-                                            disableGutters
-                                            sx={{ py: 1.5 }}
-                                        >
-                                            <ListItemAvatar>
-                                                <Avatar sx={{ 
-                                                    bgcolor: note.type === 'tip' ? alpha(BRAND_BLUE, 0.1) : alpha(BRAND_ORANGE, 0.1), 
-                                                    color: note.type === 'tip' ? BRAND_BLUE : BRAND_ORANGE 
-                                                }}>
-                                                    {note.type === 'tip' ? <CheckCircleOutlineIcon fontSize="small" /> : <NotificationsActiveIcon fontSize="small" />}
-                                                </Avatar>
-                                            </ListItemAvatar>
-                                            <ListItemText 
-                                                primary={<Typography variant="subtitle2" fontWeight={600} sx={{ color: '#111827' }}>{note.title}</Typography>}
-                                                secondary={<Typography variant="caption" color="text.secondary">{note.subtitle}</Typography>} 
-                                            />
-                                        </ListItem>
-                                        <Divider component="li" variant="inset" />
+                    {/* --- CHARTS & SIDEBAR SECTION --- */}
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={8}>
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', height: 450 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <TrendingUp size={20} color={BRAND_BLUE} />
+                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>Revenue Analytics</Typography>
                                     </Box>
-                                ))
-                            )}
-                        </List>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </TeacherLayout>
+                                    <Chip label="30 Days" variant="outlined" sx={{ borderRadius: '2px', fontWeight: 700 }} />
+                                </Box>
+                                <ResponsiveContainer width="100%" height="80%">
+                                    <AreaChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                                        <XAxis dataKey="date" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                        <RechartsTooltip contentStyle={{ border: '1px solid #E2E8F0', borderRadius: '2px' }} />
+                                        <Area type="monotone" dataKey="sales" stroke={BRAND_BLUE} strokeWidth={2} fill={alpha(BRAND_BLUE, 0.1)} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Paper>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            {/* Profile Card */}
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', mb: 3 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Profile</Typography>
+                                    <IconButton size="small" onClick={() => navigate('/teacher/settings')} sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                                        <Edit3 size={16} />
+                                    </IconButton>
+                                </Box>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>BIO</Typography>
+                                <Typography variant="body2" sx={{ mt: 1, mb: 3, color: '#334155', fontWeight: 500 }}>
+                                    {profile.bio || "No bio added yet."}
+                                </Typography>
+                                <Divider sx={{ mb: 3 }} />
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>EXPERTISE</Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1, mb: 3 }}>
+                                    {subjects.map((sub: string, i: number) => (
+                                        <Chip key={i} label={sub} size="small" sx={{ borderRadius: '2px', bgcolor: '#F1F5F9', fontWeight: 700, fontSize: '0.7rem' }} />
+                                    ))}
+                                </Box>
+                                <Box sx={{ p: 2, bgcolor: '#F8FAFC', border: `1px solid ${BORDER_COLOR}`, display: 'flex', gap: 2, alignItems: 'center' }}>
+                                    <Wallet size={20} color={BRAND_ORANGE} />
+                                    <Box>
+                                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>Payout Number</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 800 }}>+254 {profile.paymentNumber || 'Not Set'}</Typography>
+                                    </Box>
+                                </Box>
+                            </Paper>
+{/* --- STEP 3: HIGH-DENSITY RESOURCE LIST --- */}
+<Paper 
+    elevation={0} 
+    sx={{ 
+        p: 3, 
+        border: `1px solid ${BORDER_COLOR}`, 
+        borderRadius: '2px', 
+        mb: 3 
+    }}
+>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Top Resources</Typography>
+        <Typography 
+            variant="caption" 
+            sx={{ fontWeight: 700, color: BRAND_BLUE, cursor: 'pointer' }}
+            onClick={() => navigate('/dashboard/teacher/resources')}
+        >
+            View All
+        </Typography>
+    </Box>
+
+    <List disablePadding>
+        {(!data?.resources || data.resources.length === 0) ? (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                No active resources yet.
+            </Typography>
+        ) : (
+            data.resources.slice(0, 3).map((res: any, i: number) => (
+                <ListItem 
+                    key={i} 
+                    disableGutters 
+                    sx={{ 
+                        py: 1.5, 
+                        borderBottom: i === (data.resources.slice(0, 3).length - 1) ? 'none' : `1px solid #F1F5F9`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden', mr: 2 }}>
+                        <Box sx={{ 
+                            minWidth: 32, height: 32, 
+                            bgcolor: '#F8FAFC', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            border: `1px solid ${BORDER_COLOR}` 
+                        }}>
+                            <ShoppingBag size={14} color={BRAND_BLUE} />
+                        </Box>
+                        <Typography 
+                            variant="body2" 
+                            sx={{ 
+                                fontWeight: 700, 
+                                whiteSpace: 'nowrap', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                                maxWidth: '150px' 
+                            }}
+                        >
+                            {res.title}
+                        </Typography>
+                    </Box>
+                    <Chip 
+                        label={`${res.salesCount || 0} Sold`} 
+                        size="small" 
+                        sx={{ 
+                            borderRadius: '2px', 
+                            height: 20, 
+                            fontSize: '0.65rem', 
+                            fontWeight: 800, 
+                            bgcolor: alpha('#10B981', 0.1), 
+                            color: '#059669',
+                            border: 'none'
+                        }} 
+                    />
+                </ListItem>
+            ))
+        )}
+    </List>
+</Paper>
+                            {/* Notifications Card */}
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', maxHeight: 400, overflowY: 'auto' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+                                    <Bell size={20} color={BRAND_ORANGE} />
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Notifications</Typography>
+                                </Box>
+                                <List disablePadding>
+                                  {notifications.length === 0 ? (
+    <Box sx={{ 
+        py: 8, 
+        textAlign: 'center', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center',
+        opacity: 0.6 
+    }}>
+        <Box sx={{ 
+            mb: 2, p: 2, 
+            bgcolor: '#F8FAFC', 
+            borderRadius: '2px', 
+            border: `1px solid ${BORDER_COLOR}`,
+            display: 'flex' 
+        }}>
+            <Bell size={32} strokeWidth={1.5} color={BRAND_ORANGE} />
+        </Box>
+        <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+            All caught up!
+        </Typography>
+        <Typography variant="caption" sx={{ maxWidth: '200px', mt: 0.5 }}>
+            You have no new notifications to review right now.
+        </Typography>
+    </Box>
+) : (
+                                        notifications.map((note) => (
+                                            <ListItem 
+                                                key={note.id}
+                                                secondaryAction={
+                                                    <IconButton size="small" onClick={() => handleDismissNotification(note.id)}><X size={14}/></IconButton>
+                                                }
+                                                sx={{ px: 0, borderBottom: `1px solid #F1F5F9` }}
+                                            >
+                                                <ListItemAvatar>
+                                                    <Avatar sx={{ borderRadius: '2px', bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE }}>
+                                                        <CheckCircle size={18} />
+                                                    </Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText 
+                                                    primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{note.title}</Typography>}
+                                                    secondary={<Typography variant="caption" sx={{ fontWeight: 500 }}>{note.subtitle}</Typography>}
+                                                />
+                                            </ListItem>
+                                        ))
+                                    )}
+                                </List>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </Box> {/* Closes Main Container Box */}
+            </TeacherLayout>
+            <Snackbar 
+    open={snackbar.open} 
+    autoHideDuration={4000} 
+    onClose={handleCloseSnackbar}
+    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+>
+    <Alert 
+        onClose={handleCloseSnackbar} 
+        severity={snackbar.severity} 
+        variant="filled"
+        sx={{ 
+            borderRadius: '2px', // Sharp edges
+            bgcolor: snackbar.severity === 'success' ? '#0F172A' : '#EF4444', // Slate black for success is high-end
+            fontWeight: 700,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+        }}
+    >
+        {snackbar.message}
+    </Alert>
+</Snackbar>
+        </ThemeProvider>
     );
 };
 
