@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios'; 
 import StudentSidebar from './StudentSidebar';
-import logoIcon from '@/assets/logo-icon.svg';
+//import logoIcon from '@/assets/logo-icon.svg';
 
 // High-End Icons (Lucide)
 import { 
@@ -96,9 +96,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, activeTab, onTa
                                 {getTitle()}
                             </Typography>
                             
-                            <Box onClick={() => navigate('/')} sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', cursor: 'pointer' }}>
-                                <img src={logoIcon} alt="Logo" style={{ height: 32 }} />
-                            </Box>
+                           
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
