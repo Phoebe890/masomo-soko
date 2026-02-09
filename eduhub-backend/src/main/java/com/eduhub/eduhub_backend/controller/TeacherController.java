@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -263,6 +264,44 @@ public ResponseEntity<?> onboarding(
     } catch (Exception e) {
         e.printStackTrace(); 
         return ResponseEntity.status(500).body("Failed: " + e.getMessage());
+    }
+}
+@GetMapping("/reviews")
+public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        // 1. Get the authenticated teacher
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2. Find all resources belonging to this teacher
+        List<TeacherResource> resources = teacherResourceRepository.findByUserId(teacher.getId());
+
+        // 3. Collect reviews for those resources and map them to a flat structure
+        List<Map<String, Object>> response = resources.stream()
+            .flatMap(res -> reviewRepository.findByResource(res).stream())
+            .map(review -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", review.getId());
+                map.put("rating", review.getRating());
+                map.put("comment", review.getComment());
+                
+                // MAPPING Logic: Extracting data from related entities
+                map.put("date", review.getCreatedAt()); 
+                map.put("resourceTitle", review.getResource().getTitle());
+                map.put("resourceId", review.getResource().getId());
+                map.put("studentName", review.getStudent().getName()); // Gets the student's name
+                
+                return map;
+            })
+            // Sort by date (Newest First)
+            .sorted((a, b) -> ((LocalDateTime) b.get("date")).compareTo((LocalDateTime) a.get("date")))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error: " + e.getMessage());
     }
 }
    // --- GET SETTINGS ---

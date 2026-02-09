@@ -37,9 +37,7 @@ const TeacherSidebar = ({ mobileOpen, onClose }: any) => {
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <img src={logoIcon} alt="Logo" style={{ height: 32 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.5px', color: '#fff' }}>
-                        MASOMO
-                    </Typography>
+                   
                 </Box>
                 {/* Close button for mobile only */}
                 <IconButton onClick={onClose} sx={{ display: { md: 'none' }, color: '#fff' }}>

@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
     Box, IconButton, Typography, Avatar, Menu, MenuItem, 
     useTheme, AppBar, Toolbar, Badge, Divider, ListItemIcon,
-    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button, ListItemSecondaryAction,alpha
+    Popover, List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button, ListItemSecondaryAction,alpha,InputBase, createTheme, ThemeProvider, CssBaseline
 } from '@mui/material';
 // High-End Icons
-import { Bell, User, LogOut, Settings, Home, CheckCircle, DollarSign, Star, X, Info } from 'lucide-react';
+import { Bell, User, LogOut, Settings, Home, CheckCircle, DollarSign, Star, X, Info, Sun, Moon  } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import TeacherSidebar from './TeacherSidebar';
 import logoIcon from '@/assets/logo-icon.svg';
 import MenuIcon from '@mui/icons-material/Menu';
+import { Search,  } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 const BORDER_COLOR = '#E2E8F0';

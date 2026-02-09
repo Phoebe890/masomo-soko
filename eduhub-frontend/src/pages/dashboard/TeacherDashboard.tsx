@@ -192,6 +192,8 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                <Box 
     sx={{ 
         fontFamily: "'Plus Jakarta Sans', sans-serif !important",
+        width: '100%',
+                        overflowX: 'hidden',
         animation: 'fadeIn 0.6s ease-out', // Add the animation
         "@keyframes fadeIn": {
             "0%": { opacity: 0, transform: 'translateY(10px)' },
@@ -255,7 +257,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                         </Box>
                     </Box>
 
-                    {/* --- STAT CARDS GRID --- */}
+                     {/* --- STAT CARDS --- */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget title="Earnings" value={`KES ${data?.currentBalance?.toLocaleString() || 0}`} icon={<DollarSign />} color={BRAND_BLUE} />
@@ -273,38 +275,131 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
                     {/* --- CHARTS & SIDEBAR SECTION --- */}
                     <Grid container spacing={3}>
-                        <Grid item xs={12} md={8}>
-                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', height: 450 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                        <TrendingUp size={20} color={BRAND_BLUE} />
-                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>Revenue Analytics</Typography>
+                       <Grid item xs={12} md={8}>
+    {/* --- REVENUE CHART --- */}
+    <Paper 
+        elevation={0} 
+        sx={{ 
+            p: 3, 
+            border: `1px solid ${BORDER_COLOR}`, 
+            borderRadius: '2px', 
+            height: 450, 
+            mb: 3 // This creates the gap you requested
+        }}
+    >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <TrendingUp size={20} color={BRAND_BLUE} />
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Revenue Analytics</Typography>
+            </Box>
+            <Chip label="Last 30 Days" variant="outlined" sx={{ borderRadius: '2px', fontWeight: 700 }} />
+        </Box>
+        <ResponsiveContainer width="100%" height="80%">
+            <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="date" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                <RechartsTooltip contentStyle={{ border: '1px solid #E2E8F0', borderRadius: '2px' }} />
+                <Area type="monotone" dataKey="sales" stroke={BRAND_BLUE} strokeWidth={2} fill={alpha(BRAND_BLUE, 0.1)} />
+            </AreaChart>
+        </ResponsiveContainer>
+    </Paper>
+
+    {/* --- NEW FEATURE: DYNAMIC ACTIVITY FEED (REAL DATA) --- */}
+    <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>Live Activity Feed</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                Real-time updates
+            </Typography>
+        </Box>
+
+        <Grid container spacing={2}>
+            {notifications.length === 0 ? (
+                <Grid item xs={12}>
+                    <Box sx={{ py: 4, textAlign: 'center', bgcolor: '#F8FAFC', border: `1px dashed ${BORDER_COLOR}` }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Waiting for your first sale or review to show activity...
+                        </Typography>
+                    </Box>
+                </Grid>
+            ) : (
+                notifications.slice(0, 4).map((notif) => {
+                    const isSale = notif.subtitle.toLowerCase().includes('purchased') || notif.title.toLowerCase().includes('sale');
+                    const isReview = notif.subtitle.toLowerCase().includes('review') || notif.subtitle.toLowerCase().includes('rated');
+
+                    return (
+                        <Grid item xs={12} sm={6} key={notif.id}>
+                            <Box 
+                                sx={{ 
+                                    p: 2, 
+                                    height: '100%',
+                                    bgcolor: '#FFF', 
+                                    border: `1px solid ${BORDER_COLOR}`, 
+                                    borderRadius: '2px',
+                                    transition: 'all 0.2s',
+                                    '&:hover': { bgcolor: '#F8FAFC', borderColor: BRAND_BLUE }
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                                    <Avatar 
+                                        sx={{ 
+                                            width: 36, height: 36, borderRadius: '2px',
+                                            bgcolor: isSale ? alpha('#10B981', 0.1) : isReview ? alpha('#F59E0B', 0.1) : alpha(BRAND_BLUE, 0.1),
+                                            color: isSale ? '#059669' : isReview ? '#D97706' : BRAND_BLUE,
+                                        }}
+                                    >
+                                        {isSale ? <DollarSign size={18} /> : isReview ? <Star size={18} /> : <CheckCircle size={18} />}
+                                    </Avatar>
+                                    <Box sx={{ flexGrow: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2, mb: 0.5 }}>
+                                            {isSale ? 'Successful Sale' : isReview ? 'New Resource Review' : 'System Update'}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mb: 1 }}>
+                                            {notif.subtitle}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ fontWeight: 700, color: BRAND_BLUE, display: 'block' }}>
+                                            Just Now
+                                        </Typography>
                                     </Box>
-                                    <Chip label="30 Days" variant="outlined" sx={{ borderRadius: '2px', fontWeight: 700 }} />
                                 </Box>
-                                <ResponsiveContainer width="100%" height="80%">
-                                    <AreaChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                                        <XAxis dataKey="date" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                                        <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                                        <RechartsTooltip contentStyle={{ border: '1px solid #E2E8F0', borderRadius: '2px' }} />
-                                        <Area type="monotone" dataKey="sales" stroke={BRAND_BLUE} strokeWidth={2} fill={alpha(BRAND_BLUE, 0.1)} />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </Paper>
+                            </Box>
                         </Grid>
+                    );
+                })
+            )}
+        </Grid>
+    </Paper>
+</Grid>
 
                         <Grid item xs={12} md={4}>
-                            {/* Profile Card */}
+                            {/* PROFILE CARD */}
                             <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', mb: 3 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                                     <Typography variant="h6" sx={{ fontWeight: 800 }}>Profile</Typography>
-                                    <IconButton size="small" onClick={() => navigate('/teacher/settings')} sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                                    {/* FIX 2: Edit Icon set to BRAND_BLUE */}
+                                    <IconButton 
+                                        size="small" 
+                                        onClick={() => navigate('/teacher/settings')} 
+                                        sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', color: BRAND_BLUE }}
+                                    >
                                         <Edit3 size={16} />
                                     </IconButton>
                                 </Box>
                                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>BIO</Typography>
-                                <Typography variant="body2" sx={{ mt: 1, mb: 3, color: '#334155', fontWeight: 500 }}>
+                                {/* 
+                                   FIX 3: Added wordBreak and display block to prevent 
+                                   the bio from flowing out of the card.
+                                */}
+                                <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                        mt: 1, mb: 3, color: '#334155', fontWeight: 500,
+                                        wordBreak: 'break-word',
+                                        display: 'block',
+                                        lineHeight: 1.6
+                                    }}
+                                >
                                     {profile.bio || "No bio added yet."}
                                 </Typography>
                                 <Divider sx={{ mb: 3 }} />

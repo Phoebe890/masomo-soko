@@ -2,12 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, TextField, Button, Paper, Grid, 
   CircularProgress, Snackbar, Alert, Divider, InputAdornment, 
-  Avatar
+  Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton
 } from '@mui/material';
 import { api } from '@/api/axios';
 
-// Layout Component
+// Layout & Icons
 import TeacherLayout from '../../components/TeacherLayout';
+import { 
+    User, CreditCard, Camera, Save, 
+    ArrowLeft, Layout, CheckCircle, Info, 
+    AtSign, Smartphone 
+} from 'lucide-react';
+
+const BRAND_BLUE = '#2563EB';
+const BRAND_GREEN = '#10B981';
+const BORDER_COLOR = '#E2E8F0';
+
+const settingsTheme = createTheme({
+    typography: {
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+    },
+    components: {
+        MuiTypography: {
+            styleOverrides: { root: { fontFamily: "'Plus Jakarta Sans', sans-serif !important" } },
+        },
+        MuiOutlinedInput: {
+            styleOverrides: {
+                root: { borderRadius: '2px', backgroundColor: '#F8FAFC' },
+            },
+        },
+    },
+});
 
 const TeacherSettings = () => {
     const [loading, setLoading] = useState(true);
@@ -30,7 +55,6 @@ const TeacherSettings = () => {
     const [toast, setToast] = useState({ open: false, msg: '', severity: 'success' as 'success' | 'error' });
 
     useEffect(() => {
-        // Fetch current settings
         api.get('/api/teacher/settings')
             .then(res => {
                 const p = res.data.profile || {};
@@ -48,7 +72,6 @@ const TeacherSettings = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    // Helper to determine which image to show
     const getAvatarSrc = () => {
         if (previewUrl) return previewUrl; 
         if (!profilePic) return undefined;
@@ -65,7 +88,7 @@ const TeacherSettings = () => {
         setSaving(true);
         try {
             const uploadData = new FormData();
-             uploadData.append('name', formData.displayName);
+            uploadData.append('name', formData.displayName);
             uploadData.append('bio', formData.bio);
             uploadData.append('headline', formData.headline);
             uploadData.append('paymentNumber', formData.mpesaNumber);
@@ -95,130 +118,153 @@ const TeacherSettings = () => {
     };
 
     return (
-        <TeacherLayout title="Settings" selectedRoute="/teacher/settings">
-            {/* 
-                TeacherLayout provides the Topbar, Sidebar, and correct spacing.
-                We removed the manual Header Box because "Settings" is now in the Topbar.
-            */}
-            
-            {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}><CircularProgress /></Box>
-            ) : (
-                <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, borderRadius: 4, border: '1px solid #E5E7EB', maxWidth: 800, mx: 'auto' }}>
-                    
-                    {/* PROFILE PICTURE SECTION */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
-                        <Avatar 
-                            src={getAvatarSrc()} 
-                            sx={{ width: 100, height: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', bgcolor: '#f1f5f9' }} 
-                        />
-                        <Box>
-                            <Typography variant="h6" fontWeight={700}>Profile Picture</Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                                {previewUrl ? "Unsaved changes" : "PNG, JPG or GIF (max. 2MB)"}
-                            </Typography>
-                            
-                            <input
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                                id="profile-pic-upload"
-                                type="file"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        setSelectedFile(file);
-                                        setPreviewUrl(URL.createObjectURL(file));
-                                    }
-                                }}
-                            />
-                            <label htmlFor="profile-pic-upload">
-                                <Button variant="outlined" component="span" size="small" sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
-                                    Change Photo
-                                </Button>
-                            </label>
-                            
-                            {previewUrl && (
-                                <Button 
-                                    variant="text" color="error" size="small" sx={{ ml: 1, textTransform: 'none' }}
-                                    onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
-                                >
-                                    Cancel
-                                </Button>
-                            )}
+        <ThemeProvider theme={settingsTheme}>
+            <TeacherLayout title="Settings" selectedRoute="/teacher/settings">
+                
+                {loading ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 15 }}>
+                        <CircularProgress size={30} sx={{ color: BRAND_BLUE }} />
+                        <Typography variant="caption" sx={{ mt: 2, fontWeight: 700, color: 'text.secondary' }}>LOADING PREFERENCES...</Typography>
+                    </Box>
+                ) : (
+                    <Box sx={{ maxWidth: 900, mx: 'auto', pb: 5, animation: 'fadeIn 0.5s ease-out' }}>
+                        
+                        {/* HEADER */}
+                        <Box sx={{ mb: 4 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>Account Settings</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Update your profile information and payout preferences.</Typography>
                         </Box>
+
+                        <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                            
+                            {/* SECTION 1: IDENTITY */}
+                            <Box sx={{ mb: 6 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                                    <Avatar sx={{ bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, borderRadius: '2px', width: 32, height: 32 }}>
+                                        <User size={18} />
+                                    </Avatar>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Public Identity</Typography>
+                                </Box>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
+                                    <Box sx={{ position: 'relative' }}>
+                                        <Avatar 
+                                            src={getAvatarSrc()} 
+                                            sx={{ width: 100, height: 100, borderRadius: '2px', border: `1px solid ${BORDER_COLOR}`, bgcolor: '#F8FAFC' }} 
+                                        />
+                                        <IconButton 
+                                            component="label"
+                                            sx={{ 
+                                                position: 'absolute', bottom: -10, right: -10, bgcolor: '#0F172A', color: 'white', 
+                                                '&:hover': { bgcolor: '#1E293B' }, width: 32, height: 32, border: '2px solid white'
+                                            }}
+                                        >
+                                            <Camera size={16} />
+                                            <input type="file" hidden accept="image/*" onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
+                                            }} />
+                                        </IconButton>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Profile Photo</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, maxWidth: 300 }}>
+                                            This will be displayed on your store page and resource listings.
+                                        </Typography>
+                                        {previewUrl && (
+                                            <Button size="small" variant="outlined" color="error" sx={{ borderRadius: '2px', textTransform: 'none', fontWeight: 700 }} onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}>
+                                                Cancel Changes
+                                            </Button>
+                                        )}
+                                    </Box>
+                                </Box>
+
+                                <Grid container spacing={3}>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1, display: 'block' }}>FULL DISPLAY NAME</Typography>
+                                        <TextField 
+                                            fullWidth name="displayName" value={formData.displayName} onChange={handleChange}
+                                            placeholder="John Doe"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1, display: 'block' }}>PROFESSIONAL HEADLINE</Typography>
+                                        <TextField 
+                                            fullWidth name="headline" value={formData.headline} onChange={handleChange} 
+                                            placeholder="e.g. Senior Mathematics Teacher"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1, display: 'block' }}>BIO / DESCRIPTION</Typography>
+                                        <TextField 
+                                            fullWidth multiline rows={4} name="bio" value={formData.bio} onChange={handleChange} 
+                                            placeholder="Tell students about your experience and teaching style..."
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            <Divider sx={{ mb: 6 }} />
+
+                            {/* SECTION 2: PAYOUTS */}
+                            <Box sx={{ mb: 6 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                                    <Avatar sx={{ bgcolor: alpha(BRAND_GREEN, 0.1), color: BRAND_GREEN, borderRadius: '2px', width: 32, height: 32 }}>
+                                        <CreditCard size={18} />
+                                    </Avatar>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Financial Details</Typography>
+                                </Box>
+
+                                <Grid container spacing={3}>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1, display: 'block' }}>M-PESA PAYOUT NUMBER</Typography>
+                                        <TextField 
+                                            fullWidth name="mpesaNumber" value={formData.mpesaNumber} onChange={handleChange}
+                                            InputProps={{ startAdornment: <InputAdornment position="start"><Smartphone size={16} style={{marginRight: 8}} /> +254</InputAdornment> }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <Box sx={{ p: 2.5, bgcolor: alpha(BRAND_GREEN, 0.05), border: `1px solid ${alpha(BRAND_GREEN, 0.1)}`, borderRadius: '2px', display: 'flex', gap: 2 }}>
+                                            <Info size={20} color={BRAND_GREEN} style={{ flexShrink: 0 }} />
+                                            <Typography variant="caption" sx={{ fontWeight: 500, color: '#065F46' }}>
+                                                Earnings are automatically settled to this M-Pesa number. Ensure the number is active to avoid payout delays.
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                <Button 
+                                    variant="contained" 
+                                    size="large"
+                                    onClick={handleSave} 
+                                    disabled={saving}
+                                    sx={{ 
+                                        fontWeight: 800, borderRadius: '2px', px: 5, py: 1.5,
+                                        bgcolor: '#0F172A', '&:hover': { bgcolor: '#1E293B' },
+                                        boxShadow: 'none', transition: '0.2s'
+                                    }}
+                                >
+                                    {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
+                                </Button>
+                            </Box>
+
+                        </Paper>
                     </Box>
+                )}
 
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* PUBLIC PROFILE SECTION */}
-                    <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Public Profile</Typography>
-                    
-                    <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                            <TextField 
-                                fullWidth label="Display Name" name="displayName" 
-                                value={formData.displayName} onChange={handleChange}
-                                helperText="This is how your name will appear to students"
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField 
-                                fullWidth label="Headline" name="headline" 
-                                placeholder="e.g. Senior Math Teacher"
-                                value={formData.headline} onChange={handleChange} 
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField 
-                                fullWidth multiline rows={4} label="Bio" name="bio" 
-                                placeholder="Tell students about yourself..."
-                                value={formData.bio} onChange={handleChange} 
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* FINANCIAL DETAILS SECTION */}
-                    <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>Financial Details</Typography>
-                    <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
-                            <TextField 
-                                fullWidth label="M-Pesa Number" name="mpesaNumber" 
-                                value={formData.mpesaNumber} onChange={handleChange}
-                                placeholder="712345678"
-                                InputProps={{ startAdornment: <InputAdornment position="start">+254</InputAdornment> }}
-                                helperText="This number will be used for payouts"
-                            />
-                        </Grid>
-                    </Grid>
-
-                    <Box sx={{ mt: 4 }}>
-                        <Button 
-                            variant="contained" 
-                            size="large"
-                            onClick={handleSave} 
-                            disabled={saving}
-                            startIcon={saving ? <CircularProgress size={20} color="inherit"/> : null}
-                            sx={{ 
-                                fontWeight: 700, 
-                                borderRadius: 2,
-                                px: 4,
-                                bgcolor: '#43B02A', 
-                                '&:hover': { bgcolor: '#388E3C' },
-                                '&.Mui-disabled': { bgcolor: '#A5D6A7', color: 'white' }
-                            }}
-                        >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                    </Box>
-                </Paper>
-            )}
-
-            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({...toast, open: false})}>
-                <Alert severity={toast.severity} variant="filled">{toast.msg}</Alert>
-            </Snackbar>
-        </TeacherLayout>
+                <Snackbar 
+                    open={toast.open} autoHideDuration={4000} 
+                    onClose={() => setToast({...toast, open: false})}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                >
+                    <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '2px', fontWeight: 700 }}>
+                        {toast.msg}
+                    </Alert>
+                </Snackbar>
+            </TeacherLayout>
+        </ThemeProvider>
     );
 };
 

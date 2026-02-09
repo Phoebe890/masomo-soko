@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { 
-    Dialog, DialogTitle, DialogContent, DialogActions, 
-    Button, TextField, Rating, Typography, Box, Alert, 
-    Fade, IconButton, Stack, Avatar 
+    Dialog, DialogContent, Button, TextField, Rating, 
+    Typography, Box, Alert, Fade, IconButton, Avatar, alpha 
 } from '@mui/material';
-import { api } from '@/api/axios'; // FIXED: Using pre-configured Axios instance
-
-// Icons
-import CloseIcon from '@mui/icons-material/Close';
-import StarIcon from '@mui/icons-material/Star';
-import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
-
-// FIXED: Removed hardcoded BACKEND_URL
+import { api } from '@/api/axios';
+// High-End Icons
+import { X, Star, CheckCircle, MessageSquare } from 'lucide-react';
 
 interface ReviewModalProps {
     open: boolean;
@@ -28,8 +22,9 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
     const [error, setError] = useState('');
     const [step, setStep] = useState<'form' | 'success'>('form');
 
+    const BRAND_BLUE = '#2563EB';
+
     const handleClose = () => {
-        // Reset state when closing
         setStep('form');
         setRating(0);
         setComment('');
@@ -37,162 +32,127 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
         onClose();
     };
 
-    const handleSubmit = async () => {
-        if (!rating) {
-            setError("Please select a star rating to continue.");
-            return;
-        }
-        if (!resourceId) return;
+  const handleSubmit = async () => {
+    if (!rating) {
+        setError("Please select a star rating.");
+        return;
+    }
+    if (!resourceId) return;
 
-        setLoading(true);
-        setError('');
+    setLoading(true);
+    setError('');
 
-        try {
-            const formData = new FormData();
-            formData.append('resourceId', resourceId.toString());
-            formData.append('rating', rating.toString());
-            formData.append('comment', comment);
+    try {
+        // BACKEND REQUIREMENT: Use FormData for @RequestParam
+        const formData = new FormData();
+        formData.append('resourceId', resourceId.toString());
+        formData.append('rating', rating.toString());
+        formData.append('comment', comment);
 
-            // FIXED: Using relative path. Axios handles baseURL, credentials, and multipart headers automatically.
-            await api.post('/api/student/review', formData);
+        // Axios handles multipart headers automatically for FormData
+        await api.post('/api/student/review', formData);
 
-            // Show success state
-            setStep('success');
-            setTimeout(() => {
-                onSuccess(); // Refresh parent data
-                handleClose();
-            }, 2000);
+        setStep('success');
+        setTimeout(() => {
+            onSuccess(); 
+            handleClose();
+        }, 2000);
 
-        } catch (err: any) {
-            // Clean Error Message from Backend
-            const msg = err.response?.data || "Unable to submit review. Please try again later.";
-            setError(typeof msg === 'string' ? msg : "An unexpected error occurred.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    } catch (err: any) {
+        // If 403 occurs here, it means a TEACHER is trying to post to a STUDENT route.
+        const msg = err.response?.data || "Submission failed. Ensure you are logged in as a student.";
+        setError(typeof msg === 'string' ? msg : "Access Denied (403).");
+    } finally {
+        setLoading(false);
+    }
+};
     return (
         <Dialog 
             open={open} 
             onClose={handleClose} 
             fullWidth 
-            maxWidth="sm" 
+            maxWidth="xs" 
             PaperProps={{ 
-                sx: { 
-                    borderRadius: 4, 
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                    overflow: 'hidden'
-                } 
+                sx: { borderRadius: '2px', p: 1 } 
             }}
         >
-            {/* Header with Close Button */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 0 }}>
-                <Typography variant="h6" fontWeight={800} color="#111827">
-                    {step === 'form' ? 'Write a Review' : ''}
-                </Typography>
-                <IconButton onClick={handleClose} size="small" sx={{ bgcolor: '#F3F4F6' }}>
-                    <CloseIcon fontSize="small" />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                <IconButton onClick={handleClose} size="small">
+                    <X size={18} />
                 </IconButton>
             </Box>
 
-            <DialogContent sx={{ p: 4, pt: 2 }}>
-                
+            <DialogContent sx={{ p: 3, pt: 0 }}>
                 {step === 'form' ? (
                     <Fade in={true}>
                         <Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                Share your experience with <Box component="span" fontWeight={700} color="#111827">"{resourceTitle}"</Box> to help other students.
-                            </Typography>
-
-                            {error && (
-                                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                                    {error}
-                                </Alert>
-                            )}
-
-                            {/* Rating Section */}
-                            <Box sx={{ textAlign: 'center', mb: 4 }}>
-                                <Rating
-                                    name="rating"
-                                    value={rating}
-                                    onChange={(event, newValue) => {
-                                        setRating(newValue);
-                                        if(error) setError(''); 
-                                    }}
-                                    size="large"
-                                    sx={{ fontSize: '3rem' }}
-                                    emptyIcon={<StarIcon style={{ opacity: 0.2 }} fontSize="inherit" />}
-                                />
-                                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
-                                    {rating === 1 ? "Poor" : rating === 2 ? "Fair" : rating === 3 ? "Good" : rating === 4 ? "Very Good" : rating === 5 ? "Excellent" : "Tap to rate"}
+                            <Box sx={{ mb: 3, textAlign: 'center' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                                    Rate Resource
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                                    How was your experience with <br/> 
+                                    <strong style={{ color: '#0F172A' }}>{resourceTitle}</strong>?
                                 </Typography>
                             </Box>
 
-                            {/* Comment Section */}
-                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Your Feedback (Optional)</Typography>
+                            {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '2px' }}>{error}</Alert>}
+
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+                                <Rating
+                                    value={rating}
+                                    onChange={(_, val) => setRating(val)}
+                                    size="large"
+                                    sx={{ fontSize: '3rem', color: '#F59E0B' }}
+                                />
+                                <Typography variant="caption" sx={{ mt: 1, fontWeight: 700, color: BRAND_BLUE, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                    {['Rate It', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating || 0]}
+                                </Typography>
+                            </Box>
+
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1, display: 'block' }}>
+                                SHARE YOUR THOUGHTS
+                            </Typography>
                             <TextField
                                 multiline
-                                rows={4}
+                                rows={3}
                                 fullWidth
-                                variant="outlined"
-                                placeholder="What did you like most about this resource? Was it helpful?"
+                                placeholder="Write your review here..."
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
-                                InputProps={{ sx: { borderRadius: 3, bgcolor: '#F9FAFB' } }}
+                                sx={{ 
+                                    '& .MuiOutlinedInput-root': { borderRadius: '2px', bgcolor: '#F8FAFC' } 
+                                }}
                             />
-                            <Box sx={{ textAlign: 'right', mt: 1 }}>
-                                <Typography variant="caption" color={comment.length > 500 ? "error" : "text.secondary"}>
-                                    {comment.length}/500
-                                </Typography>
-                            </Box>
+
+                            <Button 
+                                fullWidth
+                                onClick={handleSubmit} 
+                                variant="contained" 
+                                disabled={loading}
+                                sx={{ 
+                                    mt: 4, py: 1.5, borderRadius: '2px', bgcolor: '#0F172A', fontWeight: 700,
+                                    '&:hover': { bgcolor: '#1E293B' }, boxShadow: 'none'
+                                }}
+                            >
+                                {loading ? "Submitting..." : "Submit Review"}
+                            </Button>
                         </Box>
                     </Fade>
                 ) : (
-                    // Success State
                     <Fade in={true}>
                         <Box sx={{ textAlign: 'center', py: 4 }}>
-                            <Avatar sx={{ bgcolor: '#DCFCE7', color: '#16A34A', width: 64, height: 64, mx: 'auto', mb: 2 }}>
-                                <ThumbUpAltOutlinedIcon fontSize="large" />
+                            <Avatar sx={{ bgcolor: alpha('#10B981', 0.1), color: '#10B981', width: 64, height: 64, mx: 'auto', mb: 2, borderRadius: '2px' }}>
+                                <CheckCircle size={32} />
                             </Avatar>
-                            <Typography variant="h5" fontWeight={800} gutterBottom>Thank You!</Typography>
-                            <Typography color="text.secondary">
-                                Your review has been submitted successfully.
+                            <Typography variant="h5" sx={{ fontWeight: 800 }}>Thank You!</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                Your feedback helps the community grow.
                             </Typography>
                         </Box>
                     </Fade>
                 )}
-
             </DialogContent>
-
-            {step === 'form' && (
-                <DialogActions sx={{ px: 4, pb: 4 }}>
-                    <Button 
-                        onClick={handleClose} 
-                        disabled={loading} 
-                        sx={{ fontWeight: 600, color: '#6B7280', textTransform: 'none', mr: 1 }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button 
-                        onClick={handleSubmit} 
-                        variant="contained" 
-                        disabled={loading}
-                        disableElevation
-                        sx={{ 
-                            borderRadius: 2, 
-                            px: 4, 
-                            py: 1.2,
-                            fontWeight: 700, 
-                            textTransform: 'none',
-                            bgcolor: '#111827',
-                            '&:hover': { bgcolor: '#374151' }
-                        }}
-                    >
-                        {loading ? "Submitting..." : "Submit Review"}
-                    </Button>
-                </DialogActions>
-            )}
         </Dialog>
     );
 };
