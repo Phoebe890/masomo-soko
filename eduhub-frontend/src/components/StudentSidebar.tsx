@@ -1,18 +1,23 @@
 import React from 'react';
 import { 
-    Drawer, Box, List, ListItemButton, ListItemIcon, 
-    ListItemText, Typography, Divider, useTheme, IconButton, Avatar 
+    Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, 
+    ListItemText, Divider, IconButton, Typography
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.svg';
-// Icons
-import DashboardCustomizeOutlinedIcon from '@mui/icons-material/DashboardCustomizeOutlined';
-import LocalLibraryOutlinedIcon from '@mui/icons-material/LocalLibraryOutlined';
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import SchoolIcon from '@mui/icons-material/School'; 
-import CloseIcon from '@mui/icons-material/Close';
-import LogoutIcon from '@mui/icons-material/LogoutOutlined'; // Added Logout Icon
+
+// High-End Icons (Lucide)
+import { 
+    LayoutDashboard, 
+    Library, 
+    History, 
+    Settings, 
+    LogOut, 
+    X 
+} from 'lucide-react';
+
+const drawerWidth = 260;
+const SHARP_RADIUS = '2px';
 
 interface SidebarProps {
     mobileOpen: boolean;
@@ -22,14 +27,13 @@ interface SidebarProps {
 }
 
 const StudentSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, activeTab, onTabChange }) => {
-    const theme = useTheme();
     const navigate = useNavigate();
 
     const menuItems = [
-        { id: 'overview', label: 'Dashboard', icon: <DashboardCustomizeOutlinedIcon /> },
-        { id: 'library', label: 'My Library', icon: <LocalLibraryOutlinedIcon /> },
-        { id: 'history', label: 'Purchase History', icon: <ReceiptLongOutlinedIcon /> },
-        { id: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon /> },
+        { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+        { id: 'library', label: 'My Library', icon: <Library size={20} /> },
+        { id: 'history', label: 'Purchase History', icon: <History size={20} /> },
+        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
     ];
 
     const handleLogout = () => {
@@ -37,186 +41,118 @@ const StudentSidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose, activeTab
         navigate('/login');
     };
 
-   const drawerContent = (
-    <Box sx={{ 
-        height: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        p: 2,
-        // Dark Blue Gradient
-        background: 'linear-gradient(180deg, #2563EB 0%, #1e40af 100%)', 
-        color: 'white',
-        overflow: 'hidden'
-    }}>
-        {/* Import Font */}
-        <style>
-            {`@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');`}
-        </style>
-
-        {/* --- BRAND HEADER (ICON ONLY) --- */}
+    const drawerContent = (
         <Box sx={{ 
+            height: '100%', 
             display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            position: 'relative',
-            px: 1, 
-            py: 1.5, 
-            mb: 1 
+            flexDirection: 'column',
         }}>
-            <Box 
-                onClick={() => navigate('/')} 
-                sx={{ 
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s',
-                    '&:hover': { transform: 'scale(1.1)' }
-                }}
-            >
+            {/* Logo Area */}
+            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box 
-                    component="img"
-                    src={logoIcon}
-                    alt="Masomo Soko"
-                    sx={{ height: 50, width: 50, objectFit: 'contain' }}
-                />
+                    sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }}
+                    onClick={() => navigate('/')}
+                >
+                    <img src={logoIcon} alt="Logo" style={{ height: 32 }} />
+                </Box>
+                {/* Close button for mobile only */}
+                <IconButton onClick={onClose} sx={{ display: { md: 'none' }, color: '#fff' }}>
+                    <X size={20} />
+                </IconButton>
             </Box>
 
-            <IconButton 
-                onClick={onClose} 
-                sx={{ 
-                    display: { md: 'none' }, 
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    color: 'rgba(255,255,255,0.9)',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' }
-                }}
-            >
-                <CloseIcon />
-            </IconButton>
-        </Box>
+            {/* Navigation List */}
+            <List sx={{ px: 2, mt: 2, flexGrow: 1 }}>
+                {menuItems.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                        <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+                            <ListItemButton
+                                onClick={() => {
+                                    onTabChange(item.id);
+                                    if (mobileOpen) onClose();
+                                }}
+                                sx={{
+                                    borderRadius: SHARP_RADIUS,
+                                    py: 1.2,
+                                    bgcolor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                    borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, color: isActive ? '#fff' : '#94A3B8' }}>
+                                    {item.icon}
+                                </ListItemIcon>
+                                <ListItemText 
+                                    primary={item.label} 
+                                    primaryTypographyProps={{ 
+                                        fontSize: '0.875rem', 
+                                        fontWeight: isActive ? 700 : 500,
+                                        color: isActive ? '#fff' : '#94A3B8'
+                                    }} 
+                                />
+                            </ListItemButton>
+                        </ListItem>
+                    );
+                })}
+            </List>
 
-        {/* --- NAVIGATION LIST (SCROLLABLE) --- */}
-        <List sx={{ 
-            flexGrow: 1, 
-            overflowY: 'auto', 
-            pr: 0.5,
-            '&::-webkit-scrollbar': { display: 'none' },
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none',
-        }}>
-            {menuItems.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                    <ListItemButton 
-                        key={item.id} 
-                        onClick={() => { onTabChange(item.id); onClose(); }}
-                        sx={{
-                            mb: 1, 
-                            borderRadius: 3,
-                            py: 1.5,
-                            px: 2,
-                            transition: 'all 0.3s ease',
-                            bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                            backdropFilter: isActive ? 'blur(10px)' : 'none',
-                            border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
-                            '&:hover': {
-                                bgcolor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                            }
-                        }}
-                    >
-                        <ListItemIcon sx={{ 
-                            minWidth: 40, 
-                            color: isActive ? '#fff' : 'rgba(255,255,255,0.7)' 
-                        }}>
-                            {item.icon}
-                        </ListItemIcon>
-                        <ListItemText 
-                            primary={item.label} 
-                            primaryTypographyProps={{ 
-                                fontSize: '0.95rem',
-                                fontWeight: isActive ? 700 : 500,
-                                color: isActive ? '#fff' : 'rgba(255,255,255,0.9)'
-                            }} 
-                        />
-                    </ListItemButton>
-                );
-            })}
-        </List>
+            {/* Bottom Actions */}
+            <Box sx={{ p: 2 }}>
+                <Divider sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+                
+               
 
-        {/* --- BOTTOM SECTION: LOGOUT + USER INFO --- */}
-        <Box sx={{ mt: 'auto', pt: 2 }}>
-            <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 2 }} />
-            
-            {/* LOGOUT BUTTON */}
-            <ListItemButton 
-                onClick={handleLogout}
-                sx={{
-                    mb: 2,
-                    borderRadius: 3,
-                    py: 1.5,
-                    px: 2,
-                    '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }
-                }}
-            >
-                <ListItemIcon sx={{ minWidth: 40, color: '#fff' }}>
-                    <LogoutIcon />
-                </ListItemIcon>
-                <ListItemText 
-                    primary="Log out" 
-                    primaryTypographyProps={{ fontSize: '0.95rem', fontWeight: 500, color: '#fff' }} 
-                />
-            </ListItemButton>
-
-            {/* LOGGED IN AS INFO */}
-            <Box sx={{ 
-                p: 2, 
-                bgcolor: 'rgba(255,255,255,0.1)', 
-                borderRadius: 3,
-                backdropFilter: 'blur(5px)'
-            }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', mb: 0.5 }}>
-                    Logged in as
-                </Typography>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#fff' }}>
-                    Student Account
-                </Typography>
+                <ListItemButton 
+                    onClick={handleLogout}
+                    sx={{ borderRadius: SHARP_RADIUS, py: 1.2, color: '#94A3B8', '&:hover': { color: '#EF4444' } }}
+                >
+                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                        <LogOut size={20} />
+                    </ListItemIcon>
+                    <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }} />
+                </ListItemButton>
             </Box>
         </Box>
-    </Box>
-);
+    );
+
     return (
-        <Box component="nav" sx={{ width: { md: 280 }, flexShrink: { md: 0 } }}>
-            <Drawer 
-                variant="temporary" 
-                open={mobileOpen} 
-                onClose={onClose} 
-                ModalProps={{ keepMounted: true }} 
-                sx={{ 
-                    display: { xs: 'block', md: 'none' }, 
+        <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+            {/* MOBILE DRAWER */}
+            <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={onClose}
+                ModalProps={{ keepMounted: true }}
+                sx={{
+                    display: { xs: 'block', md: 'none' },
                     '& .MuiDrawer-paper': { 
                         boxSizing: 'border-box', 
-                        width: 280, 
-                        border: 'none', 
-                        bgcolor: 'transparent'
-                    } 
+                        width: drawerWidth, 
+                        bgcolor: '#0F172A', 
+                        border: 'none',
+                        boxShadow: 'none'
+                    },
                 }}
             >
                 {drawerContent}
             </Drawer>
-            <Drawer 
-                variant="permanent" 
-                open
-                sx={{ 
-                    display: { xs: 'none', md: 'block' }, 
+
+            {/* DESKTOP DRAWER */}
+            <Drawer
+                variant="permanent"
+                sx={{
+                    display: { xs: 'none', md: 'block' },
                     '& .MuiDrawer-paper': { 
                         boxSizing: 'border-box', 
-                        width: 280, 
-                        border: 'none', 
-                        bgcolor: 'transparent',
-                        overflowX: 'hidden',
-                        overflowY: 'hidden',
-                        '&::-webkit-scrollbar': { display: 'none' }
-                    } 
-                }} 
+                        width: drawerWidth, 
+                        bgcolor: '#0F172A', 
+                        border: 'none',
+                        boxShadow: 'none'
+                    },
+                }}
+                open
             >
                 {drawerContent}
             </Drawer>
