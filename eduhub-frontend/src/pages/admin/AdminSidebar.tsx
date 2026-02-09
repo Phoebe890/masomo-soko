@@ -2,163 +2,120 @@ import React from 'react';
 import { 
     Drawer, Box, List, ListItemButton, ListItemIcon, 
     ListItemText, Typography, Divider, useTheme, 
-    useMediaQuery, IconButton, Avatar 
+    useMediaQuery, IconButton 
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-// Icons
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import LogoutIcon from '@mui/icons-material/LogoutOutlined';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import CloseIcon from '@mui/icons-material/Close';
-import SchoolIcon from '@mui/icons-material/School'; // Brand Icon
+// Logo Asset (Same as Teacher Dashboard)
+import logoIcon from '@/assets/logo-icon.svg';
+
+// High-End Icons (Lucide)
+import { 
+    LayoutDashboard, Wallet, Users, Library, LogOut, X 
+} from 'lucide-react';
 
 const drawerWidth = 260;
+const SHARP_RADIUS = '2px';
+const SLATE_BG = '#0F172A'; // High-end Slate Black
 
 interface SidebarProps {
     mobileOpen?: boolean;
     onClose?: () => void;
-    selected: string;
 }
 
-const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) => {
+const AdminSidebar = ({ mobileOpen, onClose }: SidebarProps) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const menu = [
-        { text: 'Overview', icon: <DashboardIcon />, path: '/admin/dashboard' },
-        { text: 'Payouts', icon: <PaymentsIcon />, path: '/admin/payouts' },
-        { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
-        { text: 'Content', icon: <LibraryBooksIcon />, path: '/admin/resources' },
+    const menuItems = [
+        { text: 'Overview', icon: <LayoutDashboard size={20} />, path: '/admin/dashboard' },
+        { text: 'Payouts', icon: <Wallet size={20} />, path: '/admin/payouts' },
+        { text: 'Users', icon: <Users size={20} />, path: '/admin/users' },
+        { text: 'Content', icon: <Library size={20} />, path: '/admin/resources' },
     ];
-
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/login');
-    };
 
     const drawerContent = (
         <Box sx={{ 
             height: '100%', 
             display: 'flex', 
-            flexDirection: 'column', 
-            p: 2,
-            // Dark Blue Gradient (Matches Teacher Sidebar)
-            background: 'linear-gradient(180deg, #2563EB 0%, #1e40af 100%)', 
-            color: 'white',
-            overflow: 'hidden'
+            flexDirection: 'column',
+            bgcolor: SLATE_BG, // Ensure background fills the box
         }}>
-            {/* Import Font to match Teacher Sidebar */}
-            <style>
-                {`@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');`}
-            </style>
-
-            {/* HEADER SECTION */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 3, mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {/* Consistent Brand Icon */}
-                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', width: 42, height: 42 }}>
-                        <SchoolIcon fontSize="medium" />
-                    </Avatar>
-                    
+            {/* Logo Area (Matches Teacher Dashboard) */}
+            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <img src={logoIcon} alt="Logo" style={{ height: 32 }} />
                     <Box>
-                        {/* Chewy Font Branding */}
                         <Typography 
-                            variant="h5" 
+                            variant="h6" 
                             sx={{ 
-                                fontFamily: "'Chewy', cursive", 
-                                fontSize: '1.6rem',
-                                letterSpacing: '0.5px',
-                                lineHeight: 1
+                                color: '#fff', 
+                                fontWeight: 800, 
+                                fontSize: '1.1rem', 
+                                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                letterSpacing: '-0.02em'
                             }}
                         >
-                            Masomo Soko.
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', letterSpacing: 1, textTransform: 'uppercase', fontSize: '0.65rem' }}>
-                            Admin Console
+                            Masomo Admin
                         </Typography>
                     </Box>
                 </Box>
-                
-                {/* Close Button - Only visible on Mobile */}
-                <IconButton 
-                    onClick={onClose} 
-                    sx={{ 
-                        display: { xs: 'flex', md: 'none' }, 
-                        color: 'rgba(255,255,255,0.9)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' }
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
+                {isMobile && (
+                    <IconButton onClick={onClose} sx={{ color: '#94A3B8' }}>
+                        <X size={20} />
+                    </IconButton>
+                )}
             </Box>
 
-            {/* MENU ITEMS */}
-            <List sx={{ flexGrow: 1 }}>
-                {menu.map((item) => {
-                    const isActive = selected === item.path;
+            {/* Menu Items */}
+            <List sx={{ px: 2, mt: 2, flexGrow: 1 }}>
+                {menuItems.map((item) => {
+                    const isActive = location.pathname === item.path;
                     return (
-                        <ListItemButton 
-                            key={item.text} 
+                        <ListItemButton
+                            key={item.text}
                             onClick={() => {
                                 navigate(item.path);
-                                if (isMobile && onClose) onClose();
+                                if (mobileOpen && onClose) onClose();
                             }}
-                            sx={{ 
-                                mb: 1, 
-                                borderRadius: 3,
-                                py: 1.5,
-                                px: 2,
-                                transition: 'all 0.3s ease',
-                                // Glass Effect for Active Item
-                                bgcolor: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                                backdropFilter: isActive ? 'blur(10px)' : 'none',
-                                border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
-                                '&:hover': {
-                                    bgcolor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                                }
+                            sx={{
+                                borderRadius: SHARP_RADIUS,
+                                py: 1.2,
+                                mb: 0.5,
+                                bgcolor: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
+                                borderLeft: isActive ? '3px solid #2563EB' : '3px solid transparent',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
                             }}
                         >
-                            <ListItemIcon sx={{ 
-                                minWidth: 40, 
-                                color: isActive ? '#fff' : 'rgba(255,255,255,0.7)' 
-                            }}>
+                            <ListItemIcon sx={{ minWidth: 40, color: isActive ? '#fff' : '#94A3B8' }}>
                                 {item.icon}
                             </ListItemIcon>
                             <ListItemText 
                                 primary={item.text} 
                                 primaryTypographyProps={{ 
+                                    fontSize: '0.875rem', 
                                     fontWeight: isActive ? 700 : 500,
-                                    color: isActive ? '#fff' : 'rgba(255,255,255,0.9)'
+                                    color: isActive ? '#fff' : '#94A3B8'
                                 }} 
                             />
                         </ListItemButton>
                     );
                 })}
             </List>
-            
-            {/* LOGOUT SECTION */}
-            <Box sx={{ mt: 'auto' }}>
-                <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 2 }} />
+
+            {/* Bottom Section */}
+            <Box sx={{ p: 2 }}>
+                <Divider sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 2 }} />
                 <ListItemButton 
-                    onClick={handleLogout}
-                    sx={{
-                        borderRadius: 3,
-                        py: 1.5,
-                        px: 2,
-                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }
-                    }}
+                    onClick={() => { localStorage.clear(); navigate('/login'); }}
+                    sx={{ borderRadius: SHARP_RADIUS, py: 1.2, color: '#94A3B8' }}
                 >
-                    <ListItemIcon sx={{ minWidth: 40, color: '#fff' }}>
-                        <LogoutIcon />
+                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                        <LogOut size={20} />
                     </ListItemIcon>
-                    <ListItemText 
-                        primary="Logout" 
-                        primaryTypographyProps={{ fontWeight: 500, color: '#fff' }} 
-                    />
+                    <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }} />
                 </ListItemButton>
             </Box>
         </Box>
@@ -166,26 +123,26 @@ const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) =
 
     return (
         <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-            {/* Mobile Drawer */}
+            {/* MOBILE DRAWER */}
             <Drawer
                 variant="temporary"
                 open={mobileOpen}
                 onClose={onClose}
-                ModalProps={{ keepMounted: true }} 
+                ModalProps={{ keepMounted: true }}
                 sx={{
                     display: { xs: 'block', md: 'none' },
                     '& .MuiDrawer-paper': { 
                         boxSizing: 'border-box', 
                         width: drawerWidth, 
-                        border: 'none',
-                        bgcolor: 'transparent' // Transparent to show gradient
+                        bgcolor: SLATE_BG,
+                        border: 'none'
                     },
                 }}
             >
                 {drawerContent}
             </Drawer>
 
-            {/* Desktop Drawer */}
+            {/* DESKTOP DRAWER */}
             <Drawer
                 variant="permanent"
                 sx={{
@@ -193,11 +150,9 @@ const AdminSidebar = ({ mobileOpen = false, onClose, selected }: SidebarProps) =
                     '& .MuiDrawer-paper': { 
                         boxSizing: 'border-box', 
                         width: drawerWidth, 
-                        border: 'none',
-                        bgcolor: 'transparent', // Transparent to show gradient
-                        overflowX: 'hidden',
-                        overflowY: 'hidden',
-                        '&::-webkit-scrollbar': { display: 'none' }
+                        bgcolor: SLATE_BG, 
+                        borderRight: 'none', // REMOVES THE WHITE LINE
+                        boxShadow: 'none'
                     },
                 }}
                 open

@@ -2,22 +2,39 @@ import React, { useEffect, useState } from 'react';
 import {
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    alpha, useTheme, IconButton, Avatar
+    alpha, createTheme, ThemeProvider, IconButton, Avatar, Button, Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import AdminLayout from './AdminLayout';
 
-// Icons
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import PeopleIcon from '@mui/icons-material/PeopleOutline';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'; 
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote'; 
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+// High-End Icons (Lucide)
+import { 
+    DollarSign, Users, Library, Clock, 
+    TrendingUp, Eye, FileText, ChevronRight, Settings
+} from 'lucide-react';
+
+// --- 1. FONTS & THEME ---
+import '@fontsource/plus-jakarta-sans/400.css';
+import '@fontsource/plus-jakarta-sans/500.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
+
+const FONT_LINK = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
+
+const dashboardTheme = createTheme({
+    typography: {
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+    },
+    components: {
+        MuiTypography: {
+            styleOverrides: {
+                root: { fontFamily: "'Plus Jakarta Sans', sans-serif !important" },
+            },
+        },
+    },
+});
 
 interface DashboardStats {
     totalUsers: number;
@@ -36,7 +53,6 @@ interface Withdrawal {
 }
 
 const AdminDashboard: React.FC = () => {
-    const theme = useTheme();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -46,23 +62,19 @@ const AdminDashboard: React.FC = () => {
     // Brand Colors
     const BRAND_BLUE = '#2563EB'; 
     const BRAND_ORANGE = '#F97316'; 
+    const BORDER_COLOR = '#E2E8F0';
 
+    // --- PRESERVED LOGIC ---
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Fetch stats, payouts, and notifications in parallel
                 const [statsRes, payoutsRes] = await Promise.all([
                     api.get('/api/admin/stats'),
                     api.get('/api/admin/payouts'),
                 ]);
-
                 setStats(statsRes.data);
-
-                // Process Payouts for Table
                 const allPayouts: Withdrawal[] = payoutsRes.data;
-                setRecentWithdrawals(allPayouts.slice(0, 5)); // Only show top 5
-
-                // Process Chart Data (Last 7 days volume)
+                setRecentWithdrawals(allPayouts.slice(0, 5));
                 setChartData(processChartData(allPayouts));
             } catch (err) {
                 console.error("Failed to load admin dashboard", err);
@@ -73,7 +85,6 @@ const AdminDashboard: React.FC = () => {
         fetchDashboardData();
     }, []);
 
-    // Helper to format chart data
     const processChartData = (payouts: Withdrawal[]) => {
         const last7Days = new Map<string, number>();
         for (let i = 6; i >= 0; i--) {
@@ -81,7 +92,6 @@ const AdminDashboard: React.FC = () => {
             d.setDate(new Date().getDate() - i);
             last7Days.set(d.toLocaleDateString('en-US', { weekday: 'short' }), 0);
         }
-        
         payouts.forEach(p => {
             const d = new Date(p.date); 
             const key = d.toLocaleDateString('en-US', { weekday: 'short' });
@@ -92,203 +102,213 @@ const AdminDashboard: React.FC = () => {
         return Array.from(last7Days, ([name, amount]) => ({ name, amount }));
     };
 
-    // Vibrant Stat Widget (Matches Teacher/Student Dashboard)
-    const StatWidget = ({ title, value, icon, gradient }: any) => (
+    // --- SHARP UI COMPONENTS ---
+    const StatWidget = ({ title, value, icon, color }: any) => (
         <Paper
-            elevation={3}
+            elevation={0}
             sx={{
-                p: { xs: 2, md: 3 }, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
+                p: 3,
+                height: '100%',
+                borderRadius: '2px',
+                border: `1px solid ${BORDER_COLOR}`,
+                bgcolor: '#FFF',
+                display: 'flex',
+                flexDirection: 'column',
                 justifyContent: 'space-between',
-                borderRadius: 4,
-                background: gradient, 
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'transform 0.2s', 
-                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': { 
+                    borderColor: color, 
+                    boxShadow: `0 0 0 4px ${alpha(color, 0.05)}`,
+                    transform: 'translateY(-2px)' 
+                }
             }}
         >
-            {/* Background Decoration */}
-            <Box sx={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, zIndex: 1 }}>
-                <Box sx={{ 
-                    p: 1.5, 
-                    borderRadius: 3, 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
-                    backdropFilter: 'blur(5px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    {React.cloneElement(icon, { style: { color: 'white' } })}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ p: 1, bgcolor: alpha(color, 0.1), color: color, display: 'flex', borderRadius: '2px' }}>
+                    {React.cloneElement(icon, { size: 20 })}
                 </Box>
-                <Chip 
-                    icon={<ArrowUpwardIcon sx={{ width: 14, color: 'white !important' }} />} 
-                    label="Live" 
-                    size="small" 
-                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 700, borderRadius: 1 }} 
-                />
             </Box>
-            <Box sx={{ zIndex: 1 }}>
-                <Typography 
-                    fontWeight={800} 
-                    sx={{ 
-                        fontSize: { xs: '1.25rem', md: '2rem' }, 
-                        mb: 0.5, 
-                        letterSpacing: '-0.5px',
-                        lineHeight: 1.2
-                    }}
-                >
+            <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5, letterSpacing: '-0.03em' }}>
                     {value}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
-                    {title}
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}>
+                    {title.toUpperCase()}
                 </Typography>
             </Box>
         </Paper>
     );
 
-    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', alignItems: 'center' }}><CircularProgress /></Box>;
+    if (loading) return (
+        <AdminLayout title="Dashboard" selectedRoute="/admin/dashboard">
+            <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+        </AdminLayout>
+    );
 
     return (
-        <AdminLayout title="Overview" selectedRoute="/admin/dashboard">
-            
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-                <Box>
-                    <Typography variant="h4" fontWeight={800} sx={{ color: '#111827', mb: 1, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-                        Admin <span style={{ color: BRAND_BLUE }}>Console</span>
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        Platform overview and financial statistics.
-                    </Typography>
-                </Box>
-                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                    <Avatar sx={{ bgcolor: alpha(BRAND_ORANGE, 0.1), color: BRAND_ORANGE, width: 48, height: 48 }}>
-                        <AdminPanelSettingsIcon />
-                    </Avatar>
-                </Box>
-            </Box>
-
-            {/* 1. STATS GRID (Vibrant & Responsive) */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Platform Revenue" 
-                        value={`KES ${stats?.platformRevenue.toLocaleString() || 0}`} 
-                        icon={<AttachMoneyIcon />} 
-                        gradient="linear-gradient(135deg, #10B981 0%, #059669 100%)" // Green
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Total Users" 
-                        value={stats?.totalUsers.toLocaleString() || 0} 
-                        icon={<PeopleIcon />} 
-                        gradient="linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)" // Blue
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Total Resources" 
-                        value={stats?.totalResources || 0} 
-                        icon={<LibraryBooksIcon />} 
-                        gradient="linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)" // Purple
-                    />
-                </Grid>
-                <Grid item xs={6} sm={6} md={3}>
-                    <StatWidget 
-                        title="Pending Payouts" 
-                        value={stats?.pendingPayouts || 0} 
-                        icon={<RequestQuoteIcon />} 
-                        gradient="linear-gradient(135deg, #F97316 0%, #EA580C 100%)" // Orange
-                    />
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={3}>
-                {/* 2. CHART SECTION */}
-                <Grid item xs={12} md={8}>
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, height: 420, mb: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(BRAND_ORANGE, 0.1), color: BRAND_ORANGE, mr: 2 }}>
-                                <TrendingUpIcon />
-                            </Box>
-                            <Typography variant="h6" fontWeight={700}>Payout Volume (Last 7 Days)</Typography>
+        <ThemeProvider theme={dashboardTheme}>
+            <link rel="stylesheet" href={FONT_LINK} />
+            <AdminLayout title="Overview" selectedRoute="/admin/dashboard">
+                <Box sx={{ 
+                    fontFamily: "'Plus Jakarta Sans', sans-serif !important",
+                    animation: 'fadeIn 0.6s ease-out',
+                    "@keyframes fadeIn": {
+                        "0%": { opacity: 0, transform: 'translateY(10px)' },
+                        "100%": { opacity: 1, transform: 'translateY(0)' }
+                    }
+                }}>
+                    
+                    {/* --- COMMAND HEADER --- */}
+                    <Box sx={{ 
+                        mb: 4, display: 'flex', justifyContent: 'space-between', 
+                        alignItems: 'center', pb: 3, borderBottom: `1px solid ${BORDER_COLOR}` 
+                    }}>
+                        <Box>
+                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>
+                                Admin Console
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                Platform overview and financial control panel.
+                            </Typography>
                         </Box>
-                        
-                        <Box sx={{ width: '100%', height: '300px' }}> 
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData}>
-                                    <defs>
-                                        <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={BRAND_ORANGE} stopOpacity={0.2}/>
-                                            <stop offset="95%" stopColor={BRAND_ORANGE} stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                    <XAxis dataKey="name" tick={{fontSize: 12, fill: '#6B7280'}} axisLine={false} tickLine={false} dy={10} />
-                                    <YAxis tick={{fontSize: 12, fill: '#6B7280'}} axisLine={false} tickLine={false} />
-                                    <RechartsTooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} />
-                                    <Area type="monotone" dataKey="amount" stroke={BRAND_ORANGE} strokeWidth={4} fillOpacity={1} fill="url(#colorVol)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </Box>
-                    </Paper>
-                </Grid>
-
-                {/* 3. RECENT PAYOUTS TABLE */}
-                <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: `1px solid ${theme.palette.divider}`, overflow: 'hidden' }}>
-                        <Box sx={{ p: 3, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F9FAFB' }}>
-                            <Typography variant="h6" fontWeight={700} sx={{ color: '#111827' }}>Recent Requests</Typography>
-                            <IconButton 
-                                size="small" 
+                        <Box sx={{ display: 'flex', gap: 1.5 }}>
+                            <Button 
+                                variant="outlined" 
+                                startIcon={<FileText size={16} />}
+                                sx={{ borderRadius: '2px', borderColor: BORDER_COLOR, color: '#0F172A', fontWeight: 700, px: 3, textTransform: 'none' }}
                                 onClick={() => navigate('/admin/payouts')}
-                                sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}
                             >
-                                <VisibilityOutlinedIcon fontSize="small" />
+                                All Payouts
+                            </Button>
+                            <IconButton sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                                <Settings size={18} />
                             </IconButton>
                         </Box>
-                        
-                        <TableContainer>
-                            <Table size="small">
-                                <TableHead sx={{ bgcolor: 'white' }}>
-                                    <TableRow>
-                                        <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Teacher</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary' }}>Amount</TableCell>
-                                        <TableCell align="center" sx={{ fontWeight: 600, color: 'text.secondary' }}>Status</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {recentWithdrawals.length === 0 && (
-                                        <TableRow><TableCell colSpan={3} align="center" sx={{ py: 3, color: 'text.secondary' }}>No recent requests</TableCell></TableRow>
-                                    )}
-                                    {recentWithdrawals.map((row) => (
-                                        <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                                            <TableCell sx={{ fontWeight: 500 }}>{row.teacherName}</TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 700, color: '#111827' }}>{row.amount.toLocaleString()}</TableCell>
-                                            <TableCell align="center">
-                                                <Chip 
-                                                    label={row.status} 
-                                                    size="small" 
-                                                    sx={{ 
-                                                        height: 24, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5,
-                                                        bgcolor: row.status === 'PENDING' ? alpha('#F59E0B', 0.1) : alpha('#10B981', 0.1),
-                                                        color: row.status === 'PENDING' ? '#B45309' : '#059669'
-                                                    }}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Paper>
-                </Grid>
-            </Grid>
-        </AdminLayout>
+                    </Box>
+
+                    {/* --- STATS GRID --- */}
+                    <Grid container spacing={3} sx={{ mb: 4 }}>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Platform Revenue" 
+                                value={`KES ${stats?.platformRevenue.toLocaleString() || 0}`} 
+                                icon={<DollarSign />} 
+                                color="#10B981" 
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Total Users" 
+                                value={stats?.totalUsers.toLocaleString() || 0} 
+                                icon={<Users />} 
+                                color={BRAND_BLUE} 
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Active Resources" 
+                                value={stats?.totalResources || 0} 
+                                icon={<Library />} 
+                                color="#8B5CF6" 
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <StatWidget 
+                                title="Pending Payouts" 
+                                value={stats?.pendingPayouts || 0} 
+                                icon={<Clock />} 
+                                color={BRAND_ORANGE} 
+                            />
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={3}>
+                        {/* --- REVENUE CHART --- */}
+                        <Grid item xs={12} md={8}>
+                            <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', height: 450 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <TrendingUp size={20} color={BRAND_ORANGE} />
+                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>Payout Volume</Typography>
+                                    </Box>
+                                    <Chip label="Last 7 Days" variant="outlined" sx={{ borderRadius: '2px', fontWeight: 700 }} />
+                                </Box>
+                                <ResponsiveContainer width="100%" height="80%">
+                                    <AreaChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                                        <XAxis dataKey="name" tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} />
+                                        <RechartsTooltip contentStyle={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }} />
+                                        <Area type="monotone" dataKey="amount" stroke={BRAND_ORANGE} strokeWidth={2} fill={alpha(BRAND_ORANGE, 0.1)} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Paper>
+                        </Grid>
+
+                        {/* --- RECENT PAYOUTS TABLE --- */}
+                        <Grid item xs={12} md={4}>
+                            <Paper elevation={0} sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', height: '100%', overflow: 'hidden' }}>
+                                <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Recent Requests</Typography>
+                                    <Button 
+                                        size="small" 
+                                        endIcon={<ChevronRight size={14} />}
+                                        sx={{ fontWeight: 700, textTransform: 'none', color: BRAND_BLUE }}
+                                        onClick={() => navigate('/admin/payouts')}
+                                    >
+                                        View All
+                                    </Button>
+                                </Box>
+                                
+                                <TableContainer>
+                                    <Table>
+                                        <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                                            <TableRow>
+                                                <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase' }}>Teacher</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase' }}>Amount</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase' }}>Status</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {recentWithdrawals.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary', fontWeight: 500 }}>
+                                                        No pending requests
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                recentWithdrawals.map((row) => (
+                                                    <TableRow key={row.id} hover sx={{ '&:last-child td': { border: 0 } }}>
+                                                        <TableCell>
+                                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>{row.teacherName}</Typography>
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{new Date(row.date).toLocaleDateString()}</Typography>
+                                                        </TableCell>
+                                                        <TableCell align="right" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                                                            {row.amount.toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell align="center">
+                                                            <Chip 
+                                                                label={row.status} 
+                                                                size="small" 
+                                                                sx={{ 
+                                                                    height: 20, fontSize: '0.65rem', fontWeight: 800, borderRadius: '2px',
+                                                                    bgcolor: row.status === 'PENDING' ? alpha('#F59E0B', 0.1) : alpha('#10B981', 0.1),
+                                                                    color: row.status === 'PENDING' ? '#B45309' : '#059669'
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </Box>
+            </AdminLayout>
+        </ThemeProvider>
     );
 };
 
