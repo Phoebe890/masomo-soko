@@ -1,24 +1,28 @@
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+
+// Import Components
 import About from './components/About'; 
+import Layout from './components/layout/Layout';
+import NotFound from './pages/NotFound';
+
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPayouts from './pages/admin/AdminPayouts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminResources from './pages/admin/AdminResources';
+
+// Auth Pages
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
-// Layout and Standard Pages
-import Layout from './components/layout/Layout';
+// Standard Pages
 import Home from './pages/Home';
 import BrowseResources from './pages/BrowseResources';
 import ResourceDetail from './pages/ResourceDetail';
 import PurchaseConfirmation from './pages/PurchaseConfirmation';
 import SellerLanding from './pages/seller/SellerLanding';
-import NotFound from './pages/NotFound';
-// Auth Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
 
 // Dashboard Pages
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
@@ -31,7 +35,7 @@ import TeacherReviews from './pages/dashboard/TeacherReviews';
 import UploadFirstResource from './pages/dashboard/UploadFirstResource';
 import ResourceManagement from './pages/dashboard/ResourceManagement';
 
-// Teacher Settings & Coaching
+// Teacher Settings
 import TeacherSettings from './pages/dashboard/TeacherSettings';
 
 // --- UTILITY COMPONENTS ---
@@ -42,15 +46,17 @@ function ScrollToTop() {
   return null;
 }
 
-// --- NEW: TEACHER GATEKEEPER ---
+/**
+ * TEACHER GUARD
+ * Specifically handles the redirection to onboarding if the user 
+ * wants to be a teacher but hasn't been approved/setup yet.
+ */
 const TeacherGuard = ({ children }: { children: JSX.Element }) => {
-   const role = localStorage.getItem('role')?.toUpperCase();
+  const role = localStorage.getItem('role')?.toUpperCase();
   const email = localStorage.getItem('email');
 
   if (!email) return <Navigate to="/login" replace />;
 
-  // If user is logged in but hasn't finished onboarding (role is still STUDENT),
-  // redirect them to the onboarding page.
   if (role !== 'TEACHER' && role !== 'ROLE_TEACHER') {
     return <Navigate to="/dashboard/teacher/onboarding" replace />;
   }
@@ -58,18 +64,42 @@ const TeacherGuard = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
+/**
+ * GENERAL ROLE GUARD
+ * Used for Student and Admin protection.
+ */
+const RoleGuard = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles: string[] }) => {
+  const email = localStorage.getItem('email');
+  const rawRole = localStorage.getItem('role')?.toUpperCase() || "";
+  // Clean the role string (removes ROLE_ prefix if present)
+  const role = rawRole.replace("ROLE_", "");
+
+  if (!email) return <Navigate to="/login" replace />;
+
+  if (!allowedRoles.includes(role)) {
+    // Redirect to home if they don't have the right permissions
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+/**
+ * AUTH GATE
+ * Prevents logged-in users from accessing Login/Register pages.
+ */
 function AuthGate() {
   const navigate = useNavigate();
   const location = useLocation();
   
   useEffect(() => {
     const email = localStorage.getItem('email');
-    const role = localStorage.getItem('role');
+    const role = localStorage.getItem('role')?.toUpperCase();
 
     if (email && (location.pathname === '/login' || location.pathname === '/register')) {
       if (role === 'TEACHER' || role === 'ROLE_TEACHER') {
         navigate('/dashboard/teacher', { replace: true });
-      } else if (role === 'STUDENT' || role === 'student') {
+      } else if (role === 'STUDENT' || role === 'ROLE_STUDENT') {
         navigate('/dashboard/student', { replace: true });
       } else if (role === 'ADMIN' || role === 'ROLE_ADMIN') {
         navigate('/admin/dashboard', { replace: true });
@@ -83,6 +113,7 @@ function AuthGate() {
 function App() {
   const location = useLocation();
 
+  // Determine if we should hide the standard Layout (Header/Footer)
   const isDashboardRoute = 
     location.pathname.startsWith('/dashboard') || 
     location.pathname.startsWith('/teacher') ||
@@ -91,6 +122,7 @@ function App() {
   
   const appRoutes = (
     <Routes>
+      {/* --- PUBLIC ROUTES --- */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
@@ -101,26 +133,46 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       
-      {/* Student Dashboard */}
-      <Route path="/dashboard/student" element={<StudentDashboard />} />
+      {/* --- STUDENT DASHBOARD (PROTECTED) --- */}
+      <Route 
+        path="/dashboard/student" 
+        element={
+          <RoleGuard allowedRoles={['STUDENT']}>
+            <StudentDashboard />
+          </RoleGuard>
+        } 
+      />
 
       {/* --- TEACHER FLOW (PUBLIC ONBOARDING) --- */}
       <Route path="/dashboard/teacher/onboarding" element={<TeacherOnboarding />} />
 
-      {/* --- TEACHER FLOW (PROTECTED BY GUARD) --- */}
+      {/* --- TEACHER FLOW (PROTECTED BY TEACHERGUARD) --- */}
       <Route path="/dashboard/teacher" element={<TeacherGuard><TeacherDashboard /></TeacherGuard>} />
       <Route path="/dashboard/teacher/resources" element={<TeacherGuard><ResourceManagement /></TeacherGuard>} />
       <Route path="/dashboard/teacher/upload-first-resource" element={<TeacherGuard><UploadFirstResource /></TeacherGuard>} />
       <Route path="/teacher/earnings" element={<TeacherGuard><TeacherEarnings /></TeacherGuard>} />
       <Route path="/teacher/settings" element={<TeacherGuard><TeacherSettings /></TeacherGuard>} />
-      
       <Route path="/teacher/reviews" element={<TeacherGuard><TeacherReviews /></TeacherGuard>} />
 
-      {/* --- ADMIN FLOW --- */}
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/admin/payouts" element={<AdminPayouts />} />
-      <Route path="/admin/users" element={<AdminUsers />} />
-      <Route path="/admin/resources" element={<AdminResources />} />
+      {/* --- ADMIN FLOW (PROTECTED BY ROLEGUARD) --- */}
+      <Route 
+        path="/admin/dashboard" 
+        element={<RoleGuard allowedRoles={['ADMIN']}><AdminDashboard /></RoleGuard>} 
+      />
+      <Route 
+        path="/admin/payouts" 
+        element={<RoleGuard allowedRoles={['ADMIN']}><AdminPayouts /></RoleGuard>} 
+      />
+      <Route 
+        path="/admin/users" 
+        element={<RoleGuard allowedRoles={['ADMIN']}><AdminUsers /></RoleGuard>} 
+      />
+      <Route 
+        path="/admin/resources" 
+        element={<RoleGuard allowedRoles={['ADMIN']}><AdminResources /></RoleGuard>} 
+      />
+
+      {/* --- 404 NOT FOUND --- */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -129,6 +181,7 @@ function App() {
     <>
       <AuthGate />
       <ScrollToTop />
+      {/* If it's a dashboard route, show only the routes. Otherwise, wrap in Layout. */}
       {isDashboardRoute ? appRoutes : <Layout>{appRoutes}</Layout>}
     </>
   );
