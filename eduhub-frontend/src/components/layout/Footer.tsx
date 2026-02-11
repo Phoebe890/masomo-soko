@@ -48,24 +48,22 @@ const Footer: React.FC = () => {
                 component={RouterLink} 
                 to="/"
                 sx={{ 
-                    display: 'inline-flex', 
-                    bgcolor: 'white', 
-                    borderRadius: '8px', 
-                    px: 2.5, 
-                    py: 1.2, 
-                    mb: 3,
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                     transition: 'transform 0.2s',
-      '&:hover': { transform: 'scale(1.02)' }
-                }}
+        display: 'inline-flex', 
+        bgcolor: 'rgba(255, 255, 255, 0.9)', // Slightly transparent
+        borderRadius: '4px', // Smaller radius looks more professional
+        px: 1.5, // Reduced padding
+        py: 0.8, 
+        mb: 3,
+        textDecoration: 'none',
+        // REMOVE boxShadow: it's making it pop out too much
+    }}
             >
                 <Box 
                     component="img" 
                     src={logo} 
                     alt="Masomo Soko"
                     sx={{ 
-                        height: { xs: 45, md: 52 }, 
+                        height: { xs: 35, md: 40 },
                         width: 'auto', 
                         objectFit: 'contain',
                         display: 'block' 

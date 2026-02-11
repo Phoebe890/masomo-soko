@@ -422,7 +422,7 @@ const Home: React.FC = () => {
           The Bridge to <br/>Educational Success
         </Typography>
         <Typography variant="body1" sx={{ color: '#475569', fontSize: '1.2rem', mb: 6, lineHeight: 1.8, maxWidth: '550px' }}>
-          Geography should never dictate the quality of education. We provide a sustainable ecosystem where Kenya's best educators are fairly rewarded for their expertise, and every student accesses premium CBC and KCSE materials instantly.
+          Geography should never dictate the quality of education. We provide a sustainable ecosystem where Kenya's best educators are fairly rewarded for their expertise, and every student accesses premium CBC and CBE materials instantly.
         </Typography>
         
         {/* ANIMATED STATS ROW */}
