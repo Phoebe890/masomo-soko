@@ -7,7 +7,10 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
 import { api } from '@/api/axios';
-
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { IconButton } from '@mui/material';
 // Icons
 import SchoolIcon from '@mui/icons-material/School';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -129,6 +132,7 @@ const FAQS = [
     answer: "Yes. All resources on Masomo Soko are categorized by the new Competency-Based Education (CBE) pathways to ensure teachers and students get the most relevant materials for current Kenyan education standards."
   }
 ];
+
 const TeacherIllustration = () => (
   <Box sx={{ position: 'relative', width: 280, height: 200 }}>
     <svg viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -199,7 +203,52 @@ const Home: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [heroSearch, setHeroSearch] = useState('');
   const navigate = useNavigate();
+const [touchStart, setTouchStart] = useState<number | null>(null);
+const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+// Minimum distance required to be considered a swipe
+const minSwipeDistance = 50;
+
+const onTouchStart = (e: React.TouchEvent) => {
+  setTouchEnd(null); // Reset end touch
+  setTouchStart(e.targetTouches[0].clientX);
+};
+
+const onTouchMove = (e: React.TouchEvent) => {
+  setTouchEnd(e.targetTouches[0].clientX);
+};
+
+const onTouchEnd = () => {
+  if (!touchStart || !touchEnd) return;
+  const distance = touchStart - touchEnd;
+  const isLeftSwipe = distance > minSwipeDistance;
+  const isRightSwipe = distance < -minSwipeDistance;
+
+  if (isLeftSwipe) {
+    // Next slide
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  } else if (isRightSwipe) {
+    // Previous slide
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  }
+};
+const [isMouseDown, setIsMouseDown] = useState(false);
+
+const onMouseDown = (e: React.MouseEvent) => {
+  setIsMouseDown(true);
+  setTouchStart(e.clientX);
+};
+
+const onMouseMove = (e: React.MouseEvent) => {
+  if (!isMouseDown) return;
+  setTouchEnd(e.clientX);
+};
+
+const onMouseUp = () => {
+  if (!isMouseDown) return;
+  onTouchEnd(); // Reuse the swipe logic we wrote for mobile
+  setIsMouseDown(false);
+};
   const slides = [
   {
     type: 'student',
@@ -269,6 +318,15 @@ const Home: React.FC = () => {
      {/* --- HERO SECTION --- */}
       <Box 
         component="section" 
+        //mobile swipe handlers
+         onTouchStart={onTouchStart}
+  onTouchMove={onTouchMove}
+  onTouchEnd={onTouchEnd}
+  //desktop mouse drag handlers
+  onMouseDown={onMouseDown}
+  onMouseMove={onMouseMove}
+  onMouseUp={onMouseUp}
+  onMouseLeave={() => setIsMouseDown(false)} // Stop dragging if mouse leaves area
         sx={{ 
           position: 'relative', 
           width: '100%', 
@@ -277,7 +335,10 @@ const Home: React.FC = () => {
           overflow: 'hidden', 
           display: 'flex', 
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          cursor: isMouseDown ? 'grabbing' : 'grab', // Changes cursor icon
+    userSelect: 'none', // Prevents text highlighting while dragging
+    zIndex: 0
         }}
       >
         <style>
@@ -386,6 +447,48 @@ const Home: React.FC = () => {
              ))}
           </Stack>
         </Container>
+        {/* --- NAVIGATION ARROWS --- */}
+{/* Left Arrow */}
+<IconButton
+  onClick={() => setCurrentSlide((prev: number) => (prev - 1 + slides.length) % slides.length)}
+  sx={{ 
+    position: 'absolute', 
+    left: { xs: 10, md: 30 }, 
+    zIndex: 10, 
+    color: 'white', 
+    bgcolor: 'rgba(255, 255, 255, 0.1)', 
+    backdropFilter: 'blur(4px)',
+    '&:hover': { 
+      bgcolor: 'rgba(255, 255, 255, 0.2)',
+      transform: 'scale(1.1)' 
+    },
+    transition: 'all 0.2s ease',
+    display: { xs: 'none', md: 'flex' } 
+  }}
+>
+  <KeyboardArrowLeftIcon sx={{ fontSize: { md: 40 } }} />
+</IconButton>
+
+{/* Right Arrow */}
+<IconButton
+  onClick={() => setCurrentSlide((prev: number) => (prev + 1) % slides.length)}
+  sx={{ 
+    position: 'absolute', 
+    right: { xs: 10, md: 30 }, 
+    zIndex: 10, 
+    color: 'white', 
+    bgcolor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(4px)',
+    '&:hover': { 
+      bgcolor: 'rgba(255, 255, 255, 0.2)',
+      transform: 'scale(1.1)' 
+    },
+    transition: 'all 0.2s ease',
+    display: { xs: 'none', md: 'flex' }
+  }}
+>
+  <KeyboardArrowRightIcon sx={{ fontSize: { md: 40 } }} />
+</IconButton>
       </Box>
 
       {/* --- TRUST BAR --- */}
