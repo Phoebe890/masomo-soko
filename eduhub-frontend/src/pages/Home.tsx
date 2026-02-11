@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Box, Container, Typography, Button, Card, CardContent, CardMedia,
   Grid, CircularProgress, Avatar, Chip, Stack, Rating, 
-  InputAdornment, TextField
+  InputAdornment, TextField,AccordionSummary, AccordionDetails, Accordion
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
@@ -22,7 +22,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
 import EngineeringIcon from '@mui/icons-material/Engineering';
-
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // --- RESTORED ORIGINAL ASSETS ---
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg'; 
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg'; 
@@ -43,40 +43,62 @@ const getRandomColor = (id: number) => {
 
 // --- DATA: CATEGORIES ---
 const CATEGORIES = [
+  // --- STEM TRACKS ---
   { 
-    label: 'Junior School', sub: 'Grades 7, 8 & 9', id: 'junior-school', 
-    image: 'https://plus.unsplash.com/premium_vector-1720798482894-5cd1965d73fc?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' // 3D Book Illustration
-  }, 
-  { 
-    label: 'STEM Pathway', sub: 'Science & Mathematics', id: 'stem', 
-    image: 'https://plus.unsplash.com/premium_vector-1723244066302-bc088c3549e7?q=80&w=2360&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' // Abstract Tech/Science Geometry
+    label: 'STEM: Pure Sciences', 
+    sub: 'Maths, Biology, Chemistry & Physics', 
+    id: 'pure-sciences', 
+    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80' 
   },
   { 
-    label: 'Social Sciences', sub: 'Humanities & Languages', id: 'social-sciences', 
-    image: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80' // Minimalist Map/Globe art
+    label: 'STEM: Applied Sciences', 
+    sub: 'Agriculture, Computer Studies & Home Science', 
+    id: 'applied-sciences', 
+    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80' 
   },
   { 
-    label: 'Arts & Sports', sub: 'Creative & Athletics', id: 'arts-sports', 
-    image: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=600&q=80' // Abstract Paint/Art strokes
+    label: 'STEM: Technical Studies', 
+    sub: 'Aviation, Metalwork, Power Mech & Engineering', 
+    id: 'technical-studies', 
+    image: 'https://plus.unsplash.com/premium_vector-1682305652682-c427106684d6?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YXZpYXRpb258ZW58MHx8MHx8fDA%3D' 
   },
-  { 
-    label: 'Agriculture', sub: 'Farming & Bio-Tech', id: 'agriculture', 
-    image: 'https://images.unsplash.com/vector-1769320709000-bf5132293619?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' // Abstract green leaf/Plant veins
-  },
-  { 
-    label: 'Pre-Technical', sub: 'Engineering & Skills', id: 'pre-tech', 
-     image: 'https://plus.unsplash.com/premium_vector-1734528979745-eaa10d557eed?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' 
-  },
-  { 
-    label: 'Digital Literacy', sub: 'ICT & Coding', id: 'ict', 
-    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80' // Abstract Circuit Board
-  },
-  { 
-    label: 'KCSE Revision', sub: 'Exam Preparation', id: 'kcse', 
-    image: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=600&q=80' // Minimalist Stack of Papers
-  },
-];
 
+  // --- SOCIAL SCIENCE TRACKS ---
+  { 
+    label: 'Social Sciences: Languages', 
+    sub: 'Literature, Kiswahili, Sign Language & Foreign Lang', 
+    id: 'languages-literature', 
+    image: 'https://plus.unsplash.com/premium_vector-1726065109228-0c315a35424c?w=1000&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8c2lnbiUyMGxhbmd1YWdlfGVufDB8fDB8fHww' 
+  },
+  { 
+    label: 'Social Sciences: Humanities', 
+    sub: 'Business Studies, Geography, History & CRE/IRE', 
+    id: 'humanities-business', 
+    image: 'https://plus.unsplash.com/premium_vector-1715426360516-c2260d61993d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Z2VvZ3JhcGh5fGVufDB8fDB8fHww' 
+  },
+
+  // --- ARTS & SPORTS TRACKS ---
+  { 
+    label: 'Arts: Music & Fine Arts', 
+    sub: 'Dance, Theatre, Film & Visual Arts', 
+    id: 'arts', 
+    image: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=600&q=80' 
+  },
+  { 
+    label: 'Sports: Sports Science', 
+    sub: 'Sports & Recreation Practical Materials', 
+    id: 'sports', 
+    image: 'https://plus.unsplash.com/premium_vector-1728883557091-95131477dec3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NTV8fHNwb3J0c3xlbnwwfHwwfHx8MA%3D%3D' 
+  },
+
+  // --- JUNIOR SCHOOL PREPARATION ---
+  { 
+    label: 'Junior School CBE', 
+    sub: 'Grades 7, 8 & 9 Integrated Resources', 
+    id: 'junior-school', 
+    image: 'https://plus.unsplash.com/premium_vector-1720798482894-5cd1965d73fc?auto=format&w=600' 
+  }
+];
 // --- COMPONENT: ABSTRACT BACKGROUND SVG ---
 const CardBackground = () => (
     <Box sx={{ position: 'absolute', right: -20, bottom: -40, opacity: 0.2, transform: 'rotate(-15deg)' }}>
@@ -85,7 +107,28 @@ const CardBackground = () => (
         </svg>
     </Box>
 );
-
+const FAQS = [
+  {
+    question: "How do I upload resources?",
+    answer: "Once you sign up and register as a teacher, you can upload your resources directly from the Teacher Dashboard. The process is simple: just provide the resource details, upload your file, and set your price."
+  },
+  {
+    question: "How do I access my dashboard?",
+    answer: "You can access your dashboard by logging in to your account. If you are already logged in, simply click on your profile avatar at the top of the page and select 'Dashboard' from the menu."
+  },
+  {
+    question: "How do I get paid?",
+    answer: "Once your resource is purchased, the funds are added to your account. You can then request a payout from your dashboard, which is processed by our admin and deposited directly to your registered M-Pesa number."
+  },
+  {
+    question: "How do students access their purchased resources?",
+    answer: "After signing up and logging in, students can buy resources instantly via M-Pesa. Once purchased, the materials are immediately available for download within the student dashboard under the 'My Library' section."
+  },
+  {
+    question: "Are the materials aligned with the CBC curriculum?",
+    answer: "Yes. All resources on Masomo Soko are categorized by the new Competency-Based Education (CBE) pathways to ensure teachers and students get the most relevant materials for current Kenyan education standards."
+  }
+];
 const TeacherIllustration = () => (
   <Box sx={{ position: 'relative', width: 280, height: 200 }}>
     <svg viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -162,8 +205,8 @@ const Home: React.FC = () => {
     type: 'student',
     // NEW UNSPLASH STUDENT IMAGE
     image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1600&auto=format&fit=crop",
-    title: <>Master the <br/><span style={{ color: '#60a5fa' }}>CBC Curriculum</span></>,
-    subtitle: "Junior School (Grades 7–9) & Senior School (Grades 10–12). Download Notes, Projects, and KJSEA/KCSE Exams instantly.",
+    title: <>The Future is <br/><span style={{ color: '#60a5fa' }}>CBE Education</span></>,
+    subtitle: "Aligned with the 2025 Ministry of Education shift. Access practical learning materials for all CBE pathways: STEM, Arts, and Social Sciences.",
   },
   {
     type: 'teacher',
@@ -215,10 +258,9 @@ const Home: React.FC = () => {
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
        {/* --- SEO METADATA --- */}
     <SafeHelmet>
-      <title>Masomo Soko | Best CBC & KCSE Revision Resources Kenya</title>
-      <meta name="description" content="Access high-quality Kenyan teaching resources. Buy and sell Grade 7, 8, 9 CBC notes, KCSE past papers, and lesson plans on Kenya's top education marketplace." />
-      <meta name="keywords" content="CBC resources Kenya, Junior School revision notes, KCSE past papers, Kenyan teachers marketplace, Masomo Soko, Grade 9 exams" />
-      
+      <title>Masomo Soko - Kenya's Best Education Marketplace For CBE and CBC Learning Materials</title>
+    <meta name="description" content="The leading marketplace for the new Competency-Based Education (CBE) system in Kenya. Download Junior & Senior School CBE notes, STEM pathways, and practical assessment materials." />
+   <meta name="keywords" content="STEM Pathway, Social Science Pathway, Arts and Sports Science, Pure Sciences, Applied Sciences, Technical Studies, Humanities and Business Studies, Languages and Literature, CBE Kenya" />
       {/* Social Media Sharing Tags */}
       <meta property="og:title" content="Masomo Soko - Kenya's Education Marketplace" />
       <meta property="og:description" content="Empowering Kenyan teachers and students with verified learning materials." />
@@ -724,7 +766,7 @@ const Home: React.FC = () => {
       </Grid>
       <Grid item xs={12} md={4}>
         <Box sx={{ p: 3, height: '100%', textAlign: 'center' }}>
-          <Box component="img" src="https://images.unsplash.com/photo-1512314889357-e157c22f938d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" sx={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 4, mb: 3, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }} />
+          <Box component="img" src="https://plus.unsplash.com/premium_photo-1681760172813-8659720b51b5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NzR8fHBheW1lbnR8ZW58MHx8MHx8fDA%3D" sx={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 4, mb: 3, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }} />
           <Typography variant="h5" fontWeight={700} gutterBottom sx={{ color: '#000000' }}>2. Pay Securely</Typography>
           <Typography color={TEXT_MUTED}>Pay instantly via M-Pesa. Your funds are secure.</Typography>
         </Box>
@@ -781,7 +823,7 @@ const Home: React.FC = () => {
   >
     <Grid container spacing={6} alignItems="center">
       <Grid item xs={12} md={6}>
-        <Typography variant="overline" color="secondary" sx={{ fontWeight: 700, letterSpacing: 2 }}>
+        <Typography variant="overline"sx={{ color: '#ea580c', fontWeight: 700, letterSpacing: 2 }}>
           FOR TEACHERS
         </Typography>
         <Typography variant="h3" fontWeight={800} gutterBottom sx={{ fontSize: { xs: '1.8rem', md: '3rem' } }}>
@@ -1006,6 +1048,74 @@ const Home: React.FC = () => {
          </Grid>
       )}
     </Grid>
+  </Container>
+</Box>
+{/* --- FAQ SECTION --- */}
+<Box sx={{ py: { xs: 10, md: 15 }, bgcolor: '#fff' }}>
+  <Container maxWidth="md"> {/* Narrower container for better readability */}
+    <Box sx={{ textAlign: 'center', mb: 8 }}>
+      <Typography variant="overline" sx={{ color: '#ea580c', fontWeight: 800, letterSpacing: 2 }}>
+        QUESTIONS & ANSWERS
+      </Typography>
+      <Typography variant="h2" fontWeight={800} sx={{ color: TEXT_DARK, mt: 1, mb: 2, fontSize: { xs: '2.2rem', md: '3rem' } }}>
+        Frequently Asked Questions
+      </Typography>
+      <Typography variant="body1" sx={{ color: TEXT_MUTED, fontSize: '1.1rem' }}>
+        Everything you need to know about Masomo Soko and how we support your educational journey.
+      </Typography>
+    </Box>
+
+    <Box>
+      {FAQS.map((faq, index) => (
+        <Accordion 
+          key={index} 
+          elevation={0} 
+          sx={{ 
+            mb: 2, 
+            border: '1px solid #e2e8f0', 
+            borderRadius: '12px !important', // Force rounded corners
+            '&:before': { display: 'none' }, // Remove default MUI line
+            '&.Mui-expanded': {
+              boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+              borderColor: PRIMARY_BLUE,
+            }
+          }}
+        >
+          <AccordionSummary 
+            expandIcon={<ExpandMoreIcon sx={{ color: PRIMARY_BLUE }} />}
+            sx={{ px: 3, py: 1 }}
+          >
+            <Typography variant="h6" fontWeight={700} sx={{ color: TEXT_DARK, fontSize: '1.1rem' }}>
+              {faq.question}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ px: 3, pb: 3 }}>
+            <Typography variant="body1" sx={{ color: TEXT_MUTED, lineHeight: 1.7 }}>
+              {faq.answer}
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
+      ))}
+    </Box>
+
+   {/* Bottom CTA for FAQ */}
+    <Box sx={{ mt: 6, textAlign: 'center' }}>
+      <Typography variant="body1" sx={{ color: TEXT_MUTED }}>
+        Still have more questions? Reach out to our team at{' '}
+        <Box 
+          component="a" 
+          href="mailto:info@masomosoko.co.ke"
+          sx={{ 
+            color: PRIMARY_BLUE, 
+            fontWeight: 700, 
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' }
+          }}
+        >
+          info@masomosoko.co.ke
+        </Box>
+      </Typography>
+    </Box>
   </Container>
 </Box>
       <Footer />
