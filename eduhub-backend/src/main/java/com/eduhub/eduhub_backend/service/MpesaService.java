@@ -13,7 +13,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.TimeUnit;
 @Service
 public class MpesaService {
 
@@ -39,7 +39,12 @@ public class MpesaService {
 private String businessShortCode;
 @Value("${mpesa.transaction.type}") // Add this property (Paybill vs BuyGoods)
 private String transactionType;
-    private final OkHttpClient client = new OkHttpClient();
+     private final OkHttpClient client = new OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS) 
+        .writeTimeout(60, TimeUnit.SECONDS)   
+        .readTimeout(60, TimeUnit.SECONDS)    
+        .protocols(java.util.Arrays.asList(Protocol.HTTP_1_1)) // Force HTTP 1.1 for stability
+        .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 1. Get Access Token
@@ -84,14 +89,14 @@ private String transactionType;
         jsonBody.put("BusinessShortCode", businessShortCode);
         jsonBody.put("Password", password);
         jsonBody.put("Timestamp", timestamp);
-          jsonBody.put("TransactionType", transactionType); // CustomerBuyGoodsOnline for Till
+         jsonBody.put("TransactionType", transactionType);
         jsonBody.put("Amount", amountInt); // Use the actual amount passed
         jsonBody.put("PartyA", phoneNumber);
         jsonBody.put("PartyB", businessShortCode);
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
         jsonBody.put("AccountReference", "Masomo Soko");
-        jsonBody.put("TransactionDesc", "Course Purchase");
+        jsonBody.put("TransactionDesc", "Payment for Masomo Soko Resource");
 
         RequestBody body = RequestBody.create(
                 objectMapper.writeValueAsString(jsonBody),

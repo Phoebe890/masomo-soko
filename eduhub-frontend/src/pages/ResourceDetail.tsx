@@ -138,41 +138,45 @@ const handleGetFree = () => {
   };
 
   const handlePayment = () => {
-    if (paymentMethod === 'mpesa' && !phoneNumber) {
-        setToast({ open: true, message: "Please enter your M-Pesa phone number.", severity: 'error' });
+  if (paymentMethod === 'mpesa' && !phoneNumber) {
+      setToast({ open: true, message: "Please enter your M-Pesa phone number.", severity: 'error' });
+      return;
+  }
+
+  setProcessing(true);
+  
+  // FIX 1: Send a plain object (JSON), not URLSearchParams
+  // FIX 2: Use "phoneNumber" to match your Backend Controller
+  // FIX 3: Include the "amount" because your backend code requires it: 
+  //        new BigDecimal(request.get("amount").toString())
+  const paymentData = {
+      phoneNumber: phoneNumber, 
+      resourceId: id,
+      amount: resource.price
+  };
+
+  api.post('/api/payment/pay', paymentData) // Axios sends JSON by default
+  .then(res => {
+    setProcessing(false);
+    const data = res.data;
+    if (data.checkoutRequestId) {
+        pollPaymentStatus(data.checkoutRequestId);
+    } else {
+        setBuyOpen(false);
+        setToast({ open: true, message: "Request Sent!", severity: 'success' });
+    }
+  })
+  .catch((err) => {
+    setProcessing(false);
+    console.error("Payment error details:", err.response); // Debugging
+    if (err.response?.status === 401 || err.response?.status === 403) {
+        setBuyOpen(false);
+        setLoginPrompt(true);
         return;
     }
-
-    setProcessing(true);
-    
-    // FIXED: Using URLSearchParams for form-encoded post
-    const params = new URLSearchParams();
-    params.append('phone', phoneNumber);
-    params.append('resourceId', id || '');
-
-    api.post('/api/payment/pay', params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    })
-    .then(res => {
-      setProcessing(false);
-      const data = res.data;
-      if (data.checkoutRequestId) {
-          pollPaymentStatus(data.checkoutRequestId);
-      } else {
-          setBuyOpen(false);
-          setToast({ open: true, message: "Request Sent!", severity: 'success' });
-      }
-    })
-    .catch((err) => {
-      setProcessing(false);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-          setBuyOpen(false);
-          setLoginPrompt(true);
-          return;
-      }
-      setToast({ open: true, message: err.response?.data || 'Payment initiation failed.', severity: 'error' });
-    });
-  };
+    setToast({ open: true, message: err.response?.data || 'Payment initiation failed.', severity: 'error' });
+  });
+};
 
   const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') return;
