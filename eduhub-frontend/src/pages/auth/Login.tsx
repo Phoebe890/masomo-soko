@@ -59,28 +59,42 @@ const Login: React.FC = () => {
   }
 };
 
-  const googleLogin = useGoogleLogin({
+ const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();
       try {
         const res = await api.post('/api/auth/google', { token: tokenResponse.access_token });
         handleAuthSuccess(res.data);
       } catch (err: any) {
-        setToast({ open: true, message: "Google Login failed.", severity: 'error' });
+        // Capture the actual error from the backend if available
+        const serverMessage = err.response?.data || "Google Login failed.";
+        setToast({ open: true, message: serverMessage, severity: 'error' });
       } finally {
         stopLoading();
       }
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     startLoading();
     try {
       const response = await api.post('/api/auth/login', formData);
       handleAuthSuccess(response.data);
     } catch (error: any) {
-      setToast({ open: true, message: "Invalid email or password.", severity: 'error' });
+      // --- DYNAMIC ERROR MESSAGE LOGIC ---
+      // We check if the backend sent a specific string message.
+      // If not, we fall back to the generic "Invalid email or password."
+      const serverMessage = error.response?.data;
+      const displayMessage = typeof serverMessage === 'string' 
+        ? serverMessage 
+        : "Invalid email or password.";
+
+      setToast({ 
+        open: true, 
+        message: displayMessage, 
+        severity: 'error' 
+      });
     } finally {
       stopLoading();
     }
@@ -247,7 +261,7 @@ const Login: React.FC = () => {
       {/* ECITIZEN STYLE NOTIFICATION */}
       <Snackbar 
         open={toast.open} 
-        autoHideDuration={4000} 
+        autoHideDuration={6000} 
         onClose={() => setToast({ ...toast, open: false })}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

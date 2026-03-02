@@ -35,7 +35,10 @@ public class MpesaService {
     // FIX: Read this from properties so it works in Prod & Dev (ngrok)
     @Value("${mpesa.callback.url}")
     private String callbackUrl;
-
+@Value("${mpesa.shortcode}") // Add this property
+private String businessShortCode;
+@Value("${mpesa.transaction.type}") // Add this property (Paybill vs BuyGoods)
+private String transactionType;
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -65,12 +68,10 @@ public class MpesaService {
         String token = getAccessToken();
         String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         
-        // Sandbox Shortcode
-        String businessShortCode = "174379"; 
-        
-        String password = Base64.getEncoder().encodeToString(
-            (businessShortCode + passkey + timestamp).getBytes(StandardCharsets.UTF_8)
-        );
+         // Use the injected businessShortCode (Store Number)
+    String password = Base64.getEncoder().encodeToString(
+        (businessShortCode + passkey + timestamp).getBytes(StandardCharsets.UTF_8)
+    );
 
         // Sanitize Phone Number (Must be 254...)
         if (phoneNumber.startsWith("0")) phoneNumber = "254" + phoneNumber.substring(1);
@@ -83,13 +84,13 @@ public class MpesaService {
         jsonBody.put("BusinessShortCode", businessShortCode);
         jsonBody.put("Password", password);
         jsonBody.put("Timestamp", timestamp);
-        jsonBody.put("TransactionType", "CustomerPayBillOnline");
+          jsonBody.put("TransactionType", transactionType); // CustomerBuyGoodsOnline for Till
         jsonBody.put("Amount", amountInt); // Use the actual amount passed
         jsonBody.put("PartyA", phoneNumber);
         jsonBody.put("PartyB", businessShortCode);
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
-        jsonBody.put("AccountReference", "EduHub");
+        jsonBody.put("AccountReference", "Masomo Soko");
         jsonBody.put("TransactionDesc", "Course Purchase");
 
         RequestBody body = RequestBody.create(
