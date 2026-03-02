@@ -17,7 +17,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CancelIcon from '@mui/icons-material/Cancel';
-
+import AppNotification from '@/components/AppNotification';
 // Define the Payout Data Type
 interface Payout {
     id: number;
@@ -475,9 +475,13 @@ const AdminPayouts = () => {
                 </DialogActions>
             </Dialog>
 
-            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast({ ...toast, open: false })}>
-                <Alert severity={toast.severity} variant="filled" sx={{ width: '100%' }}>{toast.message}</Alert>
-            </Snackbar>
+          {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+            <AppNotification 
+                open={toast.open}
+                message={toast.message}
+                severity={toast.severity}
+                onClose={() => setToast({ ...toast, open: false })}
+            />
         </AdminLayout>
     );
 };

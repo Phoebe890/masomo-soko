@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
-
+import AppNotification from '@/components/AppNotification';
 // Layout & UI Logic
 import TeacherLayout from '../../components/TeacherLayout';
 import { 
@@ -330,9 +330,13 @@ const ResourceManagement = () => {
                         </Box>
                     </Dialog>
 
-                    <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({...snackbar, open: false})}>
-                        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '2px' }}>{snackbar.message}</Alert>
-                    </Snackbar>
+                    {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+                    <AppNotification 
+                        open={snackbar.open}
+                        message={snackbar.message}
+                        severity={snackbar.severity}
+                        onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    />
                 </Box>
             </TeacherLayout>
         </ThemeProvider>

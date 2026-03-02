@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
-
+import AppNotification from '@/components/AppNotification';
 // Premium Lucide Icons
 import { 
     Wallet, History, ArrowDownCircle, Landmark, 
@@ -224,15 +224,13 @@ const TeacherEarnings = () => {
                     </DialogActions>
                 </Dialog>
 
-                <Snackbar 
-                    open={toast.open} autoHideDuration={3000} 
-                    onClose={() => setToast({...toast, open: false})}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                >
-                    <Alert severity={toast.type} variant="filled" sx={{ fontWeight: 700, borderRadius: '2px', bgcolor: toast.type === 'success' ? SLATE_DARK : '#EF4444' }}>
-                        {toast.msg}
-                    </Alert>
-                </Snackbar>
+              {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+                <AppNotification 
+                    open={toast.open}
+                    message={toast.msg} // Mapping your 'msg' to the component's 'message'
+                    severity={toast.type} // Mapping your 'type' to the component's 'severity'
+                    onClose={() => setToast({ ...toast, open: false })}
+                />
             </TeacherLayout>
         </ThemeProvider>
     );

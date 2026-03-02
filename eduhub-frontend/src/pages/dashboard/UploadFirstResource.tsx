@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
-
+import AppNotification from '@/components/AppNotification';
 // High-End Icons (Lucide)
 import { 
     ArrowLeft, UploadCloud, FileText, Image as ImageIcon, 
@@ -271,15 +271,13 @@ const UploadFirstResource = () => {
                     </Grid>
                 </Box>
                 
-                <Snackbar 
-                    open={snackbar.open} autoHideDuration={4000} 
-                    onClose={() => setSnackbar({...snackbar, open: false})}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                >
-                    <Alert severity={snackbar.type} variant="filled" sx={{ borderRadius: '2px', fontWeight: 700 }}>
-                        {snackbar.msg}
-                    </Alert>
-                </Snackbar>
+               {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+                <AppNotification 
+                    open={snackbar.open}
+                    message={snackbar.msg} // Map your 'msg' to the component's 'message'
+                    severity={snackbar.type} // Map your 'type' to the component's 'severity'
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                />
             </TeacherLayout>
         </ThemeProvider>
     );

@@ -9,7 +9,7 @@ import {
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/api/axios';
-
+import AppNotification from '@/components/AppNotification';
 // Logos
 import logo from '@/assets/logo.svg';
 import logoIcon from '@/assets/logo-icon.svg';
@@ -108,8 +108,10 @@ useEffect(() => {
     fetchProfile();
   }, []);
 
-  const handleCloseToast = () => setToast({ ...toast, open: false });
-
+ const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') return;
+    setToast({ ...toast, open: false });
+  };
   const validateStep = (currentStep: number) => {
     let isValid = true;
     const newErrors = { ...errors };
@@ -339,9 +341,13 @@ localStorage.removeItem('onboarding_draft'); // Clear the draft
         </Box>
       </Container>
       
-      <Snackbar open={toast.open} autoHideDuration={6000} onClose={handleCloseToast}>
-          <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }} variant="filled">{toast.msg}</Alert>
-      </Snackbar>
+     {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+      <AppNotification 
+          open={toast.open}
+          message={toast.msg} // Mapping your 'msg' to 'message'
+          severity={toast.severity === 'warning' ? 'error' : toast.severity} // Mapping warning to error style for consistency
+          onClose={handleCloseToast}
+      />
     </Box>
   );
 };

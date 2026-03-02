@@ -10,6 +10,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import TeacherLayout from '../../components/TeacherLayout';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@mui/material';
+import AppNotification from '@/components/AppNotification';
 // High-End Icons (Lucide)
 import { 
     DollarSign, ShoppingBag, Users, Star, 
@@ -555,27 +556,13 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                     </Grid>
                 </Box> {/* Closes Main Container Box */}
             </TeacherLayout>
-            <Snackbar 
-    open={snackbar.open} 
-    autoHideDuration={4000} 
-    onClose={handleCloseSnackbar}
-    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
->
-    <Alert 
-        onClose={handleCloseSnackbar} 
-        severity={snackbar.severity} 
-        variant="filled"
-        sx={{ 
-            borderRadius: '2px', // Sharp edges
-            bgcolor: snackbar.severity === 'success' ? '#0F172A' : '#EF4444', // Slate black for success is high-end
-            fontWeight: 700,
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-        }}
-    >
-        {snackbar.message}
-    </Alert>
-</Snackbar>
+           {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+            <AppNotification 
+                open={snackbar.open}
+                message={snackbar.message}
+                severity={snackbar.severity}
+                onClose={handleCloseSnackbar}
+            />
         </ThemeProvider>
     );
 };

@@ -6,7 +6,7 @@ import {
   Stack, Rating, Chip, Container, Breadcrumbs, Link, Snackbar, Alert
 } from '@mui/material';
 import { api } from '@/api/axios'; // FIXED: Import api
-
+import AppNotification from '@/components/AppNotification'; // FIXED: Importing the consistent notification component
 // Icons
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -174,7 +174,10 @@ const handleGetFree = () => {
     });
   };
 
-  const handleCloseToast = () => { setToast({ ...toast, open: false }); };
+  const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') return;
+    setToast(prev => ({ ...prev, open: false }));
+  };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 20 }}><CircularProgress /></Box>;
   if (!resource) return <Typography sx={{ mt: 10, textAlign: 'center' }}>Resource not found.</Typography>;
@@ -301,7 +304,14 @@ const handleGetFree = () => {
         </Button>
     </DialogActions>
 </Dialog>
-        <Snackbar open={toast.open} autoHideDuration={6000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert onClose={handleCloseToast} severity={toast.severity} variant="filled">{toast.message}</Alert></Snackbar>
+       {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+        <AppNotification 
+            open={toast.open}
+            message={toast.message}
+            // Map severities to the primary Green/Red styles
+            severity={(toast.severity === 'error' || toast.severity === 'warning') ? 'error' : 'success'}
+            onClose={handleCloseToast}
+        />
     </Box>
   );
 };

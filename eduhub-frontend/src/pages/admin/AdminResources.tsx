@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { api } from '@/api/axios';
 import AdminLayout from './AdminLayout';
-
+import AppNotification from '@/components/AppNotification';
 // High-End Icons (Lucide)
 import { 
     Search, Trash2, Eye, RefreshCw, Filter, 
@@ -301,16 +301,13 @@ const AdminResources: React.FC = () => {
                 </DialogActions>
             </Dialog>
 
-            <Snackbar 
-                open={toast.open} 
-                autoHideDuration={4000} 
-                onClose={() => setToast({...toast, open: false})}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert severity={toast.type} variant="filled" sx={{ fontWeight: 700, borderRadius: SHARP_RADIUS, bgcolor: toast.type === 'success' ? '#0F172A' : '#EF4444' }}>
-                    {toast.msg}
-                </Alert>
-            </Snackbar>
+            {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+            <AppNotification 
+                open={toast.open}
+                message={toast.msg} // Mapping your 'msg' to 'message'
+                severity={toast.type} // Mapping your 'type' to 'severity'
+                onClose={() => setToast({ ...toast, open: false })}
+            />
         </AdminLayout>
     );
 };

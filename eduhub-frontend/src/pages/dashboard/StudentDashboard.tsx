@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios'; 
 import StudentLayout from '../../components/StudentLayout';
 import ReviewModal from '../../components/ReviewModal';
+import AppNotification from '@/components/AppNotification';
 
 // High-End Icons (Lucide)
 import { 
@@ -769,33 +770,19 @@ function AccountSettingsSection() {
                     variant="contained" 
                     onClick={handleSave} 
                     disabled={saving}
-                    sx={{ 
-                        bgcolor: '#0F172A', 
-                        px: 6, 
-                        py: 1.5,
-                        '&:hover': { bgcolor: '#1E293B' },
-                        boxShadow: 'none'
-                    }}
+                    sx={{ bgcolor: '#0F172A', px: 6, py: 1.5, '&:hover': { bgcolor: '#1E293B' }, boxShadow: 'none' }}
                 >
                     {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Profile Changes'}
                 </Button>
             </Box>
 
-            {/* SNACKBAR FEEDBACK (Replaces alert) */}
-            <Snackbar 
-                open={snackbar.open} 
-                autoHideDuration={4000} 
+            {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+            <AppNotification 
+                open={snackbar.open}
+                message={snackbar.message}
+                severity={snackbar.severity}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert 
-                    variant="filled" 
-                    severity={snackbar.severity} 
-                    sx={{ borderRadius: '2px', fontWeight: 700, bgcolor: snackbar.severity === 'success' ? '#0F172A' : '#EF4444' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+            />
         </Paper>
     );
 }

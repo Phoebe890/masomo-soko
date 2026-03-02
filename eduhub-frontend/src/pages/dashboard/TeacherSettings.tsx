@@ -5,7 +5,7 @@ import {
   Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton
 } from '@mui/material';
 import { api } from '@/api/axios';
-
+import AppNotification from '@/components/AppNotification';
 // Layout & Icons
 import TeacherLayout from '../../components/TeacherLayout';
 import { 
@@ -254,15 +254,13 @@ const TeacherSettings = () => {
                     </Box>
                 )}
 
-                <Snackbar 
-                    open={toast.open} autoHideDuration={4000} 
-                    onClose={() => setToast({...toast, open: false})}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                >
-                    <Alert severity={toast.severity} variant="filled" sx={{ borderRadius: '2px', fontWeight: 700 }}>
-                        {toast.msg}
-                    </Alert>
-                </Snackbar>
+               {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+                <AppNotification 
+                    open={toast.open}
+                    message={toast.msg} // Mapping your local 'msg' to the component's 'message'
+                    severity={toast.severity}
+                    onClose={() => setToast({ ...toast, open: false })}
+                />
             </TeacherLayout>
         </ThemeProvider>
     );

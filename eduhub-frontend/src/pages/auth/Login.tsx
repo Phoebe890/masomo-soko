@@ -13,6 +13,7 @@ import logoIcon from '@/assets/logo-icon.svg'; // --- IMPORT LOGO ---
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import AppNotification from '@/components/AppNotification';
 
 const Login: React.FC = () => {
   const theme = useTheme();
@@ -258,35 +259,16 @@ const Login: React.FC = () => {
         </Container>
       </Box>
 
-      {/* ECITIZEN STYLE NOTIFICATION */}
-      <Snackbar 
-        open={toast.open} 
-        autoHideDuration={6000} 
+     {/* SHARED NOTIFICATION */}
+      <AppNotification 
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
         onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={() => setToast({ ...toast, open: false })} 
-          severity={toast.severity}
-          sx={{ 
-            width: '100%', 
-            minWidth: '300px',
-            bgcolor: '#fff', 
-            color: '#1a1b1d', 
-            fontWeight: 700,
-            borderRadius: '4px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-            borderLeft: `6px solid ${toast.severity === 'success' ? '#43B02A' : '#d32f2f'}`,
-            '& .MuiAlert-icon': { 
-                color: toast.severity === 'success' ? '#43B02A' : '#d32f2f' 
-            }
-          }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      />
     </Box>
   );
 };
+   
 
 export default Login;

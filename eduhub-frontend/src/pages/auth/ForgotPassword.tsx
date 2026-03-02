@@ -12,6 +12,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { api } from '@/api/axios';
 import { useLoading } from '../../context/LoadingContext';
+import AppNotification from '@/components/AppNotification';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -163,21 +164,7 @@ const ForgotPassword = () => {
           {/* STEP 2 */}
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <Fade in={showTopBanner}>
-                <Box>
-                  {showTopBanner && (
-                    <Alert 
-                      severity="success" 
-                      onClose={() => setShowTopBanner(false)}
-                      icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                      sx={{ mb: 4, borderRadius: '12px', border: '1px solid #c3e6cb', bgcolor: '#edf7ed' }}
-                    >
-                      <Typography variant="subtitle2" fontWeight={700}>Success!</Typography>
-                      6 Digit OTP has been sent to your email address
-                    </Alert>
-                  )}
-                </Box>
-              </Fade>
+             
 
               <Typography variant="h3" fontWeight={900} textAlign="center" sx={{ color: '#0d1b3e', mb: 4 }}>
                 OTP verification
@@ -266,22 +253,13 @@ const ForgotPassword = () => {
         </AnimatePresence>
       </Container>
 
-      {/* SNACKBAR - THIS WILL AUTO-HIDE NOW */}
-      <Snackbar 
-        open={toast.open} 
-        autoHideDuration={4000} // Automatically hides after 4 seconds
-        onClose={handleCloseToast}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={handleCloseToast} 
-          severity={toast.severity} 
-          variant="filled"
-          sx={{ width: '100%', boxShadow: 6, borderRadius: '8px' }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      {/* SHARED NOTIFICATION */}
+      <AppNotification 
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast({ ...toast, open: false })}
+      />
     </Box>
   );
 };
