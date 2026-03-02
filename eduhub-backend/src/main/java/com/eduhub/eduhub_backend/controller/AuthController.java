@@ -93,7 +93,7 @@ private AuthService authService;
                 // We use matches() because the password in DB is hashed
                 if (passwordEncoder.matches("GOOGLE_AUTH", user.getPassword())) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("This account was created with Google. Please use 'Sign in with Google'.");
+                        .body("This account was created with Google. Please use Sign in with Google.");
                 }
             }
             
