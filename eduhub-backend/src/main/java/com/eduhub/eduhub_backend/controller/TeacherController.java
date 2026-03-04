@@ -13,7 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,6 +55,7 @@ public class TeacherController {
 
     // 1. Get All Resources (Public)
     @GetMapping("/resources")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllResources(@RequestParam(required = false) String search) {
         try {
             List<TeacherResource> resources;
@@ -82,6 +83,7 @@ public class TeacherController {
 
     // 2. Get Single Resource Detail 
     @GetMapping("/resources/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getResourceById(@PathVariable Long id) {
         try {
             TeacherResource resource = teacherResourceRepository.findById(id).orElse(null);
@@ -136,6 +138,7 @@ public class TeacherController {
 
     // --- DASHBOARD ---
     @GetMapping("/dashboard")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
