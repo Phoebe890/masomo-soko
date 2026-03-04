@@ -180,36 +180,31 @@ public class TeacherController {
     }
 
     // --- ONBOARDING ---
-   @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
+@PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
 public ResponseEntity<?> onboarding(
-        @RequestParam(value = "name", required = false) String name,        // ADDED
+        @RequestParam(value = "name", required = false) String name,
         @RequestParam(value = "profilePic", required = false) MultipartFile profilePic,
         @RequestParam(value = "headline", required = false) String headline,
-        @RequestParam(value = "bio", required = false) String bio,          // CHANGED TO OPTIONAL
-        @RequestParam(value = "subjects", required = false) String subjectsJson, // CHANGED TO OPTIONAL
-        @RequestParam(value = "grades", required = false) String gradesJson,     // CHANGED TO OPTIONAL
+        @RequestParam(value = "bio", required = false) String bio,
+        @RequestParam(value = "subjects", required = false) String subjectsJson,
+        @RequestParam(value = "grades", required = false) String gradesJson,
         @RequestParam(value = "paymentNumber", required = false) String paymentNumber,
         @AuthenticationPrincipal UserDetails userDetails) {
     try {
         if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Session expired");
 
-        // 1. GET THE USER
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-       
         if (name != null && !name.trim().isEmpty()) {
             user.setName(name);
         }
 
-    
         user.setRole("TEACHER"); 
         userRepository.save(user);
 
-        
         TeacherProfile profile = getOrCreateProfile(user);
 
-       
         ObjectMapper mapper = new ObjectMapper();
         List<String> subjects = new ArrayList<>();
         if(subjectsJson != null && !subjectsJson.isEmpty()) {
@@ -225,34 +220,25 @@ public ResponseEntity<?> onboarding(
             } catch(Exception e){ System.err.println("Error parsing grades"); }
         }
 
-        
         profile.setBio(bio);
         profile.setHeadline(headline);
         profile.setSubjects(subjects);
         profile.setGrades(grades);
         
-       if (paymentNumber != null && !paymentNumber.isEmpty()) {
-    // Safaricom Regex for Backend (Handles 07..., 7..., or 254...)
-    String safaricomRegex = "^(?:254|0)?(7(?:[0129][0-9]|4[0123568]|5[789]|6[89])|11[0-5])[0-9]{6}$";
-    
-    if (!paymentNumber.matches(safaricomRegex)) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                             .body("Error: Payouts only support Safaricom M-Pesa numbers.");
-    }
+        if (paymentNumber != null && !paymentNumber.isEmpty()) {
+            String safaricomRegex = "^(?:254|0)?(7(?:[0129][0-9]|4[0123568]|5[789]|6[89])|11[0-5])[0-9]{6}$";
+            if (!paymentNumber.matches(safaricomRegex)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: Payouts only support Safaricom M-Pesa numbers.");
+            }
+            String cleanNumber = paymentNumber.replaceAll("[^0-9]", "");
+            if (cleanNumber.startsWith("0")) {
+                cleanNumber = "254" + cleanNumber.substring(1);
+            } else if (cleanNumber.length() == 9) {
+                cleanNumber = "254" + cleanNumber;
+            }
+            profile.setPaymentNumber(cleanNumber);
+        }
 
-    // STANDARDIZATION: Always save in the format 2547XXXXXXXX
-    String cleanNumber = paymentNumber.replaceAll("[^0-9]", ""); // Remove any weird characters
-    
-    if (cleanNumber.startsWith("0")) {
-        cleanNumber = "254" + cleanNumber.substring(1);
-    } else if (cleanNumber.length() == 9) {
-        cleanNumber = "254" + cleanNumber;
-    }
-    
-    profile.setPaymentNumber(cleanNumber);
-}
-
-       
         if (profilePic != null && !profilePic.isEmpty()) {
             Map uploadResult = fileUploadService.uploadFile(profilePic);
             profile.setProfilePicPath((String) uploadResult.get("secure_url"));
@@ -260,7 +246,9 @@ public ResponseEntity<?> onboarding(
 
         teacherProfileRepository.save(profile);
 
+       
         return ResponseEntity.ok(profile);
+
     } catch (Exception e) {
         e.printStackTrace(); 
         return ResponseEntity.status(500).body("Failed: " + e.getMessage());
