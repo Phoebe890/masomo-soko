@@ -30,7 +30,8 @@ const paymentMethods = [{ label: 'M-Pesa (Mobile Money)', value: 'mpesa' }];
 const ResourceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+const isTeacher = user.role === 'TEACHER';
   // Logic States
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState<any>(null);
@@ -285,23 +286,30 @@ const ResourceDetail = () => {
                                     {isFree ? "Free" : `KES ${resource.price}`}
                                 </Typography>
 
-                                <Button 
-                                    variant="contained" 
-                                    fullWidth 
-                                    size="large" 
-                                    disabled={processing}
-                                    onClick={isFree ? handleGetFree : handleBuyNow} 
-                                    sx={{ 
-                                        py: 2, borderRadius: '4px', fontWeight: 800, fontSize: '1.1rem', mb: 2,
-                                        bgcolor: SLATE_DARK, boxShadow: 'none', '&:hover': { bgcolor: '#1e293b' } 
-                                    }}
-                                >
-                                    {processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Add to Library" : "Buy Resource")}
-                                </Button>
+                               <Button 
+    variant="contained" 
+    fullWidth 
+    size="large" 
+    // FIX: Disable button if it's a teacher
+    disabled={processing || isTeacher} 
+    onClick={isFree ? handleGetFree : handleBuyNow} 
+    sx={{ 
+        py: 2, borderRadius: '4px', fontWeight: 800, fontSize: '1.1rem', mb: 2,
+        bgcolor: isTeacher ? '#94A3B8' : SLATE_DARK, // Gray out if teacher
+        boxShadow: 'none', 
+        '&:hover': { bgcolor: isTeacher ? '#94A3B8' : '#1e293b' } 
+    }}
+>
+    {/* FIX: Dynamic text based on role */}
+    {isTeacher ? "Teachers Cannot Purchase" : (processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Add to Library" : "Buy Resource"))}
+</Button>
 
-                                <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
-                                    {isFree ? "Safe & Free Download" : "Secure Payment via M-Pesa"}
-                                </Typography>
+{/* ADD: Helpful message for Teachers */}
+{isTeacher && (
+    <Typography variant="caption" color="error" sx={{ textAlign: 'center', display: 'block', fontWeight: 600, mt: 1 }}>
+        Switch to a Student account to purchase materials.
+    </Typography>
+)}
 
                                 <Stack spacing={2.5}>
                                     <Stack direction="row" spacing={1.5} alignItems="center">

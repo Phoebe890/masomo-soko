@@ -128,6 +128,10 @@ public class StudentController {
 
         User student = getAuthenticatedStudent(userDetails);
         if (student == null) return ResponseEntity.status(401).body("Unauthorized");
+// FIX: PREVENT TEACHERS
+     if ("TEACHER".equals(student.getRole())) {
+        return ResponseEntity.status(403).body("Access Denied: Teachers cannot add resources to a library.");
+    }
 
         TeacherResource resource = teacherResourceRepository.findById(resourceId).orElse(null);
         if (resource == null) return ResponseEntity.status(404).body("Resource not found");

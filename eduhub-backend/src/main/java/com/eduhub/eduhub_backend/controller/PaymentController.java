@@ -9,6 +9,7 @@ import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.service.MpesaService;
+import com.eduhub.eduhub_backend.service.EmailProducer; // IMPORT THIS
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +17,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal; // <--- CRITICAL IMPORT
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List; // IMPORT THIS
 import java.util.Map;
 
 @RestController
@@ -30,67 +32,63 @@ public class PaymentController {
     @Autowired private TeacherResourceRepository resourceRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PurchaseRepository purchaseRepository;
+    @Autowired private EmailProducer emailProducer; // INJECT THIS
 
     @PostMapping("/pay")
-public ResponseEntity<?> initiatePayment(
-        @AuthenticationPrincipal UserDetails userDetails,
-        @RequestBody Map<String, Object> request) {
-    
-    try {
-        // 1. IMPROVED AUTH CHECK
-        if (userDetails == null) {
-            return ResponseEntity.status(401).body("Please log in to purchase this resource.");
-        }
+    public ResponseEntity<?> initiatePayment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, Object> request) {
         
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        // 2. INPUT VALIDATION
-        if (request.get("resourceId") == null || request.get("amount") == null) {
-            return ResponseEntity.status(400).body("Invalid request data.");
+        try {
+            if (userDetails == null) {
+                return ResponseEntity.status(401).body("Please log in to purchase this resource.");
+            }
+            
+            User user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+             // FIX: PREVENT TEACHERS FROM BUYING
+         if ("TEACHER".equals(user.getRole())) {
+            return ResponseEntity.status(403).body("Access Denied: Teachers cannot purchase resources. Please log in with a Student account.");
         }
+            if (request.get("resourceId") == null || request.get("amount") == null) {
+                return ResponseEntity.status(400).body("Invalid request data.");
+            }
 
-        Long resourceId = Long.valueOf(request.get("resourceId").toString());
-        String phoneNumber = request.get("phoneNumber").toString();
-        BigDecimal amountVal = new BigDecimal(request.get("amount").toString());
-        
-        TeacherResource resource = resourceRepository.findById(resourceId)
-                .orElseThrow(() -> new RuntimeException("Resource not found"));
+            Long resourceId = Long.valueOf(request.get("resourceId").toString());
+            String phoneNumber = request.get("phoneNumber").toString();
+            BigDecimal amountVal = new BigDecimal(request.get("amount").toString());
+            
+            TeacherResource resource = resourceRepository.findById(resourceId)
+                    .orElseThrow(() -> new RuntimeException("Resource not found"));
 
-        // 3. CALL MPESA SERVICE
-        // Note: Catching IOException specifically for M-Pesa API errors
-        Map<String, String> mpesaResponse = mpesaService.initiateStkPush(phoneNumber, amountVal);
+            Map<String, String> mpesaResponse = mpesaService.initiateStkPush(phoneNumber, amountVal);
 
-        // 4. SAVE TRANSACTION
-        PaymentTransaction transaction = new PaymentTransaction();
-        transaction.setUser(user);
-        transaction.setResource(resource);
-        transaction.setAmount(amountVal);
-        transaction.setPhoneNumber(phoneNumber);
-        transaction.setTransactionDate(LocalDateTime.now());
-        transaction.setStatus("PENDING");
-        transaction.setMerchantRequestId(mpesaResponse.get("MerchantRequestID"));
-        transaction.setCheckoutRequestId(mpesaResponse.get("CheckoutRequestID"));
+            PaymentTransaction transaction = new PaymentTransaction();
+            transaction.setUser(user);
+            transaction.setResource(resource);
+            transaction.setAmount(amountVal);
+            transaction.setPhoneNumber(phoneNumber);
+            transaction.setTransactionDate(LocalDateTime.now());
+            transaction.setStatus("PENDING");
+            transaction.setMerchantRequestId(mpesaResponse.get("MerchantRequestID"));
+            transaction.setCheckoutRequestId(mpesaResponse.get("CheckoutRequestID"));
 
-        transactionRepository.save(transaction);
+            transactionRepository.save(transaction);
 
-        return ResponseEntity.ok(Map.of(
-            "message", "STK Push initiated", 
-            "checkoutRequestId", transaction.getCheckoutRequestId()
-        ));
+            return ResponseEntity.ok(Map.of(
+                "message", "STK Push initiated", 
+                "checkoutRequestId", transaction.getCheckoutRequestId()
+            ));
 
-    } catch (java.io.IOException e) {
-        // This handles "Merchant not found" and other Safaricom-specific errors
-        String errorMsg = e.getMessage();
-        if (errorMsg.contains("Merchant not found")) {
-            return ResponseEntity.status(400).body("Error: M-Pesa Merchant configuration mismatch. Please contact support.");
+        } catch (java.io.IOException e) {
+            String errorMsg = e.getMessage();
+            return ResponseEntity.status(400).body(errorMsg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Could not initiate payment.");
         }
-        return ResponseEntity.status(400).body("M-Pesa Error: " + errorMsg);
-    } catch (Exception e) {
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("Could not initiate payment. Please try again later.");
     }
-}
+
     @PostMapping("/callback")
     public void mpesaCallback(@RequestBody String callbackJson) {
         try {
@@ -110,12 +108,27 @@ public ResponseEntity<?> initiatePayment(
                 if (resultCode == 0) {
                     transaction.setStatus("COMPLETED");
                     
-                    // Grant Access
+                    // 1. Grant Access
                     Purchase purchase = new Purchase(transaction.getUser(), transaction.getResource(), LocalDateTime.now());
-                    // Use doubleValue() to convert back if Entity expects Double, 
-                    // otherwise change Purchase entity to use BigDecimal too.
                     purchase.setPrice(transaction.getResource().getPrice()); 
                     purchaseRepository.save(purchase);
+
+                    // 2. Extract M-Pesa Receipt Number from Metadata
+                    String mpesaReceipt = "N/A";
+                    try {
+                        Map<String, Object> metadata = (Map<String, Object>) stkCallback.get("CallbackMetadata");
+                        List<Map<String, Object>> items = (List<Map<String, Object>>) metadata.get("Item");
+                        for (Map<String, Object> item : items) {
+                            if ("MpesaReceiptNumber".equals(item.get("Name"))) {
+                                mpesaReceipt = item.get("Value").toString();
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Could not extract M-Pesa receipt: " + e.getMessage());
+                    }
+
+                    // 3. SEND PROFESSIONAL HTML EMAIL
+                    sendProfessionalReceipt(transaction.getUser(), transaction.getResource(), mpesaReceipt);
                     
                 } else {
                     transaction.setStatus("FAILED");
@@ -127,7 +140,42 @@ public ResponseEntity<?> initiatePayment(
             e.printStackTrace();
         }
     }
-    
+
+    private void sendProfessionalReceipt(User user, TeacherResource resource, String receiptNo) {
+        String subject = "Receipt for your purchase: " + resource.getTitle();
+        
+        // Professional HTML Template
+        String htmlContent = 
+            "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; color: #333;'>" +
+            "  <div style='text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;'>" +
+            "    <h1 style='color: #2563eb; margin: 0;'>Masomo Soko</h1>" +
+            "    <p style='font-size: 12px; color: #666;'>Empowering Educators, Inspiring Learners</p>" +
+            "  </div>" +
+            "  <div style='padding: 20px 0;'>" +
+            "    <p>Hello <strong>" + user.getName() + "</strong>,</p>" +
+            "    <p>Thank you for your purchase! Your payment has been confirmed, and the resource is now available in your library.</p>" +
+            "    <div style='background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;'>" +
+            "      <p style='margin: 5px 0;'><strong>Resource:</strong> " + resource.getTitle() + "</p>" +
+            "      <p style='margin: 5px 0;'><strong>Price:</strong> KES " + resource.getPrice() + "</p>" +
+            "      <p style='margin: 5px 0;'><strong>M-Pesa Receipt:</strong> " + receiptNo + "</p>" +
+            "      <p style='margin: 5px 0;'><strong>Date:</strong> " + LocalDateTime.now().toString().substring(0, 10) + "</p>" +
+            "    </div>" +
+            "    <div style='text-align: center; margin-top: 30px;'>" +
+            "      <a href='https://masomosoko.co.ke/dashboard/student' style='background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Access My Resource</a>" +
+            "    </div>" +
+            "  </div>" +
+            "  <p style='font-size: 11px; color: #999; text-align: center; margin-top: 40px;'>" +
+            "    This is an automated receipt. If you have any questions, please contact support@masomosoko.co.ke" +
+            "  </p>" +
+            "</div>";
+
+        try {
+            emailProducer.sendEmail(user.getEmail(), subject, htmlContent);
+        } catch (Exception e) {
+            System.err.println("Failed to send professional email: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/status/{checkoutRequestId}")
     public ResponseEntity<?> checkStatus(@PathVariable String checkoutRequestId) {
         PaymentTransaction transaction = transactionRepository.findByCheckoutRequestId(checkoutRequestId).orElse(null);
