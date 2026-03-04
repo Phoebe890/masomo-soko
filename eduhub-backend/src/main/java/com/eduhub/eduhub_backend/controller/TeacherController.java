@@ -304,6 +304,35 @@ public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails 
         return ResponseEntity.status(500).body("Error: " + e.getMessage());
     }
 }
+// --- DELETE REVIEW ---
+@DeleteMapping("/reviews/{id}")
+public ResponseEntity<?> deleteReview(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        // 1. Get the authenticated teacher
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2. Find the review
+        Review review = reviewRepository.findById(id).orElse(null);
+        if (review == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Review not found");
+        }
+
+        // 3. SECURITY CHECK: Ensure the review belongs to a resource owned by this teacher
+        if (!review.getResource().getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to delete this review");
+        }
+
+        // 4. Delete the review
+        reviewRepository.delete(review);
+        
+        return ResponseEntity.ok("Review deleted successfully");
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error deleting review: " + e.getMessage());
+    }
+}
    // --- GET SETTINGS ---
     @GetMapping("/settings")
     public ResponseEntity<?> getTeacherSettings(@AuthenticationPrincipal UserDetails userDetails) {

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, TextField, Button, Paper, Grid, 
   CircularProgress, Snackbar, Alert, Divider, InputAdornment, 
-  Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton
+  Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton, Skeleton // Added Skeleton
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom'; // Added for back button
 import { api } from '@/api/axios';
 import AppNotification from '@/components/AppNotification';
 // Layout & Icons
@@ -35,6 +36,7 @@ const settingsTheme = createTheme({
 });
 
 const TeacherSettings = () => {
+    const navigate = useNavigate(); // Initialize navigate
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     
@@ -69,7 +71,10 @@ const TeacherSettings = () => {
                 setProfilePic(p.profilePicPath || '');
             })
             .catch(err => console.error("Failed to load settings", err))
-            .finally(() => setLoading(false));
+            .finally(() => {
+                // Smooth transition from skeleton to content
+                setTimeout(() => setLoading(false), 800);
+            });
     }, []);
 
     const getAvatarSrc = () => {
@@ -121,20 +126,53 @@ const TeacherSettings = () => {
         <ThemeProvider theme={settingsTheme}>
             <TeacherLayout title="Settings" selectedRoute="/teacher/settings">
                 
-                {loading ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 15 }}>
-                        <CircularProgress size={30} sx={{ color: BRAND_BLUE }} />
-                        <Typography variant="caption" sx={{ mt: 2, fontWeight: 700, color: 'text.secondary' }}>LOADING PREFERENCES...</Typography>
-                    </Box>
-                ) : (
-                    <Box sx={{ maxWidth: 900, mx: 'auto', pb: 5, animation: 'fadeIn 0.5s ease-out' }}>
-                        
-                        {/* HEADER */}
-                        <Box sx={{ mb: 4 }}>
+                <Box sx={{ maxWidth: 900, mx: 'auto', pb: 5, animation: 'fadeIn 0.5s ease-out' }}>
+                    
+                    {/* --- HEADER WITH BACK BUTTON --- */}
+                    <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <IconButton 
+                            onClick={() => navigate('/dashboard/teacher')} 
+                            sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', bgcolor: 'white' }}
+                        >
+                            <ArrowLeft size={20} />
+                        </IconButton>
+                        <Box>
                             <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>Account Settings</Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Update your profile information and payout preferences.</Typography>
                         </Box>
+                    </Box>
 
+                    {loading ? (
+                        /* --- SKELETON LOADING STATE --- */
+                        <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                            <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Skeleton variant="rectangular" width={32} height={32} />
+                                <Skeleton variant="text" width={200} height={30} />
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 4, mb: 4, alignItems: 'center' }}>
+                                <Skeleton variant="rectangular" width={100} height={100} sx={{ borderRadius: '2px' }} />
+                                <Box sx={{ flex: 1 }}>
+                                    <Skeleton width="40%" height={25} />
+                                    <Skeleton width="60%" height={20} />
+                                </Box>
+                            </Box>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} md={6}><Skeleton variant="rectangular" height={56} /></Grid>
+                                <Grid item xs={12} md={6}><Skeleton variant="rectangular" height={56} /></Grid>
+                                <Grid item xs={12}><Skeleton variant="rectangular" height={120} /></Grid>
+                            </Grid>
+                            <Divider sx={{ my: 6 }} />
+                            <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Skeleton variant="rectangular" width={32} height={32} />
+                                <Skeleton variant="text" width={200} height={30} />
+                            </Box>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} md={6}><Skeleton variant="rectangular" height={56} /></Grid>
+                                <Grid item xs={12} md={6}><Skeleton variant="rectangular" height={80} /></Grid>
+                            </Grid>
+                        </Paper>
+                    ) : (
+                        /* --- ACTUAL ORIGINAL UI --- */
                         <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
                             
                             {/* SECTION 1: IDENTITY */}
@@ -251,8 +289,8 @@ const TeacherSettings = () => {
                             </Box>
 
                         </Paper>
-                    </Box>
-                )}
+                    )}
+                </Box>
 
                
                 <AppNotification 

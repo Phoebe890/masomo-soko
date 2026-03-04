@@ -3,8 +3,9 @@ import {
     Box, Typography, Paper, Grid, Button, Table, TableBody, TableCell, 
     TableContainer, TableHead, TableRow, Chip, CircularProgress, 
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, 
-    InputAdornment, Alert, Snackbar, useTheme, alpha, createTheme, ThemeProvider, Skeleton, Divider
+    InputAdornment, Alert, Snackbar, useTheme, alpha, createTheme, ThemeProvider, Skeleton, Divider, Stack, IconButton
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom'; // Added for back button
 import { api } from '@/api/axios';
 import TeacherLayout from '../../components/TeacherLayout';
 import AppNotification from '@/components/AppNotification';
@@ -12,7 +13,7 @@ import AppNotification from '@/components/AppNotification';
 import { 
     Wallet, History, ArrowDownCircle, Landmark, 
     TrendingUp, ArrowUpRight, CheckCircle2, 
-    Clock, AlertCircle, MoreHorizontal, Filter 
+    Clock, AlertCircle, MoreHorizontal, Filter, ArrowLeft // Added ArrowLeft
 } from 'lucide-react';
 
 
@@ -26,7 +27,7 @@ const BRAND_BLUE = '#2563EB';
 const SLATE_DARK = '#0F172A';
 
 const TeacherEarnings = () => {
-    
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [balance, setBalance] = useState(0.0);
     const [mpesaNumber, setMpesaNumber] = useState('');
@@ -44,7 +45,12 @@ const TeacherEarnings = () => {
             setBalance(res.data.balance || 0.0);
             setMpesaNumber(res.data.mpesaNumber || '');
             setHistory(res.data.history || []);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
+        } catch (err) { 
+            console.error(err); 
+        } finally { 
+            // Small delay to make skeleton look smooth
+            setTimeout(() => setLoading(false), 800); 
+        }
     };
 
     useEffect(() => { fetchWallet(); }, []);
@@ -67,7 +73,6 @@ const TeacherEarnings = () => {
         } finally { setProcessing(false); }
     };
 
-    // ---  STATS CALCULATIONS ---
     const totalWithdrawn = history
         .filter(item => item.status === 'PAID')
         .reduce((sum, item) => sum + item.amount, 0);
@@ -75,39 +80,45 @@ const TeacherEarnings = () => {
     return (
         <ThemeProvider theme={dashboardTheme}>
             <TeacherLayout title="Finance" selectedRoute="/teacher/earnings">
-                <Box sx={{ animation: 'fadeIn 0.5s ease-out', "@keyframes fadeIn": { "0%": { opacity: 0 }, "100%": { opacity: 1 } } }}>
+                <Box sx={{ animation: 'fadeIn 0.5s ease-out' }}>
                     
+                    {/* --- HEADER WITH BACK BUTTON --- */}
+                    <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <IconButton 
+                            onClick={() => navigate('/dashboard/teacher')} 
+                            sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', bgcolor: 'white' }}
+                        >
+                            <ArrowLeft size={20} />
+                        </IconButton>
+                        <Box>
+                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>Earnings & Payouts</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Monitor your sales revenue and manage your wallet.</Typography>
+                        </Box>
+                    </Box>
+
                     {/* 1. TOP STATS BAR (BENTO STYLE) */}
                     <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 2, border: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Box sx={{ p: 1, bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, borderRadius: '2px' }}><TrendingUp size={18} /></Box>
-                                <Box>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>LIFETIME REVENUE</Typography>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>KES {(totalWithdrawn + balance).toLocaleString()}</Typography>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 2, border: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Box sx={{ p: 1, bgcolor: alpha('#10B981', 0.1), color: '#059669', borderRadius: '2px' }}><CheckCircle2 size={18} /></Box>
-                                <Box>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>TOTAL WITHDRAWN</Typography>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>KES {totalWithdrawn.toLocaleString()}</Typography>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <Paper elevation={0} sx={{ p: 2, border: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Box sx={{ p: 1, bgcolor: alpha('#F59E0B', 0.1), color: '#D97706', borderRadius: '2px' }}><Clock size={18} /></Box>
-                                <Box>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>PENDING PAYOUTS</Typography>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                                        KES {history.filter(i => i.status !== 'PAID').reduce((s, i) => s + i.amount, 0).toLocaleString()}
-                                    </Typography>
-                                </Box>
-                            </Paper>
-                        </Grid>
+                        {[
+                            { label: 'LIFETIME REVENUE', val: (totalWithdrawn + balance), icon: <TrendingUp size={18}/>, color: BRAND_BLUE },
+                            { label: 'TOTAL WITHDRAWN', val: totalWithdrawn, icon: <CheckCircle2 size={18}/>, color: '#059669' },
+                            { label: 'PENDING PAYOUTS', val: history.filter(i => i.status !== 'PAID').reduce((s, i) => s + i.amount, 0), icon: <Clock size={18}/>, color: '#D97706' }
+                        ].map((stat, i) => (
+                            <Grid item xs={12} md={4} key={i}>
+                                <Paper elevation={0} sx={{ p: 2, border: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    {loading ? (
+                                        <Skeleton variant="circular" width={40} height={40} />
+                                    ) : (
+                                        <Box sx={{ p: 1, bgcolor: alpha(stat.color, 0.1), color: stat.color, borderRadius: '2px' }}>{stat.icon}</Box>
+                                    )}
+                                    <Box sx={{ width: '100%' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>{stat.label}</Typography>
+                                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                                            {loading ? <Skeleton width="60%" /> : `KES ${stat.val.toLocaleString()}`}
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                        ))}
                     </Grid>
 
                     <Grid container spacing={3}>
@@ -129,7 +140,18 @@ const TeacherEarnings = () => {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {loading ? [1,2,3,4].map(i => (<TableRow key={i}><TableCell colSpan={4}><Skeleton height={40} /></TableCell></TableRow>)) : (
+                                            {loading ? (
+                                                [...Array(5)].map((_, i) => (
+                                                    <TableRow key={i}>
+                                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                                        <TableCell><Skeleton variant="text" /></TableCell>
+                                                        <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} /></TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : history.length === 0 ? (
+                                                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 4 }}><Typography variant="body2" color="text.secondary">No transactions yet.</Typography></TableCell></TableRow>
+                                            ) : (
                                                 history.map((item) => (
                                                     <TableRow key={item.id} hover>
                                                         <TableCell sx={{ fontWeight: 600 }}>{new Date(item.requestedAt).toLocaleDateString()}</TableCell>
@@ -165,18 +187,23 @@ const TeacherEarnings = () => {
                                 }}
                             >
                                 <Typography variant="caption" sx={{ opacity: 0.6, fontWeight: 700, letterSpacing: 1 }}>CURRENT WALLET</Typography>
-                                <Typography variant="h3" sx={{ fontWeight: 800, my: 1, letterSpacing: '-0.04em' }}>KES {balance.toLocaleString()}</Typography>
+                                {loading ? (
+                                    <Skeleton variant="text" width="80%" height={60} sx={{ bgcolor: 'rgba(255,255,255,0.1)', my: 1 }} />
+                                ) : (
+                                    <Typography variant="h3" sx={{ fontWeight: 800, my: 1, letterSpacing: '-0.04em' }}>KES {balance.toLocaleString()}</Typography>
+                                )}
                                 <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', my: 2 }} />
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                                     <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: '2px' }}><Landmark size={16} /></Box>
                                     <Box>
                                         <Typography variant="caption" sx={{ display: 'block', opacity: 0.6 }}>M-Pesa Payout</Typography>
-                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{mpesaNumber || 'Not Linked'}</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{loading ? <Skeleton width={100} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /> : (mpesaNumber || 'Not Linked')}</Typography>
                                     </Box>
                                 </Box>
                                 <Button 
                                     fullWidth variant="contained" 
                                     onClick={() => setWithdrawOpen(true)}
+                                    disabled={loading}
                                     startIcon={<ArrowDownCircle size={18} />}
                                     sx={{ bgcolor: '#FFF', color: SLATE_DARK, fontWeight: 800, '&:hover': { bgcolor: '#F1F5F9' } }}
                                 >
@@ -187,11 +214,29 @@ const TeacherEarnings = () => {
                             <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Payout Policy</Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                                    Withdrawals are processed within 24 hours. Minimum amount: <b>KES 50</b>.
+                                    Withdrawals are processed within 24 hours. Minimum amount: <b>KES 50</b>. 
                                 </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: BRAND_BLUE }}>
-                                    <AlertCircle size={14} />
-                                    <Typography variant="caption" sx={{ fontWeight: 700 }}>Need help with payments?</Typography>
+                                
+                                {/* PAYMENT HELP SECTION WITH EMAIL */}
+                                <Box sx={{ p: 2, bgcolor: alpha(BRAND_BLUE, 0.05), borderRadius: '2px', border: `1px solid ${alpha(BRAND_BLUE, 0.1)}` }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: BRAND_BLUE, mb: 1 }}>
+                                        <AlertCircle size={16} />
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Need payment help?</Typography>
+                                    </Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                                        If you encounter any issues with your withdrawals or wallet balance, please contact us:
+                                    </Typography>
+                                    <Typography 
+                                        component="a" 
+                                        href="mailto:info@masomosoko.co.ke" 
+                                        variant="body2" 
+                                        sx={{ 
+                                            fontWeight: 800, color: BRAND_BLUE, textDecoration: 'none',
+                                            '&:hover': { textDecoration: 'underline' }
+                                        }}
+                                    >
+                                        info@masomosoko.co.ke
+                                    </Typography>
                                 </Box>
                             </Paper>
                         </Grid>
@@ -224,7 +269,6 @@ const TeacherEarnings = () => {
                     </DialogActions>
                 </Dialog>
 
-            
                 <AppNotification 
                     open={toast.open}
                     message={toast.msg} 

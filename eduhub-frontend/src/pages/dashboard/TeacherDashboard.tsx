@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
     Box, Typography, Grid, Paper, Chip, CircularProgress, 
     List, ListItem, ListItemAvatar, Avatar, ListItemText, Divider, alpha, 
-    IconButton, createTheme, ThemeProvider,Button,Snackbar, Alert
+    IconButton, createTheme, ThemeProvider,Button,Snackbar, Alert,
 } from '@mui/material';
 // Logic Imports
 import { api } from '@/api/axios';
@@ -477,18 +477,21 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                         </Typography>
                     </Box>
                     <Chip 
-                        label={`${res.salesCount || 0} Sold`} 
-                        size="small" 
-                        sx={{ 
-                            borderRadius: '2px', 
-                            height: 20, 
-                            fontSize: '0.65rem', 
-                            fontWeight: 800, 
-                            bgcolor: alpha('#10B981', 0.1), 
-                            color: '#059669',
-                            border: 'none'
-                        }} 
-                    />
+    
+    label={`${res.salesCount ?? 0} Sold`} 
+    size="small" 
+    sx={{ 
+        borderRadius: '2px', 
+        height: 20, 
+        fontSize: '0.65rem', 
+        fontWeight: 800, 
+        bgcolor: alpha('#10B981', 0.1), 
+        color: '#059669',
+        border: 'none',
+        flexShrink: 0 
+    }} 
+/>
+
                 </ListItem>
             ))
         )}
@@ -528,23 +531,47 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
     </Box>
 ) : (
                                         notifications.map((note) => (
-                                            <ListItem 
-                                                key={note.id}
-                                                secondaryAction={
-                                                    <IconButton size="small" onClick={() => handleDismissNotification(note.id)}><X size={14}/></IconButton>
-                                                }
-                                                sx={{ px: 0, borderBottom: `1px solid #F1F5F9` }}
-                                            >
-                                                <ListItemAvatar>
-                                                    <Avatar sx={{ borderRadius: '2px', bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE }}>
-                                                        <CheckCircle size={18} />
-                                                    </Avatar>
-                                                </ListItemAvatar>
-                                                <ListItemText 
-                                                    primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{note.title}</Typography>}
-                                                    secondary={<Typography variant="caption" sx={{ fontWeight: 500 }}>{note.subtitle}</Typography>}
-                                                />
-                                            </ListItem>
+                                           <ListItem 
+    key={note.id}
+    sx={{ 
+        px: 0, 
+        py: 1.5,
+        borderBottom: `1px solid #F1F5F9`,
+        display: 'flex',
+        alignItems: 'flex-start', 
+        position: 'relative'
+    }}
+>
+    <ListItemAvatar sx={{ minWidth: 48 }}>
+        <Avatar sx={{ borderRadius: '2px', bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, width: 32, height: 32 }}>
+            <CheckCircle size={16} />
+        </Avatar>
+    </ListItemAvatar>
+    
+    <ListItemText 
+        sx={{ 
+            m: 0, 
+            pr: 4 
+        }}
+        primary={<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.2 }}>{note.title}</Typography>}
+        secondary={<Typography variant="caption" sx={{ fontWeight: 500, display: 'block', mt: 0.5 }}>{note.subtitle}</Typography>}
+    />
+
+   
+    <IconButton 
+        size="small" 
+        onClick={() => handleDismissNotification(note.id)}
+        sx={{ 
+            position: 'absolute', 
+            right: -4, 
+            top: 8,
+            color: '#94A3B8',
+            '&:hover': { color: '#EF4444' }
+        }}
+    >
+        <X size={14}/>
+    </IconButton>
+</ListItem>
                                         ))
                                     )}
                                 </List>

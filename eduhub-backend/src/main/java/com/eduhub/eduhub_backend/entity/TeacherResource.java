@@ -109,4 +109,6 @@ public class TeacherResource {
     public void setPreviewImageUrl(String previewImageUrl) {
         this.previewImageUrl = previewImageUrl;
     }
+    public int getSalesCount() {
+    return (purchases != null) ? purchases.size() : 0;}
 }

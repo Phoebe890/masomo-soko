@@ -5,7 +5,7 @@ import {
     DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, 
     OutlinedInput, InputAdornment, Grid, Chip, alpha, Divider,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-    TablePagination, createTheme, ThemeProvider
+    TablePagination, createTheme, ThemeProvider,Stack,Skeleton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
@@ -14,7 +14,7 @@ import AppNotification from '@/components/AppNotification';
 import TeacherLayout from '../../components/TeacherLayout';
 import { 
     Plus, Search, Filter, Download, 
-    Edit3, Trash2, FileText, UploadCloud, AlertCircle, Image as ImageIcon
+    Edit3, Trash2, FileText, UploadCloud, ArrowLeft, AlertCircle, Image as ImageIcon
 } from 'lucide-react';
 
 const SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Kiswahili', 'Physics', 'Chemistry', 'Biology', 'CRE', 'Computer Studies', 'Business'];
@@ -158,111 +158,276 @@ const ResourceManagement = () => {
             <TeacherLayout title="Resources" selectedRoute="/dashboard/teacher/resources">
                 <Box sx={{ width: '100%', pb: 5 }}>
                     
-                    {/* --- HEADER --- */}
-                    <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 3, borderBottom: `1px solid ${BORDER_COLOR}` }}>
-                        <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.04em' }}>My Resources</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>Dashboard • Content Management</Typography>
-                        </Box>
-                        <Button 
-                            variant="contained" startIcon={<Plus size={18} />}
-                            onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
-                            sx={{ bgcolor: '#0F172A', px: 3, py: 1.2, boxShadow: 'none', '&:hover': { bgcolor: '#1E293B' } }}
-                        >
-                            New Resource
-                        </Button>
-                    </Box>
+                  {/* --- HEADER --- */}
+<Box sx={{ 
+    mb: 4, 
+    display: 'flex', 
+    flexDirection: { xs: 'column', sm: 'row' }, 
+    justifyContent: 'space-between', 
+    alignItems: { xs: 'flex-start', sm: 'center' }, 
+    gap: 2,
+    pb: 3, 
+    borderBottom: `1px solid ${BORDER_COLOR}` 
+}}>
+    {/* LEFT SIDE: BACK ARROW + TITLE */}
+    <Stack direction="row" spacing={2} alignItems="center">
+        <IconButton 
+            onClick={() => navigate('/dashboard/teacher')} 
+            sx={{ 
+                border: `1px solid ${BORDER_COLOR}`, 
+                borderRadius: '2px', 
+                bgcolor: 'white',
+                '&:hover': { bgcolor: '#F8FAFC' } 
+            }}
+        >
+            <ArrowLeft size={20} />
+        </IconButton>
+        
+        <Box>
+            <Typography variant="h4" sx={{ 
+                fontWeight: 800, 
+                color: '#0F172A', 
+                letterSpacing: '-0.04em',
+                fontSize: { xs: '1.5rem', md: '2rem' } 
+            }}>
+                My Resources
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                Dashboard • Content Management
+            </Typography>
+        </Box>
+    </Stack>
 
-                    {/* --- FILTER BAR --- */}
-                    <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', gap: 1.5, flex: 1 }}>
-                            <OutlinedInput
-                                placeholder="Search resources..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                startAdornment={<InputAdornment position="start"><Search size={18} color="#94A3B8" /></InputAdornment>}
-                                sx={{ height: 42, width: { xs: '100%', md: 300 }, borderRadius: '2px', bgcolor: '#FFF', '& fieldset': { borderColor: BORDER_COLOR } }}
+    {/* RIGHT SIDE: NEW RESOURCE BUTTON */}
+    <Button 
+        variant="contained" 
+        startIcon={<Plus size={18} />}
+        fullWidth={window.innerWidth < 600}
+        onClick={() => navigate('/dashboard/teacher/upload-first-resource')}
+        sx={{ 
+            bgcolor: '#0F172A', 
+            px: 3, 
+            py: 1.2, 
+            boxShadow: 'none', 
+            '&:hover': { bgcolor: '#1E293B' } 
+        }}
+    >
+        New Resource
+    </Button>
+</Box>
+                   {/* --- FILTER BAR --- */}
+<Box sx={{ 
+    mb: 3, 
+    display: 'flex', 
+    flexDirection: { xs: 'column', md: 'row' }, // Stack inputs on mobile
+    gap: 2, 
+    alignItems: 'center', 
+    justifyContent: 'space-between' 
+}}>
+    <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' }, // Stack search/select on small mobile
+        gap: 1.5, 
+        width: { xs: '100%', md: 'auto' }, // Full width on mobile
+        flex: 1 
+    }}>
+        <OutlinedInput
+            placeholder="Search resources..."
+            value={searchTerm}
+            fullWidth // Take available space
+            onChange={(e) => setSearchTerm(e.target.value)}
+            startAdornment={<InputAdornment position="start"><Search size={18} color="#94A3B8" /></InputAdornment>}
+            sx={{ height: 42, borderRadius: '2px', bgcolor: '#FFF', '& fieldset': { borderColor: BORDER_COLOR } }}
+        />
+        <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+            <Select
+                value={filterSubject}
+                onChange={(e) => { setFilterSubject(e.target.value); setPage(0); }}
+                displayEmpty
+                sx={{ borderRadius: '2px', height: 42, bgcolor: '#FFF' }}
+            >
+                <MenuItem value="All">All Subjects</MenuItem>
+                {SUBJECTS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            </Select>
+        </FormControl>
+    </Box>
+    <Button 
+        variant="outlined" 
+        startIcon={<Download size={16}/>} 
+        onClick={handleExportCSV}
+        fullWidth={window.innerWidth < 900} // Full width button on tablets/mobile
+        sx={{ borderColor: BORDER_COLOR, color: '#475569', height: 42, borderRadius: '2px', fontWeight: 700 }}
+    >
+        Export
+    </Button>
+</Box>
+
+                   {/* --- PREMIUM TABLE SECTION --- */}
+<TableContainer 
+    component={Paper} 
+    elevation={0} 
+    sx={{ 
+        border: `1px solid ${BORDER_COLOR}`, 
+        borderRadius: '2px',
+        width: '100%',
+        overflowX: 'auto', 
+        bgcolor: '#FFF'
+    }}
+>
+    <Table sx={{ minWidth: { xs: 700, md: '100%' } }}>
+        <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+            <TableRow>
+                <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase', py: 2 }}>
+                    Resource Name
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                    Subject
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                    Grade
+                </TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                    Price
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                    Action
+                </TableCell>
+            </TableRow>
+        </TableHead>
+        
+      <TableBody>
+    {loading ? (
+        // Show 5 skeleton rows while loading
+        [...Array(5)].map((_, index) => (
+            <TableRow key={index}>
+                <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Skeleton variant="rectangular" width={40} height={40} sx={{ borderRadius: '2px' }} />
+                        <Skeleton variant="text" width="150px" height={25} />
+                    </Box>
+                </TableCell>
+                <TableCell><Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: '2px' }} /></TableCell>
+                <TableCell><Skeleton variant="text" width={60} /></TableCell>
+                <TableCell><Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: '2px' }} /></TableCell>
+                <TableCell align="right">
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Skeleton variant="rectangular" width={32} height={32} />
+                        <Skeleton variant="rectangular" width={32} height={32} />
+                    </Box>
+                </TableCell>
+            </TableRow>
+        ))
+            ) : paginatedResources.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                        <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                            <FileText size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
+                            <Typography variant="body2">No resources found matching your criteria.</Typography>
+                        </Box>
+                    </TableCell>
+                </TableRow>
+            ) : (
+                paginatedResources.map((res) => (
+                    <TableRow key={res.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                        <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box sx={{ 
+                                    p: 1, 
+                                    bgcolor: alpha(BRAND_BLUE, 0.05), 
+                                    borderRadius: '2px',
+                                    display: { xs: 'none', sm: 'flex' } // Hide icon on very small screens to save space
+                                }}>
+                                    <FileText size={20} color={BRAND_BLUE} />
+                                </Box>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B' }}>
+                                    {res.title}
+                                </Typography>
+                            </Box>
+                        </TableCell>
+                        
+                        <TableCell>
+                            <Chip 
+                                label={res.subject} 
+                                size="small" 
+                                sx={{ 
+                                    borderRadius: '2px', 
+                                    fontWeight: 800, 
+                                    fontSize: '0.65rem', 
+                                    bgcolor: alpha(BRAND_BLUE, 0.1), 
+                                    color: BRAND_BLUE 
+                                }} 
                             />
-                            <FormControl size="small" sx={{ minWidth: 180 }}>
-                                <Select
-                                    value={filterSubject}
-                                    onChange={(e) => { setFilterSubject(e.target.value); setPage(0); }}
-                                    displayEmpty
-                                    sx={{ borderRadius: '2px', height: 42, bgcolor: '#FFF' }}
+                        </TableCell>
+                        
+                        <TableCell sx={{ fontWeight: 600, color: '#475569', fontSize: '0.8rem' }}>
+                            {res.grade}
+                        </TableCell>
+                        
+                        <TableCell>
+                            <Chip 
+                                label={res.price > 0 ? `KES ${res.price}` : 'Free'} 
+                                size="small" 
+                                sx={{ 
+                                    borderRadius: '2px', 
+                                    fontWeight: 900, 
+                                    fontSize: '0.65rem',
+                                    bgcolor: res.price > 0 ? alpha(BRAND_ORANGE, 0.1) : alpha('#10B981', 0.1),
+                                    color: res.price > 0 ? BRAND_ORANGE : '#059669'
+                                }} 
+                            />
+                        </TableCell>
+                        
+                        <TableCell align="right">
+                            {/* Box ensures buttons stay side-by-side even on small screens */}
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, whiteSpace: 'nowrap' }}>
+                                <IconButton 
+                                    size="small" 
+                                    onClick={() => handleEditClick(res)} 
+                                    sx={{ 
+                                        color: BRAND_BLUE, 
+                                        border: `1px solid ${alpha(BRAND_BLUE, 0.2)}`, 
+                                        borderRadius: '2px',
+                                        '&:hover': { bgcolor: alpha(BRAND_BLUE, 0.05) }
+                                    }}
                                 >
-                                    <MenuItem value="All">Filter by Subject</MenuItem>
-                                    {SUBJECTS.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                                </Select>
-                            </FormControl>
-                        </Box>
-                        <Button 
-                            variant="outlined" startIcon={<Download size={16}/>} 
-                            onClick={handleExportCSV}
-                            sx={{ borderColor: BORDER_COLOR, color: '#475569', height: 42, borderRadius: '2px', fontWeight: 700 }}
-                        >
-                            Export
-                        </Button>
-                    </Box>
-
-                    {/* --- PREMIUM TABLE --- */}
-                    <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
-                        <Table>
-                            <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                                <TableRow>
-                                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>Resource Name</TableCell>
-                                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>Subject</TableCell>
-                                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>Grade</TableCell>
-                                    <TableCell sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>Price</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', fontSize: '0.7rem', textTransform: 'uppercase' }}>Action</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow><TableCell colSpan={5} align="center" sx={{ py: 10 }}><CircularProgress size={28} /></TableCell></TableRow>
-                                ) : paginatedResources.length === 0 ? (
-                                    <TableRow><TableCell colSpan={5} align="center" sx={{ py: 10 }}><Typography variant="body2" color="text.secondary">No resources found.</Typography></TableCell></TableRow>
-                                ) : (
-                                    paginatedResources.map((res) => (
-                                        <TableRow key={res.id} hover>
-                                            <TableCell>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <Box sx={{ p: 1, bgcolor: alpha(BRAND_BLUE, 0.05), borderRadius: '2px' }}><FileText size={20} color={BRAND_BLUE} /></Box>
-                                                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B' }}>{res.title}</Typography>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip label={res.subject} size="small" sx={{ borderRadius: '2px', fontWeight: 800, fontSize: '0.65rem', bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE }} />
-                                            </TableCell>
-                                            <TableCell sx={{ fontWeight: 600, color: '#475569' }}>{res.grade}</TableCell>
-                                            <TableCell>
-                                                <Chip 
-                                                    label={res.price > 0 ? `KES ${res.price}` : 'Free'} 
-                                                    size="small" 
-                                                    sx={{ 
-                                                        borderRadius: '2px', fontWeight: 900, fontSize: '0.65rem',
-                                                        bgcolor: res.price > 0 ? alpha(BRAND_ORANGE, 0.1) : alpha('#10B981', 0.1),
-                                                        color: res.price > 0 ? BRAND_ORANGE : '#059669'
-                                                    }} 
-                                                />
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <IconButton size="small" onClick={() => handleEditClick(res)} sx={{ color: BRAND_BLUE, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', mr: 1 }}><Edit3 size={16} /></IconButton>
-                                                <IconButton size="small" onClick={() => { setResourceToDelete(res.id); setDeleteDialogOpen(true); }} sx={{ color: '#EF4444', border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}><Trash2 size={16} /></IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                        <TablePagination
-                            component="div"
-                            count={filteredResources.length}
-                            rowsPerPage={rowsPerPage}
-                            page={page}
-                            onPageChange={(_, p) => setPage(p)}
-                            onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-                        />
-                    </TableContainer>
+                                    <Edit3 size={16} />
+                                </IconButton>
+                                <IconButton 
+                                    size="small" 
+                                    onClick={() => { setResourceToDelete(res.id); setDeleteDialogOpen(true); }} 
+                                    sx={{ 
+                                        color: '#EF4444', 
+                                        border: `1px solid ${alpha('#EF4444', 0.2)}`, 
+                                        borderRadius: '2px',
+                                        '&:hover': { bgcolor: alpha('#EF4444', 0.05) }
+                                    }}
+                                >
+                                    <Trash2 size={16} />
+                                </IconButton>
+                            </Box>
+                        </TableCell>
+                    </TableRow>
+                ))
+            )}
+        </TableBody>
+    </Table>
+    
+    <TablePagination
+        component="div"
+        count={filteredResources.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={(_, p) => setPage(p)}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        sx={{ 
+            borderTop: `1px solid ${BORDER_COLOR}`,
+            '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                fontSize: '0.75rem',
+                fontWeight: 600
+            }
+        }}
+    />
+</TableContainer>
 
                     {/* --- EDIT DIALOG  --- */}
                     <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '2px' } }}>

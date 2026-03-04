@@ -23,7 +23,7 @@ public class TeacherResourceDTO {
     public List<ReviewDTO> reviews;
     public String previewImageUrl;
     public boolean hasPreview;
-
+    public int salesCount;
     public TeacherResourceDTO(TeacherResource resource) {
         this.id = resource.getId();
         this.title = resource.getTitle();
@@ -38,6 +38,7 @@ public class TeacherResourceDTO {
         this.teacherEmail = resource.getUser() != null ? resource.getUser().getEmail() : null;
         this.previewImageUrl = resource.getPreviewImageUrl();
         this.hasPreview = resource.isHasPreview();
+         this.salesCount = resource.getSalesCount();
     }
 
     public TeacherResourceDTO(TeacherResource resource, List<Review> reviewList) {
