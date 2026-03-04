@@ -15,14 +15,14 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 
     List<Purchase> findByStudent(User student);
 
-    // FIX 3: Added this method so AdminController can delete resources
+    
     List<Purchase> findByResource(TeacherResource resource);
 
     List<Purchase> findByResourceIdIn(List<Long> resourceIds);
 
     long countByResourceIdIn(List<Long> resourceIds);
 
-    // Sum the actual price paid (p.price) instead of current resource price
+   
     @Query("SELECT SUM(p.price) FROM Purchase p WHERE p.resource.id IN :resourceIds")
     Double sumPriceByResourceIdIn(@Param("resourceIds") List<Long> resourceIds);
 }

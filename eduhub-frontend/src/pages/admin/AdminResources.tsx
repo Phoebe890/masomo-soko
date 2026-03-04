@@ -34,7 +34,7 @@ const AdminResources: React.FC = () => {
     const [takedownReason, setTakedownReason] = useState('');
     const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
-    // --- LOGIC: FETCH DATA (Preserved) ---
+    // --- LOGIC: FETCH DATA  ---
     const fetchResources = async () => {
         setLoading(true);
         try {
@@ -50,7 +50,7 @@ const AdminResources: React.FC = () => {
 
     useEffect(() => { fetchResources(); }, []);
 
-    // --- LOGIC: FILTERING (Preserved) ---
+    // --- LOGIC: FILTERING  ---
     useEffect(() => {
         let result = resources.filter(r => 
             r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +66,7 @@ const AdminResources: React.FC = () => {
 
     const subjects = Array.from(new Set(resources.map(r => r.subject))).sort();
 
-    // --- LOGIC: VIEW IN BROWSER (Simplified per request) ---
+    // --- LOGIC: VIEW IN BROWSER ---
     const handleViewInBrowser = (row: any) => {
         const path = row.filePath || row.file_path; 
         if (!path) {
@@ -87,7 +87,7 @@ const AdminResources: React.FC = () => {
         window.open(fullUrl, '_blank');
     };
 
-    // --- LOGIC: TAKEDOWN (Preserved) ---
+    // --- LOGIC: TAKEDOWN  ---
     const confirmTakedown = async () => {
         if(!deleteId) return;
         try {

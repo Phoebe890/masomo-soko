@@ -20,7 +20,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtService jwtService; // Use JwtService, NOT JwtUtils
+    private JwtService jwtService; 
 
     @Autowired
     private CustomUserDetailsService userDetailsService;
@@ -73,8 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Log error but don't crash. 
-            // This ensures that if a token is expired, we just return 403 Forbidden naturally.
+           
             System.err.println("JWT Authentication Warning: " + e.getMessage());
         }
 

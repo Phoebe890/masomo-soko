@@ -17,25 +17,18 @@ public class FileUploadService {
     @Autowired
     private Cloudinary cloudinary;
 
-    /**
-     * EXISTING METHOD: Returns a Map (Used for Resource Uploads with previews)
-     */
+   
     public Map uploadFile(MultipartFile file) throws IOException {
         return uploadToCloudinary(file, "eduhub_resources");
     }
 
-    /**
-     * NEW METHOD: Returns a String (Used for Profile Pictures)
-     * This fixes the error: uploadFile(MultipartFile, String)
-     */
+   
     public String uploadFile(MultipartFile file, String folderName) throws IOException {
         Map result = uploadToCloudinary(file, folderName);
         return (String) result.get("secure_url"); // Return the direct URL string
     }
 
-    /**
-     * Private helper to avoid repeating Cloudinary logic
-     */
+    
     private Map uploadToCloudinary(MultipartFile file, String folder) throws IOException {
         try {
             String publicId = UUID.randomUUID().toString();

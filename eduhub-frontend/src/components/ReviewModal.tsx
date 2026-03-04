@@ -59,7 +59,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ open, onClose, resourceId, re
         }, 2000);
 
     } catch (err: any) {
-        // If 403 occurs here, it means a TEACHER is trying to post to a STUDENT route.
+        
         const msg = err.response?.data || "Submission failed. Ensure you are logged in as a student.";
         setError(typeof msg === 'string' ? msg : "Access Denied (403).");
     } finally {

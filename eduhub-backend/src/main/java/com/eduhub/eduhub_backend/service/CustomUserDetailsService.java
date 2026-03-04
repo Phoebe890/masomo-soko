@@ -17,13 +17,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        // Use full path for Entity if there is a conflict with Spring's User class
+        
         com.eduhub.eduhub_backend.entity.User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
         String role = user.getRole().toUpperCase();
         
-        // Ensure the ROLE_ prefix exists for .hasRole() compatibility
+        
         if (!role.startsWith("ROLE_")) {
             role = "ROLE_" + role;
         }

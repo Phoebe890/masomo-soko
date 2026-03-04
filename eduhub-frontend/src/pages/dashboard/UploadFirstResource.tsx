@@ -222,7 +222,7 @@ const UploadFirstResource = () => {
             icon={<FileText size={24}/>} 
         />
 
-        {/* 2. THE COVER IMAGE (Renamed for clarity) */}
+        {/* 2. THE COVER IMAGE */}
         <Box 
             component="label"
             sx={{ 
@@ -271,11 +271,11 @@ const UploadFirstResource = () => {
                     </Grid>
                 </Box>
                 
-               {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+              
                 <AppNotification 
                     open={snackbar.open}
-                    message={snackbar.msg} // Map your 'msg' to the component's 'message'
-                    severity={snackbar.type} // Map your 'type' to the component's 'severity'
+                    message={snackbar.msg} 
+                    severity={snackbar.type} 
                     onClose={() => setSnackbar({ ...snackbar, open: false })}
                 />
             </TeacherLayout>

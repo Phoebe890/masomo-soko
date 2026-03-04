@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     boolean existsByEmail(String email);
 
-    // The CAST(x as string) is crucial here for Hibernate 6 to handle PostgreSQL text search correctly
+    
     @Query("SELECT u FROM User u WHERE " +
            "(:search IS NULL OR :search = '' OR " +
            "LOWER(CAST(u.name AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

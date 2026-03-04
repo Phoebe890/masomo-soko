@@ -42,7 +42,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
     const navigate = useNavigate();
     const theme = useTheme();
 
-    // Logic States Preserved
+    
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);     
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
@@ -155,7 +155,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, title, selected
                                     sx={{ 
                                         width: 36, height: 36, 
                                         border: `2px solid ${alpha(BRAND_BLUE, 0.1)}`,
-                                        // Keeping it ROUNDED as requested
+                                        
                                     }}
                                 >
                                     {userProfile.name.charAt(0).toUpperCase()}

@@ -117,7 +117,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, activeTab, onTa
 
                             <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: 'center' }} />
 
-                            {/* --- UPDATED AVATAR: MATCHES TEACHER LAYOUT EXACTLY --- */}
+                            {/* ---  AVATAR --- */}
                             <Box 
                                 onClick={(e) => setAnchorEl(e.currentTarget)}
                                 sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}

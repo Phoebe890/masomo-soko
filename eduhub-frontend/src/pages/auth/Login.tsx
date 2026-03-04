@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { useLoading } from '../../context/LoadingContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { api } from '@/api/axios';
-import logoIcon from '@/assets/logo-icon.svg'; // --- IMPORT LOGO ---
+import logoIcon from '@/assets/logo-icon.svg'; 
 // Icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   
-  // Local Notification State (eCitizen Style)
+  
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -83,9 +83,8 @@ const Login: React.FC = () => {
       const response = await api.post('/api/auth/login', formData);
       handleAuthSuccess(response.data);
     } catch (error: any) {
-      // --- DYNAMIC ERROR MESSAGE LOGIC ---
-      // We check if the backend sent a specific string message.
-      // If not, we fall back to the generic "Invalid email or password."
+      // ---  ERROR MESSAGE LOGIC ---
+      
       const serverMessage = error.response?.data;
       const displayMessage = typeof serverMessage === 'string' 
         ? serverMessage 
@@ -119,14 +118,14 @@ const Login: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Box sx={{ maxWidth: '420px', mx: 'auto'  }}>
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                    {/* --- ADD THE LOGO ICON HERE --- */}
+                  
       <Box 
         component={RouterLink} 
         to="/"
         sx={{ 
           display: 'flex', 
           justifyContent: 'center',
-           mb: { xs: 3, md: 1 },// Space between icon and "Welcome back"
+           mb: { xs: 3, md: 1 },
           textDecoration: 'none'
         }}
       >
@@ -149,7 +148,7 @@ const Login: React.FC = () => {
                     Sign in to continue your learning journey.
                   </Typography>
                   
-                  {/* RESTORED ORIGINAL BLUE BORDER GOOGLE BUTTON */}
+                  {/*GOOGLE BUTTON */}
                   <Button 
                     fullWidth 
                     variant="outlined" 
@@ -259,7 +258,7 @@ const Login: React.FC = () => {
         </Container>
       </Box>
 
-     {/* SHARED NOTIFICATION */}
+     {/* NOTIFICATION */}
       <AppNotification 
         open={toast.open}
         message={toast.message}

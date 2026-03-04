@@ -53,7 +53,7 @@ const AdminUsers: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<any>(null);
   const [toast, setToast] = useState<{ open: boolean, msg: string, type: 'success' | 'error' }>({ open: false, msg: '', type: 'success' });
 
-  // 1. Fetch Users Logic (Preserved)
+  // 1. Fetch Users
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -90,7 +90,7 @@ const AdminUsers: React.FC = () => {
       setPage(0);
   };
 
-  // --- ACTIONS (Preserved Functionality) ---
+  // --- ACTIONS  ---
   const handleAction = (type: string, user: User, newRole?: string) => {
       setConfirmAction({ type, user, newRole });
       setConfirmOpen(true);
@@ -369,8 +369,8 @@ const AdminUsers: React.FC = () => {
          {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
         <AppNotification 
             open={toast.open}
-            message={toast.msg} // Mapping your 'msg' to 'message'
-            severity={toast.type} // Mapping your 'type' to 'severity'
+            message={toast.msg}
+            severity={toast.type} 
             onClose={() => setToast({ ...toast, open: false })}
         />
     </AdminLayout>

@@ -26,12 +26,12 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-// --- RESTORED ORIGINAL ASSETS ---
+
 import heroImage1 from '../assets/pexels-kampus-5940828.jpg'; 
 import heroImage2 from '../assets/pexels-kampus-5940829.jpg'; 
 import { Helmet } from 'react-helmet-async'; 
 
-const SafeHelmet = Helmet as any; // FIX FOR REACT 19 TYPES
+const SafeHelmet = Helmet as any; 
 // --- CONSTANTS ---
 const TEXT_DARK = '#0f172a'; 
 const TEXT_MUTED = '#475569';
@@ -206,7 +206,7 @@ const Home: React.FC = () => {
 const [touchStart, setTouchStart] = useState<number | null>(null);
 const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-// Minimum distance required to be considered a swipe
+
 const minSwipeDistance = 50;
 
 const onTouchStart = (e: React.TouchEvent) => {
@@ -246,20 +246,20 @@ const onMouseMove = (e: React.MouseEvent) => {
 
 const onMouseUp = () => {
   if (!isMouseDown) return;
-  onTouchEnd(); // Reuse the swipe logic we wrote for mobile
+  onTouchEnd(); // Reuse the swipe logic 
   setIsMouseDown(false);
 };
   const slides = [
   {
     type: 'student',
-    // NEW UNSPLASH STUDENT IMAGE
+    
     image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1600&auto=format&fit=crop",
     title: <>The Future is <br/><span style={{ color: '#60a5fa' }}>CBE Education</span></>,
     subtitle: "Aligned with the 2025 Ministry of Education shift. Access practical learning materials for all CBE pathways: STEM, Arts, and Social Sciences.",
   },
   {
     type: 'teacher',
-    // NEW UNSPLASH TEACHER IMAGE
+    
     image: "https://images.unsplash.com/photo-1610473068872-908afb1a7317?q=80&w=1600&auto=format&fit=crop",
     title: <>Turn Your Knowledge <br/><span style={{ color: ACCENT_ORANGE }}>Into Income</span></>,
     subtitle: "Upload resources for STEM, Social Sciences, and Arts Pathways. Earn money every time a student downloads.",
@@ -276,7 +276,7 @@ const onMouseUp = () => {
 
   useEffect(() => {
     setLoading(true);
-    // Mimic API calls - ensure your axios interceptor handles base URL
+    
     api.get('/api/teacher/resources')
       .then(res => {
         let data = [];
@@ -351,7 +351,7 @@ const onMouseUp = () => {
       position: 'absolute', inset: 0,
       backgroundImage: `url(${slide.image})`, 
       backgroundSize: 'cover', 
-      backgroundPosition: 'center', // This ensures faces stay visible
+      backgroundPosition: 'center', 
       transform: currentSlide === index ? 'scale(1.05)' : 'scale(1)',
       opacity: currentSlide === index ? 1 : 0, 
       transition: 'opacity 1.5s ease-in-out, transform 8s linear', 
@@ -379,7 +379,7 @@ const onMouseUp = () => {
               sx={{ 
                 color: slide.type === 'student' ? '#60a5fa' : ACCENT_ORANGE, 
                 fontWeight: 900, 
-                letterSpacing: 4, // Spaced out for a premium look
+                letterSpacing: 4, 
                 fontSize: { xs: '0.75rem', md: '0.9rem' },
                 mb: 1,
                 display: 'block',
@@ -415,21 +415,21 @@ const onMouseUp = () => {
                            <Button 
   component={RouterLink} 
   to="/seller" 
-  variant="outlined" // Changed from contained
+  variant="outlined" 
   size="large" 
   sx={{ 
-    borderRadius: '100px', // Ensures a perfect pill shape
+    borderRadius: '100px', 
     height: '60px', 
     px: 6, 
     fontSize: '1.2rem', 
-    fontWeight: 600, // Medium-bold weight matches the image better
+    fontWeight: 600, 
     textTransform: 'none', 
-    color: '#fff', // White text
-    border: '2px solid #fff', // Thicker white border
-    boxShadow: 'none', // Remove the shadow
+    color: '#fff', 
+    border: '2px solid #fff',
+    boxShadow: 'none', 
     '&:hover': { 
-      border: '2px solid #fff', // Keep border thick on hover
-      backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle background on hover
+      border: '2px solid #fff', 
+      backgroundColor: 'rgba(255, 255, 255, 0.1)', 
       transform: 'scale(1.02)' 
     } 
   }}
@@ -511,7 +511,7 @@ const onMouseUp = () => {
           </Grid>
         </Container>
       </Box>
-{/* --- MISSION & IMPACT SECTION (FLIPPED LAYOUT) --- */}
+{/* --- MISSION & IMPACT SECTION  --- */}
 <Box id="impact-stats" sx={{ py: { xs: 10, md: 15 }, bgcolor: '#fff', overflow: 'hidden' }}>
   <Container maxWidth="xl">
     <Grid container spacing={10} alignItems="center">
@@ -578,10 +578,10 @@ const onMouseUp = () => {
         </Stack>
       </Grid>
 
-      {/* RIGHT COLUMN: IMAGE (NO PEOPLE) */}
+      {/* RIGHT COLUMN: IMAGE  */}
       <Grid item xs={12} md={6}>
         <Box sx={{ position: 'relative' }}>
-          {/* Decorative background block (moved to the right side) */}
+         
           <Box sx={{ 
             position: 'absolute', 
             top: -40, 
@@ -595,7 +595,7 @@ const onMouseUp = () => {
           
           <CardMedia
             component="img"
-            // Abstract Image: An artistic, high-quality open book/lit knowledge theme
+            
             image="https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=600&auto=format&fit=crop&q=60"
             alt="Empowering Kenyan Education"
             sx={{ 
@@ -613,7 +613,7 @@ const onMouseUp = () => {
     </Grid>
   </Container>
 </Box>
-     {/* --- BROWSE CURRICULUM SECTION (CLEAN SPLIT DESIGN) --- */}
+     {/* --- BROWSE CURRICULUM SECTION  */}
       <Container maxWidth="xl" sx={{ mt: { xs: 8, md: 10 }, mb: { xs: 8, md: 10 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 5 }}>
            <Box>
@@ -674,7 +674,7 @@ const onMouseUp = () => {
                     />
                   </Box>
 
-                  {/* Bottom Text Section (Increased padding since icon is gone) */}
+                  {/* Bottom Text Section */}
                   <Box sx={{ p: { xs: 2.5, md: 3 }, flexGrow: 1 }}>
                     <Typography 
                         fontWeight={800} 
@@ -695,10 +695,10 @@ const onMouseUp = () => {
         </Grid>
       </Container>
 
-  {/* --- FEATURED RESOURCES (Background Flow + Udemy Style) --- */}
+  {/* --- FEATURED RESOURCES  --- */}
 <Box sx={{ bgcolor: '#f8fafc', py: { xs: 6, md: 10 } }}>
   <Container maxWidth="xl">
-    {/* RESTORED HEADINGS */}
+   
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', mb: 4 }}>
        <Box>
           <Typography variant="overline" sx={{ color: ACCENT_ORANGE, letterSpacing: 1.5, fontSize: '0.8rem', fontWeight: 800 }}>
@@ -751,13 +751,13 @@ const onMouseUp = () => {
                     display: 'flex', 
                     flexDirection: 'column',
                     height: '100%',
-                    bgcolor: '#fff',             // Added white background
-                    border: '1px solid #d1d7dc', // Thin border matching the image
-                    borderRadius: 3,             // Rounded corners
-                    p: 2,                        // Padding inside the border
+                    bgcolor: '#fff',             
+                    border: '1px solid #d1d7dc', 
+                    borderRadius: 3,            
+                    p: 2,                        
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': { 
-                      borderColor: '#6a6f73',    // Subtle hover effect
+                      borderColor: '#6a6f73',    
                       '& .resource-title': { color: PRIMARY_BLUE },
                       '& .resource-img': { opacity: 0.8 }
                     }
@@ -850,7 +850,7 @@ const onMouseUp = () => {
     )}
   </Container>
 </Box>
-      {/* --- HOW IT WORKS (Consistent Spacing) --- */}
+      {/* --- HOW IT WORKS  --- */}
 <Box id="how-it-works" sx={{ bgcolor: 'white', py: { xs: 8, md: 10 } }}>
   <Container maxWidth="xl">
     <Box sx={{ textAlign: 'center', mb: 8 }}>
@@ -889,18 +889,18 @@ const onMouseUp = () => {
         component={RouterLink} 
         to="/browse" 
         sx={{ 
-          borderRadius: 0,              // Sharp corners
-          border: '1px solid #000000',  // Pure black thin border
-          bgcolor: '#ffffff',           // Pure white background
-          color: '#000000',             // Pure black text
+          borderRadius: 0,              
+          border: '1px solid #000000',  
+          bgcolor: '#ffffff',          
+          color: '#000000',             
           px: { xs: 4, md: 6 }, 
           py: 1.5, 
           fontSize: '1.1rem', 
-          fontWeight: 700,              // Thicker font for better "black" visibility
-          textTransform: 'none',        // "Find Resources Now" casing
+          fontWeight: 700,              
+          textTransform: 'none',        
           transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: '#000000',         // Invert on hover
+            bgcolor: '#000000',         
             color: '#ffffff',
             borderColor: '#000000'
           }
@@ -920,7 +920,7 @@ const onMouseUp = () => {
       color: 'white', 
       py: { xs: 8, md: 10 },
       px: { xs: 4, md: 8 },
-      borderRadius: 8, // Large rounded corners like in the image
+      borderRadius: 8, 
       overflow: 'hidden'
     }}
   >
@@ -940,11 +940,10 @@ const onMouseUp = () => {
           component={RouterLink} 
           to="/seller" 
           sx={{ 
-            borderRadius: 0,              // Sharp corners preserved
-            border: '1px solid #000000',  // Pure black thin border preserved
-            bgcolor: '#ffffff',           // Pure white background preserved
-            color: '#000000',             // Pure black text preserved
-            px: 5, 
+            borderRadius: 0,              
+            border: '1px solid #000000',  
+            bgcolor: '#ffffff',          
+            color: '#000000',            
             py: 1.5, 
             fontSize: '1.1rem', 
             fontWeight: 700, 
@@ -980,7 +979,7 @@ const onMouseUp = () => {
     </Grid>
   </Box>
 </Container>
-{/* --- TOP CONTRIBUTORS (Professional Clean Style with Intro Text) --- */}
+{/* --- TOP CONTRIBUTORS --- */}
 <Box 
   sx={{ 
     bgcolor: '#f8fafc', 
@@ -1052,7 +1051,7 @@ const onMouseUp = () => {
               }
             }}>
               
-              {/* Profile Image - Referrer Fix Included */}
+              {/* Profile Image*/}
               <Avatar 
                 src={contributor.profilePicPath || ""} 
                 imgProps={{ 
@@ -1104,7 +1103,7 @@ const onMouseUp = () => {
                   {contributor.headline || (Array.isArray(contributor.subjects) && contributor.subjects[0]) || 'expert educator'}
                 </Typography>
 
-                {/* Real Bio (clamped to 3 lines) */}
+                {/* Real Bio  */}
                 <Typography 
                   variant="body2" 
                   sx={{ 
@@ -1155,7 +1154,7 @@ const onMouseUp = () => {
 </Box>
 {/* --- FAQ SECTION --- */}
 <Box sx={{ py: { xs: 10, md: 15 }, bgcolor: '#fff' }}>
-  <Container maxWidth="md"> {/* Narrower container for better readability */}
+  <Container maxWidth="md">
     <Box sx={{ textAlign: 'center', mb: 8 }}>
       <Typography variant="overline" sx={{ color: '#ea580c', fontWeight: 800, letterSpacing: 2 }}>
         QUESTIONS & ANSWERS
@@ -1176,8 +1175,8 @@ const onMouseUp = () => {
           sx={{ 
             mb: 2, 
             border: '1px solid #e2e8f0', 
-            borderRadius: '12px !important', // Force rounded corners
-            '&:before': { display: 'none' }, // Remove default MUI line
+            borderRadius: '12px !important', 
+            '&:before': { display: 'none' }, 
             '&.Mui-expanded': {
               boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
               borderColor: PRIMARY_BLUE,

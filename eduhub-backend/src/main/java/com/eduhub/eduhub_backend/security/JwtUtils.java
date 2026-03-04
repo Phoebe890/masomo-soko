@@ -11,12 +11,11 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    // Use a strong secret key (at least 32 chars). In production, keep this in env vars.
-    // For now, we generate a safe default if not provided.
+   
     @Value("${app.jwtSecret:MYSUPERSECRETKEY_MUST_BE_VERY_LONG_AND_SECURE_FOR_PRODUCTION_USAGE}")
     private String jwtSecret;
 
-    @Value("${app.jwtExpirationMs:86400000}") // 24 hours
+    @Value("${app.jwtExpirationMs:86400000}")
     private int jwtExpirationMs;
 
     private Key getSigningKey() {

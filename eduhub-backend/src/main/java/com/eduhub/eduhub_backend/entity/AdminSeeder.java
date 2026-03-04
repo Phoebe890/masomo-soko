@@ -1,7 +1,7 @@
 package com.eduhub.eduhub_backend.entity;
 
-
 import com.eduhub.eduhub_backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -13,6 +13,10 @@ public class AdminSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+   
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     public AdminSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -33,13 +37,13 @@ public class AdminSeeder implements CommandLineRunner {
             admin.setName("System Admin");
             admin.setEmail(adminEmail);
             
-            // IMPORTANT: Set a secure password here
-            admin.setPassword(passwordEncoder.encode("Admin@2026")); 
             
-            // Match the Role your SecurityConfig looks for
+            admin.setPassword(passwordEncoder.encode(adminPassword)); 
+            
+            
             admin.setRole("ADMIN"); 
             
-            // Setting both flags to true based on your User entity fields
+            // Setting flags to true
             admin.setEnabled(true);
             admin.setActive(true);
             

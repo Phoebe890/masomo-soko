@@ -7,7 +7,7 @@ function App() {
   return (
     <Router>
       <Layout>
-        {/* Your routes will go here */}
+       
       </Layout>
     </Router>
   );

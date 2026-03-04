@@ -2,7 +2,7 @@ package com.eduhub.eduhub_backend.service;
 
 import com.eduhub.eduhub_backend.config.RabbitMQConfig;
 import com.eduhub.eduhub_backend.dto.EmailRequest;
-import org.slf4j.Logger; // <--- ADD THIS
+import org.slf4j.Logger; 
 import org.slf4j.LoggerFactory; 
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

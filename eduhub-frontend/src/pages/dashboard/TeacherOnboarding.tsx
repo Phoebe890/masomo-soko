@@ -84,7 +84,7 @@ useEffect(() => {
 
 // 2. Save draft to localStorage automatically every time they type
 useEffect(() => {
-  // We save everything EXCEPT the actual file objects (which can't be stringified)
+  
   const { photoFile, photoPreview, ...textData } = formData;
   localStorage.setItem('onboarding_draft', JSON.stringify(textData));
 }, [formData]);
@@ -155,9 +155,7 @@ useEffect(() => {
         await api.post('/api/teacher/onboarding', uploadData);
 localStorage.removeItem('onboarding_draft'); // Clear the draft
         localStorage.setItem('role', 'TEACHER');      // Upgrade the role
-        // --- THE PROMOTION ---
-        // Now that the backend has saved the data, we update the local role.
-        // This 'unlocks' the TeacherGuard in App.tsx
+       
         
         
         setStep(4);
@@ -341,11 +339,11 @@ localStorage.removeItem('onboarding_draft'); // Clear the draft
         </Box>
       </Container>
       
-     {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+     
       <AppNotification 
           open={toast.open}
-          message={toast.msg} // Mapping your 'msg' to 'message'
-          severity={toast.severity === 'warning' ? 'error' : toast.severity} // Mapping warning to error style for consistency
+          message={toast.msg} 
+          severity={toast.severity === 'warning' ? 'error' : toast.severity} 
           onClose={handleCloseToast}
       />
     </Box>

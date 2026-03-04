@@ -49,8 +49,7 @@ const TeacherReviews = () => {
             const res = await api.get('/api/teacher/reviews');
             const rawData = Array.isArray(res.data) ? res.data : (res.data.reviews || []);
             
-            // --- CRITICAL MAPPING LOGIC (RESTORED & IMPROVED) ---
-            // This handles nested Spring Boot entities (review.student.name)
+            
             const mapped = rawData.map((r: any) => ({
                 id: r.id,
                 rating: r.rating,
@@ -69,7 +68,7 @@ const TeacherReviews = () => {
         }
     };
 
-    // --- ACCURATE STATS CALCULATION (RESTORED) ---
+    // --- ACCURATE STATS CALCULATION  ---
     const stats = useMemo(() => {
         if (reviews.length === 0) return { avg: "0.0", total: 0, uniqueResources: 0 };
         const sum = reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0);
@@ -90,7 +89,7 @@ const TeacherReviews = () => {
 
     const handleChangePage = (_: any, newPage: number) => setPage(newPage);
 
-    // --- PREMIUM STAT WIDGET (RESTORED) ---
+    // ---  STAT WIDGET  ---
     const StatWidget = ({ label, value, icon, color }: any) => (
         <Paper 
             elevation={0} 

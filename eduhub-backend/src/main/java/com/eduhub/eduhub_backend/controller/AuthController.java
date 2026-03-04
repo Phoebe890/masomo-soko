@@ -47,7 +47,7 @@ private AuthService authService;
     @Value("${google.client.id}")
     private String googleClientId;
 
-    // Helper: Check if profile is complete
+    
     private boolean isTeacherProfileComplete(Long userId) {
         Optional<TeacherProfile> profileOpt = teacherProfileRepository.findByUserId(userId);
         if (profileOpt.isEmpty()) return false;
@@ -89,8 +89,7 @@ private AuthService authService;
             User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
             
             if (user != null) {
-                // Check if this is a Google Account (Password matches the placeholder)
-                // We use matches() because the password in DB is hashed
+                
                 if (passwordEncoder.matches("GOOGLE_AUTH", user.getPassword())) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("This account was created with Google. Please use Sign in with Google.");
@@ -124,7 +123,6 @@ private AuthService authService;
             
             userRepository.save(user);
 
-            // 3. If Teacher, create empty profile so dashboard works immediately
             if ("TEACHER".equals(role)) {
                 TeacherProfile profile = new TeacherProfile();
                 profile.setUser(user);
@@ -216,7 +214,7 @@ private AuthService authService;
                 TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
                 if (profile.getUser() == null) profile.setUser(user);
                 
-                // CRITICAL: Save Google pic to TeacherProfile so TeacherLayout sees it
+                
                 if (profile.getProfilePicPath() == null || profile.getProfilePicPath().isEmpty()) {
                     profile.setProfilePicPath(pictureUrl); 
                 }

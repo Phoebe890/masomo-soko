@@ -68,7 +68,7 @@ const ForgotPassword = () => {
       setShowTopBanner(true);
       setTimer(60);
       setCanResend(false);
-      // Optional: also show a toast
+      
       setToast({ open: true, message: "Verification code sent!", severity: 'success' });
     } catch (err: any) {
       setToast({ open: true, message: err.response?.data || "Failed to send OTP.", severity: 'error' });

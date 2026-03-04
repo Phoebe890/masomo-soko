@@ -11,5 +11,5 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 
-# FORCE the 'prod' profile here
+# 3. Set Prod Profile
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]

@@ -55,7 +55,7 @@ const Footer: React.FC = () => {
         py: 0.8, 
         mb: 3,
         textDecoration: 'none',
-        // REMOVE boxShadow: it's making it pop out too much
+        // REMOVE boxShadow
     }}
             >
                 <Box 

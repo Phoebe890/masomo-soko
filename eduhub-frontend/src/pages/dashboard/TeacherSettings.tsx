@@ -254,10 +254,10 @@ const TeacherSettings = () => {
                     </Box>
                 )}
 
-               {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+               
                 <AppNotification 
                     open={toast.open}
-                    message={toast.msg} // Mapping your local 'msg' to the component's 'message'
+                    message={toast.msg} 
                     severity={toast.severity}
                     onClose={() => setToast({ ...toast, open: false })}
                 />

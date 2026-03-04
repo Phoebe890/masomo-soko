@@ -9,7 +9,7 @@ import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.service.MpesaService;
-import com.eduhub.eduhub_backend.service.EmailProducer; // IMPORT THIS
+import com.eduhub.eduhub_backend.service.EmailProducer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +20,7 @@ import com.eduhub.eduhub_backend.entity.Notification;
 import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List; // IMPORT THIS
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,7 +33,7 @@ public class PaymentController {
     @Autowired private TeacherResourceRepository resourceRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PurchaseRepository purchaseRepository;
-    @Autowired private EmailProducer emailProducer; // INJECT THIS
+    @Autowired private EmailProducer emailProducer; 
 @Autowired private NotificationRepository notificationRepository;
     @PostMapping("/pay")
     public ResponseEntity<?> initiatePayment(
@@ -47,7 +47,7 @@ public class PaymentController {
             
             User user = userRepository.findByEmail(userDetails.getUsername())
                     .orElseThrow(() -> new RuntimeException("User not found"));
-             // FIX: PREVENT TEACHERS FROM BUYING
+             
          if ("TEACHER".equals(user.getRole())) {
             return ResponseEntity.status(403).body("Access Denied: Teachers cannot purchase resources. Please log in with a Student account.");
         }
@@ -130,7 +130,7 @@ public class PaymentController {
 
                     // 3. SEND PROFESSIONAL HTML EMAIL
                     sendProfessionalReceipt(transaction.getUser(), transaction.getResource(), mpesaReceipt);
-                     // 4. NOTIFY TEACHER (Sale Alert Email)
+                     // 4. NOTIFY TEACHER 
                     sendTeacherSaleAlert(transaction.getResource().getUser(), transaction.getUser(), transaction.getResource());
 
                     // 5. SAVE DASHBOARD NOTIFICATION FOR TEACHER

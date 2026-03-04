@@ -78,8 +78,7 @@ public class SecurityConfig {
         return source;
     }
 
-   // Inside SecurityConfig.java
-
+ 
 @Bean
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
@@ -96,8 +95,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             .requestMatchers("/api/auth/**", "/api/payment/callback", "/uploads/**", "/api/resources/public/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**", "/api/teacher/top-contributors").permitAll()
 
-            // 2. FIX: Allow any LOGGED IN user to submit onboarding
-            // This must come BEFORE the generic /api/teacher/** rule
+           
             .requestMatchers(HttpMethod.POST, "/api/teacher/onboarding").authenticated()
 
             // 3. Role Restrictions

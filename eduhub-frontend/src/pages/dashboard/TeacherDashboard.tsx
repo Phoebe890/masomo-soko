@@ -16,15 +16,15 @@ import {
     DollarSign, ShoppingBag, Users, Star, 
     TrendingUp, Bell, Edit3, Wallet, X, CheckCircle, ArrowUpRight ,Plus
 } from 'lucide-react';
-// --- 1. FORCE FONT LOADING (Google Fonts CDN) ---
+
 const FONT_LINK = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
 
-// 1. LOCAL THEME FOR THIS PAGE ONLY (Sharp & Modern Font)
+
 import '@fontsource/plus-jakarta-sans/400.css';
 import '@fontsource/plus-jakarta-sans/700.css';
 import '@fontsource/plus-jakarta-sans/800.css';
 
-// --- 2. THEME CONFIG (Sharp & Specific) ---
+// --- 2. THEME CONFIG  ---
 const dashboardTheme = createTheme({
     typography: {
         fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -33,7 +33,7 @@ const dashboardTheme = createTheme({
         MuiTypography: {
             styleOverrides: {
                 root: {
-                    fontFamily: "'Plus Jakarta Sans', sans-serif !important", // Forcing it
+                    fontFamily: "'Plus Jakarta Sans', sans-serif !important", 
                 },
             },
         },
@@ -55,7 +55,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
     const BRAND_ORANGE = '#F97316'; 
     const BORDER_COLOR = '#E2E8F0';
 
-    // --- YOUR ORIGINAL LOGOIC (PRESERVED) ---
+   
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -117,7 +117,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
         return [];
     };
 
-     // --- SHARP UI COMPONENTS ---
+    
     const StatWidget = ({ title, value, icon, color }: any) => (
         <Paper
             elevation={0}
@@ -130,10 +130,10 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth high-end transition
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
     '&:hover': { 
-        borderColor: color, // Border turns the brand color
-        boxShadow: `0 0 0 4px ${alpha(color, 0.05)}`, // Soft outer glow
+        borderColor: color, 
+        boxShadow: `0 0 0 4px ${alpha(color, 0.05)}`, 
         transform: 'translateY(-2px)' 
     }
 }}
@@ -189,7 +189,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
             <link rel="stylesheet" href={FONT_LINK} />
             
             <TeacherLayout title="Dashboard" selectedRoute="/dashboard/teacher">
-                {/* 2. Main Container Box (Forces the font for everything inside) */}
+                {/* 2. Main Container Box */}
                <Box 
     sx={{ 
         fontFamily: "'Plus Jakarta Sans', sans-serif !important",
@@ -203,7 +203,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
     }}
 >
                     
-                    {/* --- STEP 1: THE NEW COMMAND HEADER --- */}
+                   
                     <Box sx={{ 
                         mb: 4, 
                         display: 'flex', 
@@ -285,7 +285,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
             border: `1px solid ${BORDER_COLOR}`, 
             borderRadius: '2px', 
             height: 450, 
-            mb: 3 // This creates the gap you requested
+            mb: 3 
         }}
     >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
@@ -306,7 +306,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
         </ResponsiveContainer>
     </Paper>
 
-    {/* --- NEW FEATURE: DYNAMIC ACTIVITY FEED (REAL DATA) --- */}
+    {/* ---  DYNAMIC ACTIVITY FEED  --- */}
     <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 800 }}>Live Activity Feed</Typography>
@@ -378,7 +378,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                             <Paper elevation={0} sx={{ p: 3, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', mb: 3 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                                     <Typography variant="h6" sx={{ fontWeight: 800 }}>Profile</Typography>
-                                    {/* FIX 2: Edit Icon set to BRAND_BLUE */}
+                                   
                                     <IconButton 
                                         size="small" 
                                         onClick={() => navigate('/teacher/settings')} 
@@ -388,10 +388,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                                     </IconButton>
                                 </Box>
                                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>BIO</Typography>
-                                {/* 
-                                   FIX 3: Added wordBreak and display block to prevent 
-                                   the bio from flowing out of the card.
-                                */}
+                                
                                 <Typography 
                                     variant="body2" 
                                     sx={{ 
@@ -418,7 +415,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                                     </Box>
                                 </Box>
                             </Paper>
-{/* --- STEP 3: HIGH-DENSITY RESOURCE LIST --- */}
+{/* ---  RESOURCE LIST --- */}
 <Paper 
     elevation={0} 
     sx={{ 
@@ -556,7 +553,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                     </Grid>
                 </Box> {/* Closes Main Container Box */}
             </TeacherLayout>
-           {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+           
             <AppNotification 
                 open={snackbar.open}
                 message={snackbar.message}

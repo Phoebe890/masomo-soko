@@ -36,7 +36,7 @@ const AdminPayouts = () => {
     // Selection State
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-    // Search & Filter State (Added to match the UI look)
+    // Search & Filter State 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
 
@@ -189,7 +189,7 @@ const AdminPayouts = () => {
     return (
         <AdminLayout title="Payout Requests" selectedRoute="/admin/payouts">
             
-            {/* 1. TOP HEADER & PENDING REQUESTS BANNER (Preserved Logic) */}
+            {/* 1. TOP HEADER & PENDING REQUESTS BANNER  */}
             <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                      <Box>
@@ -430,7 +430,7 @@ const AdminPayouts = () => {
                         </Table>
                     </TableContainer>
                 )}
-                {/* Footer Mimicking the image */}
+                {/* Footer */}
                 <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E5E7EB' }}>
                     <Typography variant="caption" color="text.secondary">
                         Displaying {filteredPayouts.length} results
@@ -438,7 +438,7 @@ const AdminPayouts = () => {
                 </Box>
             </Paper>
 
-            {/* DIALOGS (Existing Logic) */}
+            {/* DIALOGS  */}
             <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
                 <DialogTitle sx={{ fontWeight: 700 }}>
                     {isBulkAction 

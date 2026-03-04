@@ -14,7 +14,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import ShieldCheckIcon from '@mui/icons-material/ShieldMoon'; // Using for trust
+import ShieldCheckIcon from '@mui/icons-material/ShieldMoon'; 
 import { BookOpen, User, Star, ArrowLeft } from 'lucide-react';
 
 const BRAND_BLUE = '#2563EB';
@@ -300,11 +300,11 @@ const isTeacher = user.role === 'TEACHER';
         '&:hover': { bgcolor: isTeacher ? '#94A3B8' : '#1e293b' } 
     }}
 >
-    {/* FIX: Dynamic text based on role */}
+    
     {isTeacher ? "Teachers Cannot Purchase" : (processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Add to Library" : "Buy Resource"))}
 </Button>
 
-{/* ADD: Helpful message for Teachers */}
+
 {isTeacher && (
     <Typography variant="caption" color="error" sx={{ textAlign: 'center', display: 'block', fontWeight: 600, mt: 1 }}>
         Switch to a Student account to purchase materials.

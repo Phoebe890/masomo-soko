@@ -15,7 +15,7 @@ import {
     Clock, AlertCircle, MoreHorizontal, Filter 
 } from 'lucide-react';
 
-// --- 1. THEME CONFIG (Sharp & Specific) ---
+
 const dashboardTheme = createTheme({
     typography: { fontFamily: "'Plus Jakarta Sans', sans-serif" },
     shape: { borderRadius: 2 }
@@ -26,7 +26,7 @@ const BRAND_BLUE = '#2563EB';
 const SLATE_DARK = '#0F172A';
 
 const TeacherEarnings = () => {
-    // --- EXISTING LOGIC (PRESERVED) ---
+    
     const [loading, setLoading] = useState(true);
     const [balance, setBalance] = useState(0.0);
     const [mpesaNumber, setMpesaNumber] = useState('');
@@ -67,7 +67,7 @@ const TeacherEarnings = () => {
         } finally { setProcessing(false); }
     };
 
-    // --- REFINEMENT: STATS CALCULATIONS ---
+    // ---  STATS CALCULATIONS ---
     const totalWithdrawn = history
         .filter(item => item.status === 'PAID')
         .reduce((sum, item) => sum + item.amount, 0);
@@ -224,11 +224,11 @@ const TeacherEarnings = () => {
                     </DialogActions>
                 </Dialog>
 
-              {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+            
                 <AppNotification 
                     open={toast.open}
-                    message={toast.msg} // Mapping your 'msg' to the component's 'message'
-                    severity={toast.type} // Mapping your 'type' to the component's 'severity'
+                    message={toast.msg} 
+                    severity={toast.type} 
                     onClose={() => setToast({ ...toast, open: false })}
                 />
             </TeacherLayout>

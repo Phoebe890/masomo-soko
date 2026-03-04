@@ -120,7 +120,7 @@ const Header: React.FC = () => {
 
   return (
     <Box component="header" sx={{ width: '100%' }}>
-      {/* THE FONT FIX: Ensure families are separated and weights are defined */}
+      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Chewy&family=Inter:wght@400;600;700&display=swap');
       `}</style>
@@ -134,7 +134,7 @@ const Header: React.FC = () => {
               <IconButton 
                 edge="start" 
                 onClick={() => setDrawerOpen(true)} 
-                sx={{ mr: 1, color: charcoal }} // UPDATED TO CHARCOAL
+                sx={{ mr: 1, color: charcoal }} 
               >
                 <MenuIcon />
               </IconButton>
@@ -145,7 +145,7 @@ const Header: React.FC = () => {
      src={isMobile ? logoIcon : logo}
     alt="Masomo Soko" 
     style={{ 
-     height: isMobile ? '32px' : '45px', // Adjust this to fit your 70px navbar
+     height: isMobile ? '32px' : '45px', 
       width: 'auto',
       display: 'block'
     }} 
@@ -196,7 +196,7 @@ const Header: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 2 } }}>
             {isMobile && (
               <IconButton onClick={() => setSearchOpen(true)}>
-                <SearchIcon sx={{ color: charcoal }} /> {/* UPDATED TO CHARCOAL */}
+                <SearchIcon sx={{ color: charcoal }} /> 
               </IconButton>
             )}
 
@@ -267,10 +267,10 @@ const Header: React.FC = () => {
     >
       <Box 
         component="img"
-         src={isMobile ? logoIcon : logo} // This is the logo you imported at the top
+         src={isMobile ? logoIcon : logo} 
         alt="Masomo Soko"
         sx={{ 
-          height: 40, // Height for mobile drawer (slightly smaller than navbar)
+          height: 40, // Height for mobile drawer 
           width: 'auto',
           objectFit: 'contain' 
         }}
@@ -311,7 +311,7 @@ const Header: React.FC = () => {
           </Box>
         </Drawer>
 
-        {/* --- MOBILE SEARCH OVERLAY (RESTORED FULL LOGIC) --- */}
+        {/* --- MOBILE SEARCH OVERLAY --- */}
         <Drawer 
             anchor="top" 
             open={searchOpen} 

@@ -273,7 +273,7 @@ const StudentDashboard = () => {
     );
 };
 
-// --- SECTION FUNCTIONS (FULLY EXPANDED) ---
+// --- SECTION FUNCTIONS ---
 
 function LibrarySection({ onReview, limit, isPaginated }: { onReview: (res: Resource) => void, limit?: number, isPaginated?: boolean }) {
     const navigate = useNavigate();
@@ -287,9 +287,9 @@ function LibrarySection({ onReview, limit, isPaginated }: { onReview: (res: Reso
 
     // Pagination State
     const [page, setPage] = useState(0);
-    const rowsPerPage = 8; // Best for a clean 4-column grid (2 rows of 4)
+    const rowsPerPage = 8; 
 
-    // --- ORIGINAL LOGIC: FETCH PURCHASES ---
+    // -- FETCH PURCHASES ---
     useEffect(() => {
         api.get('/api/student/purchases')
             .then(res => {
@@ -301,7 +301,7 @@ function LibrarySection({ onReview, limit, isPaginated }: { onReview: (res: Reso
             .finally(() => setLoading(false));
     }, []);
 
-    // --- ORIGINAL LOGIC: SEARCH FILTERING ---
+    // --- SEARCH FILTERING ---
     useEffect(() => {
         const result = resources.filter(r => 
             r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -311,7 +311,7 @@ function LibrarySection({ onReview, limit, isPaginated }: { onReview: (res: Reso
         setPage(0); // Reset pagination on search
     }, [searchTerm, resources]);
 
-    // --- ORIGINAL LOGIC: DOWNLOAD HANDLER ---
+    // --- DOWNLOAD HANDLER ---
     const handleDownload = async (resourceId: number, title: string, openInNewTab: boolean = false) => {
         try {
             setDownloadingId(resourceId);
@@ -526,7 +526,7 @@ function HistorySection() {
             sx={{ 
                 border: `1px solid ${BORDER_COLOR}`, 
                 borderRadius: '2px',
-                overflow: 'hidden' // Ensures the pagination bar follows the radius
+                overflow: 'hidden' 
             }}
         >
             <TableContainer>
@@ -615,7 +615,7 @@ function HistorySection() {
                 </Table>
             </TableContainer>
 
-            {/* HIGH-END PAGINATION BAR */}
+            {/*  PAGINATION BAR */}
             <TablePagination
                 rowsPerPageOptions={[5, 10, 25]}
                 component="div"
@@ -649,7 +649,7 @@ function AccountSettingsSection() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState('');
     
-    // Snackbar State (Replaces the alert)
+    // Snackbar State 
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
     useEffect(() => {
@@ -776,7 +776,7 @@ function AccountSettingsSection() {
                 </Button>
             </Box>
 
-            {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+           
             <AppNotification 
                 open={snackbar.open}
                 message={snackbar.message}

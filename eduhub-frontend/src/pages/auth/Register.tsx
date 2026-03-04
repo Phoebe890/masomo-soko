@@ -31,7 +31,7 @@ const Register: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  // Local Notification State (eCitizen Style)
+ 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success'
   });
@@ -48,7 +48,7 @@ const Register: React.FC = () => {
     const userRole = data.role?.toUpperCase();
 
   if (userRole === 'TEACHER') {
-      // Force them to be a 'STUDENT' in localStorage so the TeacherGuard kicks them out of the dashboard
+     
       localStorage.setItem('role', 'STUDENT'); 
       setToast({ open: true, message: "Account created! Let's set up your teacher profile.", severity: 'success' });
       setTimeout(() => navigate('/dashboard/teacher/onboarding'), 1500);
@@ -125,14 +125,14 @@ const Register: React.FC = () => {
                     exit={{ opacity: 0, y: -10 }} 
                     transition={{ duration: 0.3 }}
                   >
-                   {/* --- CHANGE 2: ADD THE LOGO ICON HERE --- */}
+                  
         <Box 
           component={RouterLink} 
           to="/"
           sx={{ 
             display: 'flex', 
             justifyContent: 'center', // Centers logo horizontally
-            mb: { xs: 3, md: 1 },    // Small gap on desktop, larger on mobile
+            mb: { xs: 3, md: 1 },   
             textDecoration: 'none'
           }}
         >
@@ -164,7 +164,7 @@ const Register: React.FC = () => {
                   </motion.div>
                 </AnimatePresence>
 
-                {/* RESTORED ORIGINAL BLUE BORDER GOOGLE BUTTON */}
+                {/*  GOOGLE BUTTON */}
                 <Button 
                   fullWidth 
                   variant="outlined" 
@@ -174,7 +174,7 @@ const Register: React.FC = () => {
                     py: 1.5, 
                     mb: 3, 
                     borderRadius: '8px',
-                    borderColor: theme.palette.primary.main, // Restored Blue Border
+                    borderColor: theme.palette.primary.main,
                     color: theme.palette.primary.main,
                     fontWeight: 600,
                     textTransform: 'none',
@@ -284,7 +284,7 @@ const Register: React.FC = () => {
         </Container>
       </Box>
 
-     {/* SHARED NOTIFICATION */}
+     {/*  NOTIFICATION */}
       <AppNotification 
         open={toast.open}
         message={toast.message}

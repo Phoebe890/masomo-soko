@@ -11,8 +11,7 @@ public class PaymentTransaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // FIX 1: Renamed 'student' to 'user' so adminController can call .getUser()
-    // This allows both Students and Teachers (for payouts) to have transactions.
+   
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -21,14 +20,14 @@ public class PaymentTransaction {
     @JoinColumn(name = "resource_id")
     private TeacherResource resource;
 
-    // FIX 2: Use BigDecimal for money, not Double (prevents precision errors)
+    
     private BigDecimal amount;
     
-    private String checkoutRequestId; // Matches M-Pesa response
+    private String checkoutRequestId;
     private String merchantRequestId;
     private String mpesaReceiptNumber;
     private String phoneNumber;
-    private String status; // PENDING, COMPLETED, FAILED
+    private String status;
     
     private LocalDateTime transactionDate = LocalDateTime.now();
 

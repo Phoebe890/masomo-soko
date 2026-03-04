@@ -13,19 +13,19 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/api/axios';
 
-// UPDATED: Constants for CBC Curriculum
+//  Constants for CBC Curriculum
 const CATEGORIES = [
   'Exams & Assessments', 'Notes', 'Schemes of Work', 
   'Project Guides', 'Revision Materials', 'CBA Tools', 
-  'Books & Novels' // Added
-];;
+  'Books & Novels'
+];
 
 const LEVELS = [
   'Junior School (Gr 7-9)', 
   'Senior School (Gr 10-12)', 
   'Primary (Gr 1-6)', 
   'KCSE / 8-4-4 (Legacy)',
-  'General Audience / Books' // Added
+  'General Audience / Books' 
 ];
 
 const CLASSES = [
@@ -218,7 +218,7 @@ const BrowseResources = () => {
     <Select 
       value={sortBy} 
       onChange={(e) => setSortBy(e.target.value)}
-      // This part adds the custom arrow and colors it blue
+      
       IconComponent={() => (
         <KeyboardArrowDownIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
       )}
@@ -229,14 +229,14 @@ const BrowseResources = () => {
         fontWeight: 600, 
         color: TEXT_DARK,
         border: `1px solid ${BORDER_COLOR}`,
-        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, // Clean look
+        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }, 
         '&:hover': { border: `1px solid ${theme.palette.primary.main}` },
-        // Custom padding for the arrow
+        
         '& .MuiSelect-select': { pr: '40px !important' } 
       }}
       displayEmpty
     >
-      {/* Updated the labels to match the "Sort: " style in your image */}
+     
       <MenuItem value="newest">Sort: Newest</MenuItem>
       <MenuItem value="popular">Sort: Popularity</MenuItem>
       <MenuItem value="rating">Sort: Highest Rated</MenuItem>
@@ -250,19 +250,19 @@ const BrowseResources = () => {
     <Button 
       fullWidth 
       variant="outlined" 
-      startIcon={<TuneIcon />} // New Icon
+      startIcon={<TuneIcon />} 
       onClick={() => setSidebarOpen(true)}
       sx={{ 
         height: 48, 
-        borderRadius: '8px', // Matches the image
-        borderColor: theme.palette.primary.main, // Your brand blue
-        color: theme.palette.primary.main, // Your brand blue
+        borderRadius: '8px', 
+        borderColor: theme.palette.primary.main, 
+        color: theme.palette.primary.main, 
         textTransform: 'none',
         fontWeight: 600,
         fontSize: '1rem',
         '&:hover': {
           borderColor: theme.palette.primary.dark,
-          bgcolor: 'rgba(47, 107, 255, 0.04)', // Subtle blue tint on hover
+          bgcolor: 'rgba(47, 107, 255, 0.04)', 
         }
       }}
     >

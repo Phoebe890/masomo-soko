@@ -117,7 +117,7 @@ const GrowthIllustration = () => (
       {/* Connecting Lines (Reach) - Teal Color */}
       <path d="M200 120L280 60M200 120L320 150M200 120L100 60M200 120L80 150" stroke="#81c784" strokeWidth="3" strokeDasharray="6 4" />
       
-      {/* Central Teacher - Safaricom Green */}
+      {/* Central Teacher  */}
       <circle cx="200" cy="120" r="30" fill="#43B02A" />
       <path d="M150 200C150 172.386 172.386 150 200 150C227.614 150 250 172.386 250 200" fill="#43B02A" />
       
@@ -328,7 +328,7 @@ const SellerLanding: React.FC = () => {
   </Grid>
   
   <Grid item xs={12} md={6}>
-      {/* No Box, no Card, no Shadow - Just the SVG blending into the page */}
+      
       <GrowthIllustration />
   </Grid>
 </Grid>
@@ -464,13 +464,13 @@ const SellerLanding: React.FC = () => {
     sx={{ 
       bgcolor: DARK_SECTION, 
       color: '#fff', 
-      py: { xs: 8, md: 12 }, // More vertical padding for a premium feel
-      px: { xs: 4, md: 10 }, // Matches the banner above
+      py: { xs: 8, md: 12 }, 
+      px: { xs: 4, md: 10 }, 
       borderRadius: 8,
       overflow: 'hidden'
     }}
   >
-    <Grid container spacing={10} alignItems="center"> {/* Wider spacing for XL layout */}
+    <Grid container spacing={10} alignItems="center">
        <Grid item xs={12} md={6}>
           <DashboardIllustration />
        </Grid>
@@ -479,7 +479,7 @@ const SellerLanding: React.FC = () => {
             You are in control
           </Typography>
           <Typography variant="body1" sx={{ mb: 4, fontSize: '1.2rem', opacity: 0.9, lineHeight: 1.7, color: '#94a3b8' }}>
-             <strong>Mwalimu Soko</strong> gives you full autonomy over your content. Manage your pricing, edit your files, and interact with students directly.
+             <strong>Masomo Soko</strong> gives you full autonomy over your content. Manage your pricing, edit your files, and interact with students directly.
           </Typography>
           <Stack spacing={3}>
             {[

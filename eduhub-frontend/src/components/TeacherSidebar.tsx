@@ -31,7 +31,7 @@ const TeacherSidebar = ({ mobileOpen, onClose }: any) => {
             height: '100%', 
             display: 'flex', 
             flexDirection: 'column',
-            // No border-right here, we handle it in the Drawer style
+            
         }}>
             {/* Logo Area */}
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

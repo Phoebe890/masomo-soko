@@ -23,7 +23,7 @@ const NotFound = () => {
                         sx={{ 
                             fontSize: { xs: '8rem', sm: '12rem' }, 
                             fontWeight: 900, 
-                            color: '#F3F4F6', // Very light grey background text
+                            color: '#F3F4F6',
                             lineHeight: 1
                         }}
                     >
@@ -35,7 +35,7 @@ const NotFound = () => {
                             top: '50%', 
                             left: '50%', 
                             transform: 'translate(-50%, -50%)',
-                            color: '#ea580c' // Your Brand Orange
+                            color: '#ea580c' 
                         }}
                     >
                         <SentimentVeryDissatisfiedIcon sx={{ fontSize: { xs: 60, sm: 80 } }} />

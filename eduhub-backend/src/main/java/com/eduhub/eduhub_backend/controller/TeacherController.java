@@ -49,9 +49,9 @@ public class TeacherController {
                 });
     }
 
-    // =========================================================================
+   
     //  PUBLIC ENDPOINTS (For Homepage/Browsing)
-    // =========================================================================
+   
 
     // 1. Get All Resources (Public)
     @GetMapping("/resources")
@@ -80,7 +80,7 @@ public class TeacherController {
         }
     }
 
-    // 2. Get Single Resource Detail (Public - Fixes your 403 Error)
+    // 2. Get Single Resource Detail 
     @GetMapping("/resources/{id}")
     public ResponseEntity<?> getResourceById(@PathVariable Long id) {
         try {
@@ -114,7 +114,7 @@ public class TeacherController {
 
                 map.put("name", name);
                  map.put("profilePicPath", upgradeGooglePhotoResolution(profile.getProfilePicPath()));
-                  map.put("headline", profile.getHeadline()); // Ensure getHeadline() exists in your Entity
+                  map.put("headline", profile.getHeadline()); 
             map.put("bio", profile.getBio());
                 map.put("subjects", profile.getSubjects());
                 map.put("resourceCount", resourceCount);
@@ -130,9 +130,9 @@ public class TeacherController {
         }
     }
 
-    // =========================================================================
+   
     //  PROTECTED TEACHER ENDPOINTS
-    // =========================================================================
+   
 
     // --- DASHBOARD ---
     @GetMapping("/dashboard")
@@ -197,19 +197,19 @@ public ResponseEntity<?> onboarding(
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // --- NEW LOGIC FOR NAME CHANGE ---
+       
         if (name != null && !name.trim().isEmpty()) {
             user.setName(name);
         }
 
-        // --- YOUR EXISTING ROLE LOGIC (KEPT) ---
+    
         user.setRole("TEACHER"); 
         userRepository.save(user);
 
-        // --- YOUR EXISTING PROFILE LOGIC (KEPT) ---
+        
         TeacherProfile profile = getOrCreateProfile(user);
 
-        // --- YOUR EXISTING JSON PARSING LOGIC (KEPT & PROTECTED) ---
+       
         ObjectMapper mapper = new ObjectMapper();
         List<String> subjects = new ArrayList<>();
         if(subjectsJson != null && !subjectsJson.isEmpty()) {
@@ -225,7 +225,7 @@ public ResponseEntity<?> onboarding(
             } catch(Exception e){ System.err.println("Error parsing grades"); }
         }
 
-        // --- YOUR EXISTING FIELD UPDATES (KEPT) ---
+        
         profile.setBio(bio);
         profile.setHeadline(headline);
         profile.setSubjects(subjects);
@@ -252,7 +252,7 @@ public ResponseEntity<?> onboarding(
     profile.setPaymentNumber(cleanNumber);
 }
 
-        // --- YOUR EXISTING IMAGE UPLOAD LOGIC (KEPT) ---
+       
         if (profilePic != null && !profilePic.isEmpty()) {
             Map uploadResult = fileUploadService.uploadFile(profilePic);
             profile.setProfilePicPath((String) uploadResult.get("secure_url"));
@@ -314,14 +314,13 @@ public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails 
             
             boolean isZoomConnected = currentUser.getZoomAccessToken() != null && !currentUser.getZoomAccessToken().isEmpty();
 
-            // FALLBACK LOGIC: 
-            // If profile has no custom pic, use the one from the User entity (Google Photo)
+            
             String finalPhotoUrl = null;
             if (profile != null && profile.getProfilePicPath() != null && !profile.getProfilePicPath().isEmpty()) {
-                // Fixes custom uploaded or synced pics
+               
                 finalPhotoUrl = upgradeGooglePhotoResolution(profile.getProfilePicPath());
             } else {
-                // Fixes the direct Google photo
+                
                 finalPhotoUrl = upgradeGooglePhotoResolution(currentUser.getProfilePic()); 
             }
 
@@ -332,7 +331,7 @@ public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails 
             
             Map<String, Object> profileData = new HashMap<>();
             profileData.put("user", userData);
-            profileData.put("profilePicPath", finalPhotoUrl); // The synced photo
+            profileData.put("profilePicPath", finalPhotoUrl); 
             
             if (profile != null) {
                 profileData.put("bio", profile.getBio());
@@ -340,7 +339,7 @@ public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails 
                 profileData.put("subjects", profile.getSubjects());
                 profileData.put("grades", profile.getGrades());
                 profileData.put("paymentNumber", profile.getPaymentNumber());
-                // We already set profilePicPath above via the fallback logic
+               
             }
 
             responseData.put("profile", profileData);
@@ -513,7 +512,7 @@ public ResponseEntity<?> getTeacherReviews(@AuthenticationPrincipal UserDetails 
             return ResponseEntity.status(500).body("Error");
         }
     }
-    // 1. Mark ALL as read (more efficient than individual calls)
+    // 1. Mark ALL as read 
 @PostMapping("/notifications/read-all")
 public ResponseEntity<?> markAllRead(@AuthenticationPrincipal UserDetails userDetails) {
     User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();

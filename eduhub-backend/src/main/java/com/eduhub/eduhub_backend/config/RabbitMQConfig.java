@@ -15,7 +15,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue emailQueue() {
-        // Durable = true means the queue survives a server restart
+       
         return new Queue(EMAIL_QUEUE, true); 
     }
 
@@ -24,7 +24,7 @@ public class RabbitMQConfig {
         return new Jackson2JsonMessageConverter();
     }
 
-    // CRITICAL FIX: Explicitly configure the template to use the JSON converter
+    
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);

@@ -69,8 +69,8 @@ const ResourceManagement = () => {
         finally { setLoading(false); }
     };
 
-    // --- FIXED FILTER LOGIC ---
-    // Added .trim() and case-insensitive check to ensure subject filtering works perfectly
+    // ---  FILTER LOGIC ---
+    
     const filteredResources = useMemo(() => {
         return resources.filter(res => {
             const matchesSearch = res.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -93,7 +93,7 @@ const ResourceManagement = () => {
         a.click();
     };
 
-    // --- RESTORED ORIGINAL EDIT LOGIC ---
+    // --EDIT LOGIC ---
     const handleEditClick = (res: any) => {
         setEditingResource(res);
         setEditFormData({
@@ -109,7 +109,7 @@ const ResourceManagement = () => {
         setEditDialogOpen(true);
     };
 
-    // THIS IS YOUR EXACT ORIGINAL UPDATE LOGIC
+    // UPDATE LOGIC
     const handleUpdateSubmit = async () => {
         if (!editingResource) return;
         setIsUpdating(true);
@@ -264,7 +264,7 @@ const ResourceManagement = () => {
                         />
                     </TableContainer>
 
-                    {/* --- EDIT DIALOG (Logic Preserved) --- */}
+                    {/* --- EDIT DIALOG  --- */}
                     <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '2px' } }}>
                         <DialogTitle sx={{ fontWeight: 800, borderBottom: `1px solid ${BORDER_COLOR}` }}>Edit Resource</DialogTitle>
                         <DialogContent sx={{ mt: 2 }}>
@@ -330,7 +330,7 @@ const ResourceManagement = () => {
                         </Box>
                     </Dialog>
 
-                    {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
+                    {/*  NOTIFICATION */}
                     <AppNotification 
                         open={snackbar.open}
                         message={snackbar.message}

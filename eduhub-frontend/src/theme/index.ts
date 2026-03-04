@@ -24,7 +24,7 @@ export const theme = createTheme({
     },
   },
   components: {
-    // This "locks" the font inside Material UI's internal global styles
+    // This locks the font inside Material UI's internal global styles
     MuiCssBaseline: {
       styleOverrides: {
         body: {

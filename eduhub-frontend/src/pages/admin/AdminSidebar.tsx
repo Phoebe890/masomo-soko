@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-// Logo Asset (Same as Teacher Dashboard)
+// Logo Asset 
 import logoIcon from '@/assets/logo-icon.svg';
 
 // High-End Icons (Lucide)
@@ -43,7 +43,7 @@ const AdminSidebar = ({ mobileOpen, onClose }: SidebarProps) => {
             flexDirection: 'column',
             bgcolor: SLATE_BG, // Ensure background fills the box
         }}>
-            {/* Logo Area (Matches Teacher Dashboard) */}
+            {/* Logo Area  */}
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <img src={logoIcon} alt="Logo" style={{ height: 32 }} />
@@ -151,7 +151,7 @@ const AdminSidebar = ({ mobileOpen, onClose }: SidebarProps) => {
                         boxSizing: 'border-box', 
                         width: drawerWidth, 
                         bgcolor: SLATE_BG, 
-                        borderRight: 'none', // REMOVES THE WHITE LINE
+                        borderRight: 'none', 
                         boxShadow: 'none'
                     },
                 }}

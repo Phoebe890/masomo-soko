@@ -32,13 +32,13 @@ public class MpesaService {
     @Value("${mpesa.passkey}")
     private String passkey;
 
-    // FIX: Read this from properties so it works in Prod & Dev (ngrok)
+    
     @Value("${mpesa.callback.url}")
     private String callbackUrl;
-@Value("${mpesa.shortcode}") // Add this property
-private String businessShortCode;
-@Value("${mpesa.transaction.type}") // Add this property (Paybill vs BuyGoods)
-private String transactionType;
+    @Value("${mpesa.shortcode}") 
+    private String businessShortCode;
+    @Value("${mpesa.transaction.type}") 
+    private String transactionType;
      private final OkHttpClient client = new OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS) 
         .writeTimeout(60, TimeUnit.SECONDS)   
@@ -68,7 +68,7 @@ private String transactionType;
         }
     }
 
-    // 2. Initiate STK Push (Matches PaymentController call)
+    // 2. Initiate STK Push 
     public Map<String, String> initiateStkPush(String phoneNumber, BigDecimal amount) throws IOException {
         String token = getAccessToken();
         String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
@@ -78,11 +78,11 @@ private String transactionType;
         (businessShortCode + passkey + timestamp).getBytes(StandardCharsets.UTF_8)
     );
 
-        // Sanitize Phone Number (Must be 254...)
+        // Sanitize Phone Number 
         if (phoneNumber.startsWith("0")) phoneNumber = "254" + phoneNumber.substring(1);
         else if (phoneNumber.startsWith("+")) phoneNumber = phoneNumber.substring(1);
 
-        // M-Pesa expects integer amounts
+        
         int amountInt = amount.intValue();
 
         Map<String, Object> jsonBody = new HashMap<>();
@@ -90,9 +90,9 @@ private String transactionType;
         jsonBody.put("Password", password);
         jsonBody.put("Timestamp", timestamp);
          jsonBody.put("TransactionType", "CustomerBuyGoodsOnline");
-        jsonBody.put("Amount", amountInt); // Use the actual amount passed
+        jsonBody.put("Amount", amountInt); 
         jsonBody.put("PartyA", phoneNumber);
-        jsonBody.put("PartyB", "7075144"); // Typically the same as BusinessShortCode for Paybill
+        jsonBody.put("PartyB", "7075144"); 
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
         jsonBody.put("AccountReference", "MasomoSoko");
@@ -112,7 +112,7 @@ private String transactionType;
         try (Response response = client.newCall(request).execute()) {
         String responseString = response.body().string();
         
-        // CRITICAL: Log this so you can see it in Render Dashboard
+        
         System.out.println("Safaricom Response: " + responseString);
 
         if (!response.isSuccessful()) {
@@ -123,7 +123,7 @@ private String transactionType;
         Map<String, String> result = new HashMap<>();
         result.put("MerchantRequestID", (String) map.get("MerchantRequestID"));
         result.put("CheckoutRequestID", (String) map.get("CheckoutRequestID"));
-        result.put("ResponseCode", (String) map.get("ResponseCode")); // Log this
+        result.put("ResponseCode", (String) map.get("ResponseCode")); // Log the ResponseCode 
         
         return result;
     }

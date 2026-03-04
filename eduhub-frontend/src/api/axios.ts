@@ -32,7 +32,7 @@ api.interceptors.response.use(
     },
     (error) => {
         // CASE 1: 401 Unauthorized (Token Expired or Invalid)
-        // We SHOULD logout here
+        //  SHOULD logout here
         if (error.response && error.response.status === 401) {
             console.warn('Session expired (401). Logging out...');
             localStorage.clear();
@@ -45,7 +45,7 @@ api.interceptors.response.use(
         }
 
         // CASE 2: 403 Forbidden (Valid Token, but Permission Denied)
-        // We SHOULD NOT logout here. It just means the user can't touch that specific button/page.
+        //  SHOULD NOT logout here. It just means the user can't touch that specific button/page.
         if (error.response && error.response.status === 403) {
             console.warn('Access Denied (403). Permissions issue.');
             // Do NOT clear localStorage.

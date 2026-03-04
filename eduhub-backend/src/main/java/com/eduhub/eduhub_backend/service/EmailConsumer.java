@@ -16,8 +16,7 @@ public class EmailConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailConsumer.class);
 
-    // Pulls the Resend API Key (re_...) from environment variables
-    // Added a default "dummy_key" to prevent local crashes
+    
     @Value("${EMAIL_PASSWORD:dummy_key}")
     private String resendApiKey;
 
@@ -30,7 +29,7 @@ public class EmailConsumer {
             Resend resend = new Resend(resendApiKey);
 
             // 2. Format Body: Convert plain text newlines (\n) to HTML breaks (<br/>)
-            // This prevents the "squeezed" look
+            
             String formattedBody = emailRequest.getBody().replace("\n", "<br/>");
 
             // 3. Wrap in Professional HTML Template

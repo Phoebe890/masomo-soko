@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
-import { api } from '@/api/axios'; // FIXED: Import Axios instance
+import { api } from '@/api/axios'; 
 
 const PayoutSetup: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const PayoutSetup: React.FC = () => {
     }
     
     try {
-      // FIXED: Using Axios instead of native fetch
+     
       // Axios handles FormData automatically
       const formData = new FormData();
       formData.append('email', email);

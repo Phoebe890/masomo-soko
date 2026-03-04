@@ -10,8 +10,7 @@ public class Notification {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "teacher_id") // This matches 'mappedBy="teacher"' in User.java
-    @JsonIgnore 
+    @JoinColumn(name = "teacher_id") 
     private User teacher;
 
     private String message;

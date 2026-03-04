@@ -46,11 +46,7 @@ function ScrollToTop() {
   return null;
 }
 
-/**
- * TEACHER GUARD
- * Specifically handles the redirection to onboarding if the user 
- * wants to be a teacher but hasn't been approved/setup yet.
- */
+
 const TeacherGuard = ({ children }: { children: JSX.Element }) => {
   const role = localStorage.getItem('role')?.toUpperCase();
   const email = localStorage.getItem('email');
@@ -64,10 +60,7 @@ const TeacherGuard = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-/**
- * GENERAL ROLE GUARD
- * Used for Student and Admin protection.
- */
+
 const RoleGuard = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles: string[] }) => {
   const email = localStorage.getItem('email');
   const rawRole = localStorage.getItem('role')?.toUpperCase() || "";
@@ -84,10 +77,7 @@ const RoleGuard = ({ children, allowedRoles }: { children: JSX.Element, allowedR
   return children;
 };
 
-/**
- * AUTH GATE
- * Prevents logged-in users from accessing Login/Register pages.
- */
+
 function AuthGate() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,7 +103,7 @@ function AuthGate() {
 function App() {
   const location = useLocation();
 
-  // Determine if we should hide the standard Layout (Header/Footer)
+  
   const isDashboardRoute = 
     location.pathname.startsWith('/dashboard') || 
     location.pathname.startsWith('/teacher') ||
@@ -181,7 +171,7 @@ function App() {
     <>
       <AuthGate />
       <ScrollToTop />
-      {/* If it's a dashboard route, show only the routes. Otherwise, wrap in Layout. */}
+     
       {isDashboardRoute ? appRoutes : <Layout>{appRoutes}</Layout>}
     </>
   );

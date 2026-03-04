@@ -16,8 +16,7 @@ public class TeacherProfile {
 
     private String bio;
 
-    // FIX: fetch = FetchType.EAGER ensures these lists are loaded from the DB 
-    // immediately. This stops the "no Session" error on the dashboard.
+    
     @ElementCollection(fetch = FetchType.EAGER)
     private List<String> subjects;
 

@@ -12,8 +12,7 @@ import java.util.List;
 import java.time.LocalDateTime;
 @Entity
 @Table(name = "users")
-public class User implements UserDetails { // <--- FIX 2: Implements UserDetails interface
-
+public class User implements UserDetails { 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,7 +30,7 @@ private String resetOtp;
 private LocalDateTime resetOtpExpiry;
     private Boolean active = true;
 
-    // --- FIX 1: The missing profilePic field ---
+   
     @Column(columnDefinition = "TEXT")
     private String profilePic;
 
@@ -74,7 +73,7 @@ public void setResetOtp(String resetOtp) { this.resetOtp = resetOtp; }
 
 public LocalDateTime getResetOtpExpiry() { return resetOtpExpiry; }
 public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) { this.resetOtpExpiry = resetOtpExpiry; }
-    // UserDetails requires getPassword()
+    
     @Override
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
@@ -85,7 +84,7 @@ public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) { this.resetOtpExpir
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
 
-    // --- FIX 1: Getter/Setter for ProfilePic ---
+    
     public String getProfilePic() { return profilePic; }
     public void setProfilePic(String profilePic) { this.profilePic = profilePic; }
 
@@ -95,22 +94,19 @@ public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) { this.resetOtpExpir
     public String getZoomRefreshToken() { return zoomRefreshToken; }
     public void setZoomRefreshToken(String zoomRefreshToken) { this.zoomRefreshToken = zoomRefreshToken; }
 
-    // --- UserDetails Implementation (FIX 2) ---
-    
-    // This tells Spring Security what roles the user has
+   
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // If role is null, default to STUDENT to prevent crashes
         if (this.role == null) return List.of(new SimpleGrantedAuthority("ROLE_STUDENT"));
         
-        // Ensure role starts with "ROLE_" if your security config expects it, or just pass as is
-        // Assuming your DB stores "ADMIN", "TEACHER" etc.
+       
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.toUpperCase())); 
     }
 
     @Override
     public String getUsername() {
-        return this.email; // We use email as the username
+        return this.email; 
     }
 
     @Override

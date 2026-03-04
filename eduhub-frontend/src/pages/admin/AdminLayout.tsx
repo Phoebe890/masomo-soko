@@ -49,7 +49,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, selectedRout
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
 
-    // Placeholder Notifications (Logic can be added later to fetch from /api/admin/notifications)
+    // Placeholder Notifications (Logic to be added later to fetch from /api/admin/notifications)
     const [notifications] = useState<any[]>([]); 
     const unreadCount = notifications.filter(n => !n.read).length;
 

@@ -61,7 +61,7 @@ public String verifyAndResetPassword(String email, String otp, String newPasswor
         return "Invalid OTP.";
     }
 
-    // 2. CHECK IF EXPIRED (This was missing!)
+    // 2. CHECK IF EXPIRED 
     if (user.getResetOtpExpiry() == null || user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
         return "OTP has expired.";
     }
@@ -98,7 +98,7 @@ public String verifyAndResetPassword(String email, String otp, String newPasswor
         user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         
-        // Ensure Role is uppercase and defaults to STUDENT if missing
+        
         String role = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
         user.setRole(role);
         

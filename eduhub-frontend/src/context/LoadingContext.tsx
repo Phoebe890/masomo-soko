@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Backdrop, Box, keyframes } from '@mui/material';
 
-// Faster rotation for the "oval" effect
+// Faster rotation for the oval effect
 const rotate = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -21,8 +21,7 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const startLoading = () => setIsLoading(true);
   const stopLoading = () => setIsLoading(false);
 
-  // Balanced thickness: Adjusted radii so they are closer together 
-  // and lengthened the arc so the gaps are smaller.
+  
   const SleekTaperedArc = () => (
     <path
       d="M 50 10 
@@ -50,7 +49,7 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            // Spun up to 0.5s for a high-performance "whirring" feel
+            // Spun up to 0.5s for a high-performance feel
             animation: `${rotate} 0.55s linear infinite`, 
           }}
         >
@@ -61,7 +60,7 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             </g>
             
             {/* Bottom Arc - Rotated 180deg. 
-                Longer arcs mean the gaps between them are now much tighter. */}
+                */}
             <g transform="rotate(180 50 50)">
               <SleekTaperedArc />
             </g>
