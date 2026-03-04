@@ -92,7 +92,7 @@ private String transactionType;
          jsonBody.put("TransactionType", "CustomerBuyGoodsOnline");
         jsonBody.put("Amount", amountInt); // Use the actual amount passed
         jsonBody.put("PartyA", phoneNumber);
-        jsonBody.put("PartyB", 9489616);
+        jsonBody.put("PartyB", businessShortCode); // Typically the same as BusinessShortCode for Paybill
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
         jsonBody.put("AccountReference", "MasomoSoko");
@@ -110,18 +110,22 @@ private String transactionType;
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            String responseString = response.body().string();
-            if (!response.isSuccessful()) {
-                throw new IOException("M-Pesa STK Push Failed: " + responseString);
-            }
-            
-            // Return Map with Request IDs for the Controller
-            Map<String, Object> map = objectMapper.readValue(responseString, Map.class);
-            Map<String, String> result = new HashMap<>();
-            result.put("MerchantRequestID", (String) map.get("MerchantRequestID"));
-            result.put("CheckoutRequestID", (String) map.get("CheckoutRequestID"));
-            
-            return result;
+        String responseString = response.body().string();
+        
+        // CRITICAL: Log this so you can see it in Render Dashboard
+        System.out.println("Safaricom Response: " + responseString);
+
+        if (!response.isSuccessful()) {
+            throw new IOException("M-Pesa Failed: " + responseString);
         }
+        
+        Map<String, Object> map = objectMapper.readValue(responseString, Map.class);
+        Map<String, String> result = new HashMap<>();
+        result.put("MerchantRequestID", (String) map.get("MerchantRequestID"));
+        result.put("CheckoutRequestID", (String) map.get("CheckoutRequestID"));
+        result.put("ResponseCode", (String) map.get("ResponseCode")); // Log this
+        
+        return result;
     }
+}
 }
