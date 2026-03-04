@@ -89,13 +89,13 @@ private String transactionType;
         jsonBody.put("BusinessShortCode", businessShortCode);
         jsonBody.put("Password", password);
         jsonBody.put("Timestamp", timestamp);
-         jsonBody.put("TransactionType", transactionType);
+         jsonBody.put("TransactionType", "CustomerBuyGoodsOnline");
         jsonBody.put("Amount", amountInt); // Use the actual amount passed
         jsonBody.put("PartyA", phoneNumber);
         jsonBody.put("PartyB", businessShortCode);
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
-        jsonBody.put("AccountReference", "Masomo Soko");
+        jsonBody.put("AccountReference", "MasomoSoko");
         jsonBody.put("TransactionDesc", "Payment for Masomo Soko Resource");
 
         RequestBody body = RequestBody.create(

@@ -3,26 +3,35 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, CircularProgress, Paper, Avatar, Grid, Dialog, 
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, 
-  Stack, Rating, Chip, Container, Breadcrumbs, Link, Snackbar, Alert
+  Stack, Rating, Chip, Container, Breadcrumbs, Link, alpha, createTheme, ThemeProvider
 } from '@mui/material';
-import { api } from '@/api/axios'; // FIXED: Import api
-import AppNotification from '@/components/AppNotification'; // FIXED: Importing the consistent notification component
+import { api } from '@/api/axios';
+import AppNotification from '@/components/AppNotification';
+
 // Icons
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import MessageIcon from '@mui/icons-material/Message';
+import ShieldCheckIcon from '@mui/icons-material/ShieldMoon'; // Using for trust
+import { BookOpen, User, Star, ArrowLeft } from 'lucide-react';
 
-const paymentMethods = [
-  { label: 'M-Pesa (Mobile Money)', value: 'mpesa' },
-];
+const BRAND_BLUE = '#2563EB';
+const BORDER_COLOR = '#E2E8F0';
+const SLATE_DARK = '#0F172A';
+
+const resourceTheme = createTheme({
+    typography: { fontFamily: "'Plus Jakarta Sans', sans-serif" },
+});
+
+const paymentMethods = [{ label: 'M-Pesa (Mobile Money)', value: 'mpesa' }];
 
 const ResourceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
+  // Logic States
   const [loading, setLoading] = useState(true);
   const [resource, setResource] = useState<any>(null);
   const [buyOpen, setBuyOpen] = useState(false);
@@ -38,9 +47,9 @@ const ResourceDetail = () => {
     open: false, message: '', severity: 'info',
   });
 
+  // --- LOGIC: FETCHING ---
   useEffect(() => {
     setLoading(true);
-    // FIXED: Using api instance
     api.get(`/api/teacher/resources/${id}`)
       .then(res => {
         const data = res.data;
@@ -60,6 +69,7 @@ const ResourceDetail = () => {
       setIsPolling(false);
   };
 
+  // --- LOGIC: PAYMENT POLLING ---
   const pollPaymentStatus = async (checkoutRequestId: string) => {
     setIsPolling(true);
     let attempts = 0;
@@ -68,14 +78,13 @@ const ResourceDetail = () => {
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
       try {
-        // FIXED: Using api instance
         const res = await api.get(`/api/payment/status/${checkoutRequestId}`);
         const data = res.data;
 
         if (data.status === 'COMPLETED') {
           stopPolling();
           setBuyOpen(false);
-          setToast({ open: true, message: "Payment Successful! Redirecting...", severity: 'success' });
+          setToast({ open: true, message: "Payment Successful! Added to your library.", severity: 'success' });
           setTimeout(() => navigate('/dashboard/student'), 2000);
         } else if (data.status === 'FAILED' || data.status === 'CANCELLED') {
           stopPolling();
@@ -84,39 +93,27 @@ const ResourceDetail = () => {
 
         if (attempts >= maxAttempts) {
           stopPolling();
-          setToast({ open: true, message: "We haven't received confirmation yet. If you paid, check your dashboard shortly.", severity: 'warning' });
+          setToast({ open: true, message: "Still processing. Check your dashboard in a moment.", severity: 'warning' });
           setBuyOpen(false);
         }
-      } catch (e) {
-        // Ignore network glitches
-      }
+      } catch (e) { /* silent ignore glitches */ }
     }, 2000);
   };
 
-  const handleBuyNow = () => { setBuyOpen(true); };
-
-  const handleIPaid = () => {
-      stopPolling();
-      setBuyOpen(false);
-      setToast({ open: true, message: "We are processing your payment in the background. Check your dashboard in a minute.", severity: 'info' });
-      setTimeout(() => navigate('/dashboard/student'), 2000);
-  };
+  // --- LOGIC: ACTIONS ---
+  const handleBuyNow = () => setBuyOpen(true);
 
   const handleManualCancel = () => {
       stopPolling();
       setBuyOpen(false);
-      setToast({ open: true, message: "Payment process cancelled.", severity: 'info' });
+      setToast({ open: true, message: "Transaction cancelled.", severity: 'info' });
   };
-const handleGetFree = () => {
-    const isAuthenticated = !!localStorage.getItem('token'); 
 
-    if (!isAuthenticated) {
-        setLoginPrompt(true);
-        return;
-    }
+  const handleGetFree = () => {
+    const isAuthenticated = !!localStorage.getItem('token'); 
+    if (!isAuthenticated) { setLoginPrompt(true); return; }
     setProcessing(true);
     
-    // Create params for the existing purchase endpoint
     const params = new URLSearchParams();
     params.append('resourceId', id || '');
 
@@ -124,199 +121,254 @@ const handleGetFree = () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
     .then(() => {
-        setToast({ open: true, message: "Added to your library for free!", severity: 'success' });
+        setToast({ open: true, message: "Success! Resource added to library.", severity: 'success' });
         setTimeout(() => navigate('/dashboard/student'), 1500);
     })
     .catch((err) => {
-         if (err.response?.status === 401 || err.response?.status === 403) {
-            setLoginPrompt(true);
-        } else {
-            setToast({ open: true, message: "Failed to process request.", severity: 'error' });
-        }
+         if (err.response?.status === 401) setLoginPrompt(true);
+         else setToast({ open: true, message: "Processing failed.", severity: 'error' });
     })
     .finally(() => setProcessing(false));
   };
 
   const handlePayment = () => {
-  if (paymentMethod === 'mpesa' && !phoneNumber) {
-      setToast({ open: true, message: "Please enter your M-Pesa phone number.", severity: 'error' });
-      return;
-  }
-
-  setProcessing(true);
-  
-  // FIX 1: Send a plain object (JSON), not URLSearchParams
-  // FIX 2: Use "phoneNumber" to match your Backend Controller
-  // FIX 3: Include the "amount" because your backend code requires it: 
-  //        new BigDecimal(request.get("amount").toString())
-  const paymentData = {
-      phoneNumber: phoneNumber, 
-      resourceId: id,
-      amount: resource.price
-  };
-
-  api.post('/api/payment/pay', paymentData) // Axios sends JSON by default
-  .then(res => {
-    setProcessing(false);
-    const data = res.data;
-    if (data.checkoutRequestId) {
-        pollPaymentStatus(data.checkoutRequestId);
-    } else {
-        setBuyOpen(false);
-        setToast({ open: true, message: "Request Sent!", severity: 'success' });
-    }
-  })
-  .catch((err) => {
-    setProcessing(false);
-    console.error("Payment error details:", err.response); // Debugging
-    if (err.response?.status === 401 || err.response?.status === 403) {
-        setBuyOpen(false);
-        setLoginPrompt(true);
+    if (paymentMethod === 'mpesa' && !phoneNumber) {
+        setToast({ open: true, message: "Enter M-Pesa number.", severity: 'error' });
         return;
     }
-    setToast({ open: true, message: err.response?.data || 'Payment initiation failed.', severity: 'error' });
-  });
-};
+    setProcessing(true);
+    const paymentData = { phoneNumber, resourceId: id, amount: resource.price };
+
+    api.post('/api/payment/pay', paymentData)
+    .then(res => {
+      setProcessing(false);
+      if (res.data.checkoutRequestId) pollPaymentStatus(res.data.checkoutRequestId);
+      else { setBuyOpen(false); setToast({ open: true, message: "Request Sent!", severity: 'success' }); }
+    })
+    .catch((err) => {
+      setProcessing(false);
+      if (err.response?.status === 401) { setBuyOpen(false); setLoginPrompt(true); return; }
+      setToast({ open: true, message: err.response?.data || 'Failed to initiate.', severity: 'error' });
+    });
+  };
 
   const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') return;
     setToast(prev => ({ ...prev, open: false }));
   };
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 20 }}><CircularProgress /></Box>;
-  if (!resource) return <Typography sx={{ mt: 10, textAlign: 'center' }}>Resource not found.</Typography>;
+  if (loading) return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 2 }}>
+        <CircularProgress sx={{ color: BRAND_BLUE }} />
+        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary' }}>LOADING RESOURCE...</Typography>
+    </Box>
+  );
+
+  if (!resource) return (
+    <Container sx={{ py: 10, textAlign: 'center' }}>
+        <Typography variant="h5" fontWeight={800}>Resource not found.</Typography>
+        <Button startIcon={<ArrowLeft />} sx={{ mt: 2 }} onClick={() => navigate('/browse')}>Back to Browse</Button>
+    </Container>
+  );
 
   return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
-        {/* Render Logic stays exactly as you provided */}
-        <Box sx={{ borderBottom: '1px solid #eee', py: 2 }}>
-            <Container maxWidth="lg">
-                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb">
-                    <Link underline="hover" color="inherit" href="/" sx={{ fontSize: '0.9rem' }}>Home</Link>
-                    <Link underline="hover" color="inherit" href="/browse" sx={{ fontSize: '0.9rem' }}>Resources</Link>
-                    <Typography color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{resource.title}</Typography>
-                </Breadcrumbs>
-            </Container>
-        </Box>
+    <ThemeProvider theme={resourceTheme}>
+        <Box sx={{ bgcolor: '#fff', minHeight: '100vh', pb: 10 }}>
+            
+            {/* 1. BREADCRUMBS BAR */}
+            <Box sx={{ borderBottom: `1px solid ${BORDER_COLOR}`, py: 1.5, bgcolor: '#F8FAFC' }}>
+                <Container maxWidth="lg">
+                    <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ '& .MuiTypography-root': { fontSize: '0.8rem', fontWeight: 600 } }}>
+                        <Link component={Button} onClick={() => navigate('/')} color="inherit">Home</Link>
+                        <Link component={Button} onClick={() => navigate('/browse')} color="inherit">Marketplace</Link>
+                        <Typography color="text.primary">{resource.title}</Typography>
+                    </Breadcrumbs>
+                </Container>
+            </Box>
 
-        <Container maxWidth="lg" sx={{ mt: 5 }}>
-            <Grid container spacing={6}>
-                <Grid item xs={12} md={8}>
-                    <Box sx={{ bgcolor: '#F3F4F6', borderRadius: 4, overflow: 'hidden', mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', minHeight: 300, border: '1px solid #E5E7EB' }}>
-                         {resource.previewImageUrl ? (
-                             <img src={resource.previewImageUrl} alt={resource.title} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
-                         ) : (
-                             <Box sx={{ textAlign: 'center', py: 8 }}>
-                                 <Avatar variant="rounded" sx={{ width: 80, height: 80, bgcolor: 'white', color: '#ccc', mx: 'auto', mb: 2 }}>
-                                     <FileDownloadIcon sx={{ fontSize: 40 }} />
-                                 </Avatar>
-                                 <Typography color="text.secondary" fontWeight={500}>No Preview Available</Typography>
-                             </Box>
-                         )}
-                    </Box> bcv 
-                    <Typography variant="h3" fontWeight={800} sx={{ mb: 2, lineHeight: 1.2, color: '#111827', fontSize: { xs: '1.8rem', md: '2.5rem' } }}>{resource.title}</Typography>
-                    <Stack direction="row" spacing={2} sx={{ mb: 4 }} alignItems="center">
-                         <Chip label={resource.subject} size="small" sx={{ fontWeight: 600, bgcolor: '#EFF6FF', color: '#1D4ED8' }} />
-                         <Chip label={resource.grade || "General"} size="small" sx={{ fontWeight: 600, bgcolor: '#F3F4F6', color: '#374151' }} />
-                         <Stack direction="row" spacing={0.5} alignItems="center">
-                             <Rating value={resource.averageRating || 0} precision={0.5} readOnly size="small" />
-                             <Typography variant="body2" fontWeight={600} color="text.secondary">({resource.reviews?.length || 0})</Typography>
-                         </Stack>
-                    </Stack>
-                    <Divider sx={{ mb: 4 }} />
-                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
-                        <Avatar sx={{ width: 56, height: 56, bgcolor: '#111827' }}>{resource.teacherName?.[0] || 'T'}</Avatar>
-                        <Box><Typography variant="subtitle1" fontWeight={700}>{resource.teacherName || 'Instructor'}</Typography><Typography variant="body2" color="text.secondary">Verified Teacher</Typography></Box>
-                    </Stack>
-                    <Box sx={{ mb: 6 }}><Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>About this resource</Typography><Typography variant="body1" sx={{ color: '#4B5563', lineHeight: 1.8, fontSize: '1.05rem' }}>{resource.description}</Typography></Box>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Box sx={{ position: 'sticky', top: 100 }}>
-                        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #E5E7EB', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.08)' }}>
-                            <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 3 }}>
-                                 <Typography variant="h3" fontWeight={800} color="#111827">
-            {isFree ? "Free" : `KES ${resource.price}`}
-        </Typography>
-         {!isFree && <Typography variant="body2" color="text.secondary" fontWeight={500}>One-time payment</Typography>}
-        </Stack>
-                              <Button 
-        variant="contained" 
-        fullWidth 
-        size="large" 
-        disabled={processing}
-        onClick={isFree ? handleGetFree : handleBuyNow} 
-        sx={{ py: 1.8, borderRadius: 3, fontWeight: 700, fontSize: '1rem', mb: 2, textTransform: 'none' }}
-    >
-        {processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Get for Free" : "Buy Now")}
-    </Button>
-                             <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 3 }}>
-        {isFree ? "No payment required" : "Secure payment via M-Pesa"}
-    </Typography>
-                            <Stack spacing={2}><Stack direction="row" spacing={1.5} alignItems="center"><CheckCircleIcon color="success" fontSize="small" /><Typography variant="body2">Instant Download</Typography></Stack><Stack direction="row" spacing={1.5} alignItems="center"><VerifiedIcon color="primary" fontSize="small" /><Typography variant="body2">Quality Checked</Typography></Stack></Stack>
+            <Container maxWidth="lg" sx={{ mt: 5 }}>
+                <Grid container spacing={6}>
+                    
+                    {/* LEFT COLUMN: MAIN CONTENT */}
+                    <Grid item xs={12} md={8}>
+                        
+                        {/* PREVIEW IMAGE BOX */}
+                        <Paper elevation={0} sx={{ bgcolor: '#F1F5F9', borderRadius: '4px', border: `1px solid ${BORDER_COLOR}`, mb: 4, overflow: 'hidden', position: 'relative', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {resource.previewImageUrl ? (
+                                <img src={resource.previewImageUrl} alt={resource.title} style={{ width: '100%', height: 'auto', maxHeight: '600px', objectFit: 'contain' }} />
+                            ) : (
+                                <Stack alignItems="center" spacing={2}>
+                                    <Avatar sx={{ width: 80, height: 80, bgcolor: '#FFF', border: `1px solid ${BORDER_COLOR}` }}><BookOpen color={BRAND_BLUE} size={40} /></Avatar>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary' }}>Digital Resource Preview</Typography>
+                                </Stack>
+                            )}
                         </Paper>
-                    </Box>
-                </Grid>
-            </Grid>
-        </Container>
-=
-        <Dialog open={buyOpen} onClose={handleManualCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
-            <DialogTitle sx={{ fontWeight: 800 }}>{isPolling ? "Processing..." : "Checkout"}</DialogTitle>
-            <DialogContent sx={{ textAlign: isPolling ? 'center' : 'left', py: isPolling ? 4 : 2 }}>
-                {!isPolling ? (
-                    <><Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Purchase <b>{resource.title}</b></Typography>
-                    <TextField select label="Payment Method" fullWidth value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} sx={{ mb: 3 }}>
-                        {paymentMethods.map(opt => (<MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>))}
-                    </TextField>
-                    {paymentMethod === 'mpesa' && (
-                        <Box sx={{ bgcolor: '#F0FDF4', p: 2, borderRadius: 2, border: '1px solid #DCFCE7' }}>
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}><PhoneIphoneIcon color="success" fontSize="small" /><Typography variant="subtitle2" fontWeight={700} color="success.main">M-Pesa Number</Typography></Stack>
-                            <TextField fullWidth placeholder="e.g. 0712345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} size="small" sx={{ bgcolor: 'white' }} />
+
+                        {/* PRODUCT HEADER */}
+                        <Typography variant="h3" sx={{ fontWeight: 900, color: SLATE_DARK, letterSpacing: '-0.04em', lineHeight: 1.1, mb: 2 }}>
+                            {resource.title}
+                        </Typography>
+
+                        <Stack direction="row" spacing={1} sx={{ mb: 4, flexWrap: 'wrap', gap: 1 }}>
+                            <Chip label={resource.subject} sx={{ fontWeight: 800, bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, borderRadius: '4px' }} />
+                            <Chip label={resource.grade || "General"} sx={{ fontWeight: 800, bgcolor: '#F1F5F9', borderRadius: '4px' }} />
+                            {resource.curriculum && <Chip label={resource.curriculum} variant="outlined" sx={{ fontWeight: 800, borderRadius: '4px' }} />}
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 2 }}>
+                                <Rating value={resource.averageRating || 0} precision={0.5} readOnly size="small" />
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>({resource.reviews?.length || 0} Reviews)</Typography>
+                            </Stack>
+                        </Stack>
+
+                        <Divider sx={{ mb: 4 }} />
+
+                        {/* TEACHER INFO */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 5 }}>
+                            <Avatar sx={{ width: 50, height: 50, bgcolor: SLATE_DARK, borderRadius: '4px' }}>
+                                {resource.teacherName?.[0] || <User />}
+                            </Avatar>
+                            <Box>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{resource.teacherName || 'Instructor'}</Typography>
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                    <VerifiedIcon sx={{ fontSize: 16, color: BRAND_BLUE }} />
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>Verified Educator</Typography>
+                                </Stack>
+                            </Box>
                         </Box>
-                    )}</>
-                ) : (
-                    <Box><CircularProgress size={60} thickness={4} sx={{ mb: 3, color: '#16A34A' }} /><Typography variant="h6" fontWeight={700} gutterBottom>Check your phone</Typography><Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300, mx: 'auto', mb: 2 }}>We've sent a prompt to <b>{phoneNumber}</b>. Enter your PIN.</Typography></Box>
-                )}
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 3, flexDirection: isPolling ? 'column' : 'row', gap: 2 }}>
-                {isPolling ? (
-                    <><Button onClick={handleIPaid} variant="contained" fullWidth color="success" sx={{ borderRadius: 2, fontWeight: 700 }}>I have received the SMS</Button><Button onClick={handleManualCancel} fullWidth color="inherit">Cancel Payment</Button></>
-                ) : (
-                    <><Button onClick={() => setBuyOpen(false)} sx={{ fontWeight: 600 }}>Cancel</Button><Button variant="contained" onClick={handlePayment} disabled={processing}>{processing ? "Sending..." : `Pay KES ${resource.price}`}</Button></>
-                )}
-            </DialogActions>
-        </Dialog>
-        
-        <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)}>
-    <DialogTitle sx={{ fontWeight: 700 }}>
-        {isFree ? "Account Required" : "Log in Required"}
-    </DialogTitle>
-    <DialogContent>
-        <Typography>
-            {isFree 
-                ? "Please log in to add this free resource to your library so you can access it anytime." 
-                : "Please log in to purchase this resource."}
-        </Typography>
-    </DialogContent>
-    <DialogActions sx={{ p: 2 }}>
-        <Button onClick={() => setLoginPrompt(false)} color="inherit">Cancel</Button>
-        <Button 
-            onClick={() => navigate('/login')} 
-            variant="contained"
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
-        >
-            Log In / Sign Up
-        </Button>
-    </DialogActions>
-</Dialog>
-       {/* CONSISTENT ECITIZEN STYLE NOTIFICATION */}
-        <AppNotification 
-            open={toast.open}
-            message={toast.message}
-            // Map severities to the primary Green/Red styles
-            severity={(toast.severity === 'error' || toast.severity === 'warning') ? 'error' : 'success'}
-            onClose={handleCloseToast}
-        />
-    </Box>
+
+                        {/* DESCRIPTION */}
+                        <Box sx={{ mb: 6 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Resource Description</Typography>
+                            <Typography variant="body1" sx={{ color: '#475569', lineHeight: 1.8, fontSize: '1.05rem', whiteSpace: 'pre-line' }}>
+                                {resource.description}
+                            </Typography>
+                        </Box>
+                    </Grid>
+
+                    {/* RIGHT COLUMN: STICKY BUY CARD */}
+                    <Grid item xs={12} md={4}>
+                        <Box sx={{ position: 'sticky', top: 100 }}>
+                            <Paper elevation={0} sx={{ p: 4, borderRadius: '4px', border: `1px solid ${BORDER_COLOR}`, bgcolor: '#FFF', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                                
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: BRAND_BLUE, letterSpacing: 1.5, display: 'block', mb: 1 }}>
+                                    LIFETIME ACCESS
+                                </Typography>
+                                <Typography variant="h3" sx={{ fontWeight: 900, mb: 3 }}>
+                                    {isFree ? "Free" : `KES ${resource.price}`}
+                                </Typography>
+
+                                <Button 
+                                    variant="contained" 
+                                    fullWidth 
+                                    size="large" 
+                                    disabled={processing}
+                                    onClick={isFree ? handleGetFree : handleBuyNow} 
+                                    sx={{ 
+                                        py: 2, borderRadius: '4px', fontWeight: 800, fontSize: '1.1rem', mb: 2,
+                                        bgcolor: SLATE_DARK, boxShadow: 'none', '&:hover': { bgcolor: '#1e293b' } 
+                                    }}
+                                >
+                                    {processing ? <CircularProgress size={24} color="inherit" /> : (isFree ? "Add to Library" : "Buy Resource")}
+                                </Button>
+
+                                <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
+                                    {isFree ? "Safe & Free Download" : "Secure Payment via M-Pesa"}
+                                </Typography>
+
+                                <Stack spacing={2.5}>
+                                    <Stack direction="row" spacing={1.5} alignItems="center">
+                                        <CheckCircleIcon sx={{ color: '#10B981', fontSize: 20 }} />
+                                        <Typography variant="body2" fontWeight={600}>Instant PDF Access</Typography>
+                                    </Stack>
+                                    <Stack direction="row" spacing={1.5} alignItems="center">
+                                        <FileDownloadIcon sx={{ color: BRAND_BLUE, fontSize: 20 }} />
+                                        <Typography variant="body2" fontWeight={600}>Unlimited Downloads</Typography>
+                                    </Stack>
+                                    <Stack direction="row" spacing={1.5} alignItems="center">
+                                        <ShieldCheckIcon sx={{ color: '#64748B', fontSize: 20 }} />
+                                        <Typography variant="body2" fontWeight={600}>Verified Authentic Content</Typography>
+                                    </Stack>
+                                </Stack>
+                            </Paper>
+                        </Box>
+                    </Grid>
+                </Grid>
+            </Container>
+
+            {/* CHECKOUT DIALOG */}
+            <Dialog open={buyOpen} onClose={handleManualCancel} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '4px', p: 1 } }}>
+                <DialogTitle sx={{ fontWeight: 900, fontSize: '1.5rem', pb: 0 }}>
+                    {isPolling ? "Verifying..." : "M-Pesa Checkout"}
+                </DialogTitle>
+                <DialogContent sx={{ py: 3 }}>
+                    {!isPolling ? (
+                        <Stack spacing={3} sx={{ mt: 1 }}>
+                            <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1 }}>PAYMENT METHOD</Typography>
+                                <TextField select fullWidth value={paymentMethod} size="small">
+                                    {paymentMethods.map(opt => (<MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>))}
+                                </TextField>
+                            </Box>
+                            
+                            <Box sx={{ p: 2, bgcolor: '#F0FDF4', borderRadius: '4px', border: '1px solid #BBF7D0' }}>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#166534', display: 'block', mb: 1.5 }}>
+                                    ENTER SAFARICOM NUMBER
+                                </Typography>
+                                <TextField 
+                                    fullWidth 
+                                    placeholder="0712345678" 
+                                    value={phoneNumber} 
+                                    onChange={(e) => setPhoneNumber(e.target.value)} 
+                                    size="small" 
+                                    sx={{ bgcolor: 'white' }}
+                                    InputProps={{ startAdornment: <PhoneIphoneIcon sx={{ mr: 1, fontSize: 18, color: '#166534' }} /> }}
+                                />
+                            </Box>
+                        </Stack>
+                    ) : (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <CircularProgress size={50} sx={{ color: '#16A34A', mb: 3 }} />
+                            <Typography variant="h6" fontWeight={800} gutterBottom>Check your phone</Typography>
+                            <Typography variant="body2" color="text.secondary">We've sent a payment prompt to <b>{phoneNumber}</b>. Enter your PIN to complete the purchase.</Typography>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 0, gap: 2 }}>
+                    {isPolling ? (
+                        <Button onClick={handleManualCancel} fullWidth variant="outlined" color="inherit" sx={{ fontWeight: 700 }}>Cancel</Button>
+                    ) : (
+                        <>
+                            <Button onClick={() => setBuyOpen(false)} sx={{ fontWeight: 700 }}>Cancel</Button>
+                            <Button variant="contained" onClick={handlePayment} disabled={processing} sx={{ bgcolor: SLATE_DARK, fontWeight: 800, px: 4 }}>
+                                {processing ? "Initiating..." : `Pay KES ${resource.price}`}
+                            </Button>
+                        </>
+                    )}
+                </DialogActions>
+            </Dialog>
+            
+            {/* LOGIN PROMPT DIALOG */}
+            <Dialog open={loginPrompt} onClose={() => setLoginPrompt(false)} PaperProps={{ sx: { borderRadius: '4px' } }}>
+                <DialogTitle sx={{ fontWeight: 900 }}>Account Required</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Please log in to your account to {isFree ? "add this to your library" : "purchase this resource"}. This ensures your downloads are saved forever.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button onClick={() => setLoginPrompt(false)} sx={{ fontWeight: 700 }}>Close</Button>
+                    <Button onClick={() => navigate('/login')} variant="contained" sx={{ bgcolor: BRAND_BLUE, fontWeight: 800 }}>Sign In Now</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* CONSISTENT NOTIFICATION */}
+            <AppNotification 
+                open={toast.open}
+                message={toast.message}
+                severity={(toast.severity === 'error' || toast.severity === 'warning') ? 'error' : 'success'}
+                onClose={handleCloseToast}
+            />
+        </Box>
+    </ThemeProvider>
   );
 };
 
