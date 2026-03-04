@@ -1059,11 +1059,8 @@ const onMouseUp = () => {
     {/* Contributors Grid */}
     <Grid container spacing={3} justifyContent="flex-start" alignItems="stretch">
       {contributors
-        // 1. Logic: Only teachers with resources
         .filter((teacher: any) => (teacher.resourceCount || 0) > 0)
-        // 2. Logic: Highest count first
         .sort((a: any, b: any) => (b.resourceCount || 0) - (a.resourceCount || 0))
-        // 3. Logic: Top 4
         .slice(0, 4)
         .map((contributor: any, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx} sx={{ display: 'flex' }}>
@@ -1107,7 +1104,6 @@ const onMouseUp = () => {
               </Avatar>
 
               <Box sx={{ flexGrow: 1 }}>
-                {/* Real Name */}
                 <Typography 
                   variant="h6" 
                   fontWeight={800} 
@@ -1126,7 +1122,6 @@ const onMouseUp = () => {
                   <VerifiedIcon sx={{ fontSize: 16, color: SAFARICOM_GREEN }} />
                 </Typography>
 
-                {/* Real Headline (with subject fallback) */}
                 <Typography 
                   variant="body2" 
                   sx={{ 
@@ -1139,7 +1134,6 @@ const onMouseUp = () => {
                   {contributor.headline || (Array.isArray(contributor.subjects) && contributor.subjects[0]) || 'expert educator'}
                 </Typography>
 
-                {/* Real Bio  */}
                 <Typography 
                   variant="body2" 
                   sx={{ 

@@ -20,16 +20,19 @@ public class PublicStatsController {
     @Autowired
     private UserRepository userRepository;
 
-    @GetMapping("/stats")
-    public Map<String, Long> getPublicStats() {
-        Map<String, Long> stats = new HashMap<>();
-        
-        // Total number of resources
-        stats.put("totalResources", resourceRepository.count());
-        
-        // Total number of verified/enabled teachers
-        stats.put("totalTeachers", userRepository.countByRoleAndEnabled("TEACHER", true));
-        
-        return stats;
-    }
+  @GetMapping("/stats")
+public Map<String, Long> getPublicStats() {
+    Map<String, Long> stats = new HashMap<>();
+    
+    // Total Resources 
+    stats.put("totalResources", resourceRepository.count());
+    
+    // Total Teachers 
+    stats.put("totalTeachers", userRepository.countByRole("TEACHER"));
+    
+    // Total Users 
+    stats.put("totalUsers", userRepository.count());
+    
+    return stats;
+}
 }

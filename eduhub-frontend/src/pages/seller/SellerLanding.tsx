@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -13,6 +13,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from '../../components/layout/Footer';
 
+import { api } from '@/api/axios';
 // Icons
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -138,9 +139,19 @@ const GrowthIllustration = () => (
   </Box>
 );
 const SellerLanding: React.FC = () => {
+   const [stats, setStats] = useState({ totalResources: 0, totalTeachers: 0 });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
+useEffect(() => {
+    api.get('/api/public/stats')
+      .then(res => {
+        setStats({
+          totalResources: res.data.totalResources || 0,
+          totalTeachers: res.data.totalTeachers || 0
+        });
+      })
+      .catch(err => console.error("Error fetching stats", err));
+  }, []);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflowX: 'hidden', bgcolor: '#fff' }}>
       
@@ -253,6 +264,8 @@ const SellerLanding: React.FC = () => {
       <Box sx={{ bgcolor: BG_LIGHT, py: { xs: 6, md: 8 }, borderBottom: '1px solid #E2E8F0' }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} justifyContent="center" alignItems="flex-start">
+            
+            {/* Item 1: Commission */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
               <Stack alignItems="center" spacing={1}>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
@@ -264,6 +277,8 @@ const SellerLanding: React.FC = () => {
                 </Typography>
               </Stack>
             </Grid>
+
+            {/* Item 2: Instant Payouts */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
                <Stack alignItems="center" spacing={1}>
                 <SecurityIcon sx={{ fontSize: 40, color: '#0056D2', mb: 1 }} /> 
@@ -279,17 +294,20 @@ const SellerLanding: React.FC = () => {
                 </Typography>
               </Stack>
             </Grid>
+
+            {/* Item 3: Active Teachers */}
             <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
               <Stack alignItems="center" spacing={1}>
                 <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
                 <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, fontSize: { xs: '2.5rem', md: '3.5rem' }, lineHeight: 1 }}>
-                  500+
+                  {stats.totalTeachers}+ 
                 </Typography>
                 <Typography variant="h6" color={TEXT_MUTED} fontWeight={500}>
                   Active Teachers
                 </Typography>
               </Stack>
             </Grid>
+
           </Grid>
         </Container>
       </Box>

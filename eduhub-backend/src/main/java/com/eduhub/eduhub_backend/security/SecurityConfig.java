@@ -92,7 +92,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             
             // 1. Public Endpoints
-            .requestMatchers("/api/auth/**", "/api/payment/callback", "/uploads/**", "/api/resources/public/**").permitAll()
+            .requestMatchers("/api/auth/**", "/api/payment/callback", "/uploads/**", "/api/resources/public/**","/api/public/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/teacher/resources/**", "/api/teacher/top-contributors").permitAll()
 
            

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, Container, Typography, Grid, Button, Avatar, IconButton, Stack
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from '../components/layout/Footer';
-
+import { api } from '@/api/axios';
 // Icons
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -42,6 +42,20 @@ const CORE_VALUES = [
 ];
 
 const About: React.FC = () => {
+  const [stats, setStats] = useState({ totalResources: 0, totalTeachers: 0, totalUsers: 0 });
+
+  useEffect(() => {
+    api.get('/api/public/stats')
+      .then(res => {
+        setStats({
+          totalResources: res.data.totalResources || 0,
+          totalTeachers: res.data.totalTeachers || 0,
+          totalUsers: res.data.totalUsers || 0
+        });
+      })
+      .catch(err => console.error("Error fetching stats", err));
+  }, []);
+
   return (
     <Box sx={{ bgcolor: 'white', minHeight: '100vh', overflowX: 'hidden', width: '100%' }}>
       
@@ -87,19 +101,23 @@ const About: React.FC = () => {
             </Typography>
             
             <Grid container spacing={2}>
-              <Grid item xs={6}>
-                 <Box sx={{ borderLeft: '4px solid #2563eb', pl: 2 }}>
-                    <Typography variant="h4" fontWeight={700} color="#2563eb" sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>50k+</Typography>
-                    <Typography variant="body2" color="text.secondary">Resources Downloaded</Typography>
-                 </Box>
-              </Grid>
-              <Grid item xs={6}>
-                 <Box sx={{ borderLeft: '4px solid #ea580c', pl: 2 }}>
-                    <Typography variant="h4" fontWeight={700} color="#ea580c" sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}>2,000+</Typography>
-                    <Typography variant="body2" color="text.secondary">Active Teachers</Typography>
-                 </Box>
-              </Grid>
-            </Grid>
+        <Grid item xs={6}>
+           <Box sx={{ borderLeft: '4px solid #2563eb', pl: 2 }}>
+              <Typography variant="h4" fontWeight={700} color="#2563eb">
+                {stats.totalResources}+
+              </Typography>
+              <Typography variant="body2" color="text.secondary">Resources Available</Typography>
+           </Box>
+        </Grid>
+        <Grid item xs={6}>
+           <Box sx={{ borderLeft: '4px solid #ea580c', pl: 2 }}>
+              <Typography variant="h4" fontWeight={700} color="#ea580c">
+                {stats.totalTeachers}+
+              </Typography>
+              <Typography variant="body2" color="text.secondary">Verified Teachers</Typography>
+           </Box>
+        </Grid>
+      </Grid>
           </Grid>
         </Grid>
       </Container>
