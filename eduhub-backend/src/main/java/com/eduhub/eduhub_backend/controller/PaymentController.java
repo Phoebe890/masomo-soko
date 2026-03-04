@@ -16,7 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
+import com.eduhub.eduhub_backend.entity.Notification;
+import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List; // IMPORT THIS
@@ -33,7 +34,7 @@ public class PaymentController {
     @Autowired private UserRepository userRepository;
     @Autowired private PurchaseRepository purchaseRepository;
     @Autowired private EmailProducer emailProducer; // INJECT THIS
-
+@Autowired private NotificationRepository notificationRepository;
     @PostMapping("/pay")
     public ResponseEntity<?> initiatePayment(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -129,6 +130,16 @@ public class PaymentController {
 
                     // 3. SEND PROFESSIONAL HTML EMAIL
                     sendProfessionalReceipt(transaction.getUser(), transaction.getResource(), mpesaReceipt);
+                     // 4. NOTIFY TEACHER (Sale Alert Email)
+                    sendTeacherSaleAlert(transaction.getResource().getUser(), transaction.getUser(), transaction.getResource());
+
+                    // 5. SAVE DASHBOARD NOTIFICATION FOR TEACHER
+                    notificationRepository.save(new Notification(
+                        transaction.getResource().getUser(),
+                        "New Sale! " + transaction.getUser().getName() + " purchased your resource '" + transaction.getResource().getTitle() + "'",
+                        LocalDateTime.now(),
+                        false
+                    ));
                     
                 } else {
                     transaction.setStatus("FAILED");
@@ -138,6 +149,50 @@ public class PaymentController {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+    // Helper to extract receipt safely
+    private String extractMpesaReceipt(Map<String, Object> stkCallback) {
+        try {
+            List<Map<String, Object>> items = (List<Map<String, Object>>) ((Map<String, Object>) stkCallback.get("CallbackMetadata")).get("Item");
+            for (Map<String, Object> item : items) {
+                if ("MpesaReceiptNumber".equals(item.get("Name"))) return item.get("Value").toString();
+            }
+        } catch (Exception e) { return "N/A"; }
+        return "N/A";
+    }
+
+    // --- TEACHER EMAIL LOGIC ---
+    private void sendTeacherSaleAlert(User teacher, User student, TeacherResource resource) {
+        String subject = "New Sale Confirmed: KES " + resource.getPrice();
+        
+        String htmlContent = 
+            "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; color: #333;'>" +
+            "  <div style='text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 10px;'>" +
+            "    <h1 style='color: #10b981; margin: 0;'>Masomo Soko</h1>" +
+            "    <p style='font-size: 14px; color: #666; font-weight: bold;'>You've made a sale!</p>" +
+            "  </div>" +
+            "  <div style='padding: 20px 0;'>" +
+            "    <p>Hello <strong>" + teacher.getName() + "</strong>,</p>" +
+            "    <p>Congratulations! A student has just purchased one of your resources. Your earnings have been updated in your dashboard.</p>" +
+            "    <div style='background-color: #f0fdf4; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 5px solid #10b981;'>" +
+            "      <p style='margin: 5px 0;'><strong>Resource Sold:</strong> " + resource.getTitle() + "</p>" +
+            "      <p style='margin: 5px 0;'><strong>Purchased By:</strong> " + student.getName() + "</p>" +
+            "      <p style='margin: 5px 0;'><strong>Your Earnings:</strong> KES " + resource.getPrice() + "</p>" +
+            "    </div>" +
+            "    <div style='text-align: center; margin-top: 30px;'>" +
+            "      <a href='https://masomosoko.co.ke/dashboard/teacher' style='background-color: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>View Teacher Dashboard</a>" +
+            "    </div>" +
+            "  </div>" +
+            "  <p style='font-size: 11px; color: #999; text-align: center; margin-top: 40px;'>" +
+            "    This is a notification from Masomo Soko." +
+            "  </p>" +
+            "</div>";
+
+        try {
+            emailProducer.sendEmail(teacher.getEmail(), subject, htmlContent);
+        } catch (Exception e) {
+            System.err.println("Failed to send teacher sale alert: " + e.getMessage());
         }
     }
 
@@ -165,7 +220,7 @@ public class PaymentController {
             "    </div>" +
             "  </div>" +
             "  <p style='font-size: 11px; color: #999; text-align: center; margin-top: 40px;'>" +
-            "    This is an automated receipt. If you have any questions, please contact support@masomosoko.co.ke" +
+            "    This is an automated receipt. If you have any questions, please contact info@masomosoko.co.ke" +
             "  </p>" +
             "</div>";
 
