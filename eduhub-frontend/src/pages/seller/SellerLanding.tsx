@@ -184,7 +184,7 @@ const SellerLanding: React.FC = () => {
                     lineHeight: 1.6 
                   }}
                 >
-                  Join hundreds of Kenyan teachers earning passive income by sharing exams, notes, and lesson plans on <strong>Mwalimu Soko</strong>.
+                  Join hundreds of Kenyan teachers earning passive income by sharing exams, notes, and lesson plans on <strong>Masomo Soko</strong>.
                 </Typography>
                 
                 <Stack 
@@ -351,7 +351,7 @@ const SellerLanding: React.FC = () => {
                   Keep 85% of your earnings
                 </Typography>
                 <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, color: TEXT_MUTED }}>
-                  We believe content creators should be rewarded. That is why we offer the lowest commission rates in the region. When a student buys your exam paper, the money is sent instantly to your M-Pesa.
+                  We believe content creators should be rewarded. That is why we offer the lowest commission rates in the region. When a student buys your resource, the money is sent instantly to your M-Pesa.
                 </Typography>
               </Box>
             </Grid>
@@ -367,7 +367,7 @@ const SellerLanding: React.FC = () => {
                   Track your success in real-time
                 </Typography>
                 <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, color: TEXT_MUTED }}>
-                  No more guessing. Our seller dashboard shows you exactly which notes are selling, how much you have earned today, and what students are searching for—so you can create more of what they need.
+                  No more guessing. Our seller dashboard shows you exactly which notes are selling, how much you have earned today, and what students are searching for so you can create more of what they need.
                 </Typography>
               </Box>
             </Grid>

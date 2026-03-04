@@ -206,7 +206,7 @@ const Home: React.FC = () => {
 const [touchStart, setTouchStart] = useState<number | null>(null);
 const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-
+ const [stats, setStats] = useState({ totalResources: 0, totalTeachers: 0 });
 const minSwipeDistance = 50;
 
 const onTouchStart = (e: React.TouchEvent) => {
@@ -275,28 +275,42 @@ const onMouseUp = () => {
   }, [slides.length, isPaused]);
 
   useEffect(() => {
-    setLoading(true);
-    
-    api.get('/api/teacher/resources')
-      .then(res => {
-        let data = [];
-        if (Array.isArray(res.data)) data = res.data;
-        else if (res.data && Array.isArray(res.data.resources)) data = res.data.resources;
-        else if (res.data && Array.isArray(res.data.data)) data = res.data.data;
-        setResources(data.slice(0, 8));
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  setLoading(true);
 
-    api.get('/api/teacher/top-contributors')
-      .then(res => {
-        let data = [];
-        if (Array.isArray(res.data)) data = res.data;
-        else if (res.data && Array.isArray(res.data.contributors)) data = res.data.contributors;
-        setContributors(data);
-      })
-      .catch(() => {});
-  }, []);
+  // 1. Fetch Featured Resources
+  
+  api.get('/api/teacher/resources')
+    .then(res => {
+      let data = Array.isArray(res.data) ? res.data 
+               : res.data?.resources ? res.data.resources 
+               : res.data?.data ? res.data.data 
+               : [];
+      setResources(data.slice(0, 8));
+    })
+    .catch(err => console.error("Error fetching resources", err))
+    .finally(() => setLoading(false)); // Always turn off loading regardless of success/fail
+
+  // 2. Fetch Top Contributors
+  api.get('/api/teacher/top-contributors')
+    .then(res => {
+      let data = Array.isArray(res.data) ? res.data 
+               : res.data?.contributors ? res.data.contributors 
+               : [];
+      setContributors(data);
+    })
+    .catch(err => console.error("Error fetching contributors", err));
+
+  // 3. Fetch Real-time Stats for the Counters
+  api.get('/api/public/stats')
+    .then(res => {
+      setStats({
+        totalResources: res.data.totalResources || 0,
+        totalTeachers: res.data.totalTeachers || 0
+      });
+    })
+    .catch(err => console.error("Error fetching stats", err));
+    
+}, []);
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -528,15 +542,17 @@ const onMouseUp = () => {
           Geography should never dictate the quality of education. We provide a sustainable ecosystem where Kenya's best educators are fairly rewarded for their expertise, and every student accesses premium CBC and CBE materials instantly.
         </Typography>
         
-        {/* ANIMATED STATS ROW */}
-        <Grid container spacing={4} sx={{ mb: 6 }}>
-          <Grid item xs={6}>
-            <StatCounter end={500} label="Resources Sold" color="#062a4e" />
-          </Grid>
-          <Grid item xs={6}>
-            <StatCounter end={200} label="Verified Teachers" color="#ea580c" />
-          </Grid>
-        </Grid>
+       {/* ANIMATED STATS ROW */}
+<Grid container spacing={4} sx={{ mb: 6 }}>
+  <Grid item xs={6}>
+    {/* Use real database count here */}
+    <StatCounter end={stats.totalResources} label="Resources Available" color="#062a4e" />
+  </Grid>
+  <Grid item xs={6}>
+    {/* Use real database count here */}
+    <StatCounter end={stats.totalTeachers} label="Verified Teachers" color="#ea580c" />
+  </Grid>
+</Grid>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Button 
@@ -639,60 +655,80 @@ const onMouseUp = () => {
            </Button>
         </Box>
         
-        <Grid container spacing={{ xs: 2, md: 4 }}>
-          {CATEGORIES.map((cat) => (
-            <Grid item xs={6} sm={4} md={3} key={cat.id}>
-              <Card 
-                component={RouterLink}
-                to={`/browse?category=${cat.id}`}
-                sx={{ 
-                    textDecoration: 'none',
-                    borderRadius: 5, 
-                    bgcolor: 'white',
-                    border: '1px solid #f1f5f9',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                    transition: 'all 0.3s ease-in-out',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    '&:hover': { 
-                        transform: 'translateY(-10px)',
-                        borderColor: PRIMARY_BLUE,
-                        boxShadow: `0 20px 40px rgba(47, 107, 255, 0.1)`,
-                        '& .cat-img': { transform: 'scale(1.05)' }
-                    }
-                }}
-              >
-                  {/* Top Image Section */}
-                  <Box sx={{ position: 'relative', height: { xs: 130, md: 180 }, overflow: 'hidden', borderRadius: '20px 20px 0 0' }}>
-                    <Box 
-                        component="img"
-                        className="cat-img"
-                        src={cat.image} 
-                         alt={`${cat.label} resources for Kenyan schools`}
-                        sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                    />
-                  </Box>
+       <Grid container spacing={{ xs: 1.5, md: 4 }}> {/* Reduced mobile spacing from 2 to 1.5 */}
+  {CATEGORIES.map((cat) => (
+    <Grid item xs={6} sm={4} md={3} key={cat.id}>
+      <Card 
+        component={RouterLink}
+        to={`/browse?category=${cat.id}`}
+        sx={{ 
+            textDecoration: 'none',
+            borderRadius: { xs: 3, md: 5 }, // Smaller radius on mobile
+            bgcolor: 'white',
+            border: '1px solid #f1f5f9',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            transition: 'all 0.3s ease-in-out',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            '&:hover': { 
+                transform: 'translateY(-10px)',
+                borderColor: PRIMARY_BLUE,
+                boxShadow: `0 20px 40px rgba(47, 107, 255, 0.1)`,
+                '& .cat-img': { transform: 'scale(1.05)' }
+            }
+        }}
+      >
+          {/* Top Image Section - Reduced mobile height from 130 to 100 */}
+          <Box sx={{ position: 'relative', height: { xs: 100, md: 180 }, overflow: 'hidden', borderRadius: { xs: '12px 12px 0 0', md: '20px 20px 0 0' } }}>
+            <Box 
+                component="img"
+                className="cat-img"
+                src={cat.image} 
+                alt={`${cat.label} resources`}
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+            />
+          </Box>
 
-                  {/* Bottom Text Section */}
-                  <Box sx={{ p: { xs: 2.5, md: 3 }, flexGrow: 1 }}>
-                    <Typography 
-                        fontWeight={800} 
-                        sx={{ color: TEXT_DARK, fontSize: { xs: '1rem', md: '1.25rem' }, mb: 0.5, lineHeight: 1.2 }}
-                    >
-                        {cat.label}
-                    </Typography>
-                    <Typography 
-                        variant="body2" 
-                        sx={{ color: TEXT_MUTED, fontWeight: 500, fontSize: { xs: '0.8rem', md: '0.9rem' } }}
-                    >
-                        {cat.sub}
-                    </Typography>
-                  </Box>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+          {/* Bottom Text Section - Reduced mobile padding from 2.5 to 1.5 */}
+          <Box sx={{ p: { xs: 1.5, md: 3 }, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <Typography 
+                fontWeight={800} 
+                sx={{ 
+                  color: TEXT_DARK, 
+                  fontSize: { xs: '0.85rem', md: '1.25rem' }, // Smaller font for mobile
+                  mb: 0.5, 
+                  lineHeight: 1.2,
+                  // Prevent card from getting too long by limiting title to 2 lines
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  minHeight: { xs: '2rem', md: '3rem' } 
+                }}
+            >
+                {cat.label}
+            </Typography>
+            <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: TEXT_MUTED, 
+                  fontWeight: 500, 
+                  fontSize: { xs: '0.7rem', md: '0.9rem' }, // Smaller font for mobile
+                  // Limit subtitle to 1 line on mobile to keep cards uniform
+                  display: '-webkit-box',
+                  WebkitLineClamp: { xs: 1, md: 2 },
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}
+            >
+                {cat.sub}
+            </Typography>
+          </Box>
+      </Card>
+    </Grid>
+  ))}
+</Grid>
       </Container>
 
   {/* --- FEATURED RESOURCES  --- */}

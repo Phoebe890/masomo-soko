@@ -16,7 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     
     boolean existsByEmail(String email);
-
+ long countByRoleAndEnabled(String role, boolean enabled);
     
     @Query("SELECT u FROM User u WHERE " +
            "(:search IS NULL OR :search = '' OR " +
