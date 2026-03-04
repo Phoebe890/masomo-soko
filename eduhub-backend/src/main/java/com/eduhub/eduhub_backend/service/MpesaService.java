@@ -92,7 +92,7 @@ private String transactionType;
          jsonBody.put("TransactionType", "CustomerBuyGoodsOnline");
         jsonBody.put("Amount", amountInt); // Use the actual amount passed
         jsonBody.put("PartyA", phoneNumber);
-        jsonBody.put("PartyB", businessShortCode);
+        jsonBody.put("PartyB", 9489616);
         jsonBody.put("PhoneNumber", phoneNumber);
         jsonBody.put("CallBackURL", callbackUrl);
         jsonBody.put("AccountReference", "MasomoSoko");

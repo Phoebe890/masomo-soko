@@ -32,54 +32,65 @@ public class PaymentController {
     @Autowired private PurchaseRepository purchaseRepository;
 
     @PostMapping("/pay")
-    public ResponseEntity<?> initiatePayment(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, Object> request) {
-        
-        try {
-            if (userDetails == null) return ResponseEntity.status(401).body("Unauthorized");
-            
-            User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-            
-            // 1. Get Inputs safely
-            Long resourceId = Long.valueOf(request.get("resourceId").toString());
-            String phoneNumber = request.get("phoneNumber").toString();
-            
-            // FIX: Convert request amount (String/Double) to BigDecimal explicitly
-            BigDecimal amountVal = new BigDecimal(request.get("amount").toString());
-            
-            TeacherResource resource = resourceRepository.findById(resourceId)
-                    .orElseThrow(() -> new RuntimeException("Resource not found"));
-
-            // 2. Call Service (Now passing BigDecimal, matching the Service definition)
-            Map<String, String> mpesaResponse = mpesaService.initiateStkPush(phoneNumber, amountVal);
-
-            // 3. Save Transaction
-            PaymentTransaction transaction = new PaymentTransaction();
-            transaction.setUser(user);
-            transaction.setResource(resource);
-            transaction.setAmount(amountVal); // Save as BigDecimal
-            transaction.setPhoneNumber(phoneNumber);
-            transaction.setTransactionDate(LocalDateTime.now());
-            transaction.setStatus("PENDING");
-            
-            // Save IDs from M-Pesa response
-            transaction.setMerchantRequestId(mpesaResponse.get("MerchantRequestID"));
-            transaction.setCheckoutRequestId(mpesaResponse.get("CheckoutRequestID"));
-
-            transactionRepository.save(transaction);
-
-            return ResponseEntity.ok(Map.of(
-                "message", "STK Push initiated", 
-                "checkoutRequestId", transaction.getCheckoutRequestId()
-            ));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Payment initiation failed: " + e.getMessage());
+public ResponseEntity<?> initiatePayment(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestBody Map<String, Object> request) {
+    
+    try {
+        // 1. IMPROVED AUTH CHECK
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Please log in to purchase this resource.");
         }
-    }
+        
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // 2. INPUT VALIDATION
+        if (request.get("resourceId") == null || request.get("amount") == null) {
+            return ResponseEntity.status(400).body("Invalid request data.");
+        }
 
+        Long resourceId = Long.valueOf(request.get("resourceId").toString());
+        String phoneNumber = request.get("phoneNumber").toString();
+        BigDecimal amountVal = new BigDecimal(request.get("amount").toString());
+        
+        TeacherResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        // 3. CALL MPESA SERVICE
+        // Note: Catching IOException specifically for M-Pesa API errors
+        Map<String, String> mpesaResponse = mpesaService.initiateStkPush(phoneNumber, amountVal);
+
+        // 4. SAVE TRANSACTION
+        PaymentTransaction transaction = new PaymentTransaction();
+        transaction.setUser(user);
+        transaction.setResource(resource);
+        transaction.setAmount(amountVal);
+        transaction.setPhoneNumber(phoneNumber);
+        transaction.setTransactionDate(LocalDateTime.now());
+        transaction.setStatus("PENDING");
+        transaction.setMerchantRequestId(mpesaResponse.get("MerchantRequestID"));
+        transaction.setCheckoutRequestId(mpesaResponse.get("CheckoutRequestID"));
+
+        transactionRepository.save(transaction);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "STK Push initiated", 
+            "checkoutRequestId", transaction.getCheckoutRequestId()
+        ));
+
+    } catch (java.io.IOException e) {
+        // This handles "Merchant not found" and other Safaricom-specific errors
+        String errorMsg = e.getMessage();
+        if (errorMsg.contains("Merchant not found")) {
+            return ResponseEntity.status(400).body("Error: M-Pesa Merchant configuration mismatch. Please contact support.");
+        }
+        return ResponseEntity.status(400).body("M-Pesa Error: " + errorMsg);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(500).body("Could not initiate payment. Please try again later.");
+    }
+}
     @PostMapping("/callback")
     public void mpesaCallback(@RequestBody String callbackJson) {
         try {

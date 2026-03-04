@@ -131,27 +131,56 @@ const ResourceDetail = () => {
     .finally(() => setProcessing(false));
   };
 
-  const handlePayment = () => {
-    if (paymentMethod === 'mpesa' && !phoneNumber) {
-        setToast({ open: true, message: "Enter M-Pesa number.", severity: 'error' });
+ const handlePayment = () => {
+    // 1. PRE-CHECK: IS USER LOGGED IN?
+    const token = localStorage.getItem('token');
+    if (!token) {
+        setBuyOpen(false); // Close the M-Pesa dialog
+        setLoginPrompt(true); // Open the "Account Required" dialog
         return;
     }
+
+    if (paymentMethod === 'mpesa' && !phoneNumber) {
+        setToast({ open: true, message: "Please enter your M-Pesa number.", severity: 'error' });
+        return;
+    }
+
     setProcessing(true);
     const paymentData = { phoneNumber, resourceId: id, amount: resource.price };
 
     api.post('/api/payment/pay', paymentData)
     .then(res => {
-      setProcessing(false);
-      if (res.data.checkoutRequestId) pollPaymentStatus(res.data.checkoutRequestId);
-      else { setBuyOpen(false); setToast({ open: true, message: "Request Sent!", severity: 'success' }); }
+        setProcessing(false);
+        if (res.data.checkoutRequestId) {
+            pollPaymentStatus(res.data.checkoutRequestId);
+        } else {
+            setBuyOpen(false);
+            setToast({ open: true, message: "Request Sent! Check your phone.", severity: 'success' });
+        }
     })
     .catch((err) => {
-      setProcessing(false);
-      if (err.response?.status === 401) { setBuyOpen(false); setLoginPrompt(true); return; }
-      setToast({ open: true, message: err.response?.data || 'Failed to initiate.', severity: 'error' });
-    });
-  };
+        setProcessing(false);
+        
+        // 2. HANDLE SPECIFIC STATUS CODES
+        if (err.response?.status === 401) {
+            setBuyOpen(false);
+            setLoginPrompt(true);
+            return;
+        }
 
+        // 3. DISPLAY THE ACTUAL ERROR MESSAGE FROM BACKEND
+        // err.response.data contains the string sent by ResponseEntity.body()
+        const errorMsg = typeof err.response?.data === 'string' 
+            ? err.response.data 
+            : 'Payment initiation failed. Please try again.';
+
+        setToast({ 
+            open: true, 
+            message: errorMsg, 
+            severity: 'error' 
+        });
+    });
+};
   const handleCloseToast = (event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') return;
     setToast(prev => ({ ...prev, open: false }));
