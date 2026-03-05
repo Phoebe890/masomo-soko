@@ -62,7 +62,7 @@ const PayoutSetup: React.FC = () => {
             <InputLabel>Payout Method</InputLabel>
             <Select value={method} onChange={e => setMethod(e.target.value)} label="Payout Method">
               <MenuItem value="mpesa">M-Pesa</MenuItem>
-              <MenuItem value="bank">Bank Account</MenuItem>
+              
             </Select>
           </FormControl>
           {method === 'mpesa' && (

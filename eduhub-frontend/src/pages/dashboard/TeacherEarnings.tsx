@@ -57,7 +57,7 @@ const TeacherEarnings = () => {
 
     const handleWithdraw = async () => {
         const amount = parseFloat(withdrawAmount);
-        if (!amount || amount < 50) return setToast({ open: true, msg: "Min withdrawal KES 50", type: 'error' });
+        if (!amount || amount < 5) return setToast({ open: true, msg: "Min withdrawal KES 5", type: 'error' });
         if (amount > balance) return setToast({ open: true, msg: "Insufficient funds", type: 'error' });
         setProcessing(true);
         try {
