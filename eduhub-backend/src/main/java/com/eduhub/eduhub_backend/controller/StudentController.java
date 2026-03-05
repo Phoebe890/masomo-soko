@@ -21,7 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -57,6 +57,7 @@ public class StudentController {
     }
 
     @GetMapping("/dashboard")
+    @Transactional 
     public ResponseEntity<?> getStudentDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             User student = getAuthenticatedStudent(userDetails);
@@ -108,6 +109,7 @@ public class StudentController {
     }
 
     @GetMapping("/purchases")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getStudentPurchases(@AuthenticationPrincipal UserDetails userDetails) {
         User student = getAuthenticatedStudent(userDetails);
         if (student == null) return ResponseEntity.status(401).body("Unauthorized");
@@ -122,6 +124,7 @@ public class StudentController {
     }
 
     @PostMapping("/purchase")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> purchaseResource(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("resourceId") Long resourceId) {
@@ -200,6 +203,7 @@ public class StudentController {
     }
 
     @GetMapping("/order-history")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getOrderHistory(@AuthenticationPrincipal UserDetails userDetails) {
         User student = getAuthenticatedStudent(userDetails);
         if (student == null) return ResponseEntity.status(401).body("Unauthorized");
