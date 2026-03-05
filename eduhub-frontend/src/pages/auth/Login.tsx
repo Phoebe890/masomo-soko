@@ -67,13 +67,21 @@ const Login: React.FC = () => {
         handleAuthSuccess(res.data);
       } catch (err: any) {
        
-        const serverMessage = err.response?.data || "Google Login failed.";
-        setToast({ open: true, message: serverMessage, severity: 'error' });
-      } finally {
-        stopLoading();
+        if (err.response?.status === 404) {
+        setToast({ 
+          open: true, 
+          message: "Account not found. Please sign up first!", 
+          severity: 'error' 
+        });
+      
+      } else {
+        setToast({ open: true, message: "Google Login failed.", severity: 'error' });
       }
-    },
-  });
+    } finally {
+      stopLoading();
+    }
+  },
+});
 
  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,131 +122,77 @@ const Login: React.FC = () => {
             sx={{ pt: { xs: 5, md: 0 }, pb: { xs: 5, md: 0 } }} 
           >
             {/* LEFT SIDE: FORM */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ maxWidth: '420px', mx: 'auto'  }}>
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                  
-      <Box 
-        component={RouterLink} 
-        to="/"
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center',
-           mb: { xs: 3, md: 1 },
-          textDecoration: 'none'
-        }}
-      >
-        <Box 
-          component="img"
-          src={logoIcon}
-          alt="Masomo Soko"
-          sx={{ 
-            height: { xs: 60, md: 70 }, // 60px on mobile, 70px on desktop
-            width: 'auto',
-            objectFit: 'contain'
-          }}
-        />
+  <Grid item xs={12} md={6}>
+  <Box sx={{ maxWidth: '400px', mx: 'auto' }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <Box component={RouterLink} to="/" sx={{ display: 'flex', justifyContent: 'center', mb: 1, textDecoration: 'none' }}>
+        <Box component="img" src={logoIcon} alt="Logo" sx={{ height: { xs: 50, md: 65 }, width: 'auto' }} />
       </Box>
-      {/* --- END OF LOGO ICON --- */}
-                  <Typography variant="h3" fontWeight={800} gutterBottom sx={{ color: '#1a1b1d', fontSize: { xs: '2.2rem', md: '2.8rem' }, lineHeight: 1.1 }}>
-                    Welcome back
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: '1.05rem' }}>
-                    Sign in to continue your learning journey.
-                  </Typography>
-                  
-                  {/*GOOGLE BUTTON */}
-                  <Button 
-                    fullWidth 
-                    variant="outlined" 
-                    onClick={() => googleLogin()} 
-                    startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />} 
-                    sx={{ 
-                        py: 1.5, 
-                        mb: 3, 
-                        borderRadius: '8px',
-                        borderColor: theme.palette.primary.main, // Restored Blue Border
-                        color: theme.palette.primary.main,
-                        fontWeight: 600,
-                        textTransform: 'none',
-                        '&:hover': {
-                            borderColor: theme.palette.primary.dark,
-                            bgcolor: 'rgba(47, 107, 255, 0.04)'
-                        }
-                    }}
-                  >
-                    Sign in with Google
-                  </Button>
-                  
-                  <Divider sx={{ mb: 3 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>OR EMAIL</Typography>
-                  </Divider>
-                  
-                  <Box component="form" onSubmit={handleSubmit}>
-                    <Stack spacing={2.5}>
-                      <TextField 
-                        fullWidth 
-                        label="Email Address" 
-                        type="email" 
-                        variant="outlined"
-                        value={formData.email} 
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                        required 
-                      />
-                      <Box>
-                        <TextField 
-                          fullWidth 
-                          label="Password" 
-                          type={showPassword ? 'text' : 'password'} 
-                          variant="outlined"
-                          value={formData.password} 
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
-                          required 
-                          InputProps={{ 
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                                </IconButton>
-                              </InputAdornment>
-                            ) 
-                          }} 
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                          <FormControlLabel control={<Checkbox size="small" />} label={<Typography variant="body2" color="text.secondary">Remember me</Typography>} />
-                          <Link component={RouterLink} to="/forgot-password" variant="body2" color="primary" underline="hover" fontWeight={600}>Forgot password?</Link>
-                        </Box>
-                      </Box>
-                    </Stack>
-                    
-                    <Button 
-                      type="submit" 
-                      fullWidth 
-                      variant="contained" 
-                      sx={{ 
-                        mt: 4, 
-                        py: 2, 
-                        borderRadius: '8px', 
-                        fontWeight: 700, 
-                        bgcolor: theme.palette.primary.main, 
-                        textTransform: 'none', 
-                        fontSize: '1rem',
-                        boxShadow: '0 4px 12px rgba(47, 107, 255, 0.25)',
-                        '&:hover': { bgcolor: theme.palette.primary.dark }
-                      }}
-                    >
-                      Sign In
-                    </Button>
-                    
-                    <Box sx={{ mt: 3, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        New here? <Link component={RouterLink} to="/register" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>Create an account</Link>
-                      </Typography>
-                    </Box>
-                  </Box>
-                </motion.div>
-              </Box>
-            </Grid>
+
+      <Typography variant="h4" fontWeight={800} sx={{ color: '#1a1b1d', fontSize: { xs: '1.8rem', md: '2.4rem' }, textAlign: {xs: 'center', md: 'left'}, mb: 0.5 }}>
+        Welcome back
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: {xs: 'center', md: 'left'} }}>
+        Sign in to continue your journey.
+      </Typography>
+      
+      <Button 
+        fullWidth variant="outlined" onClick={() => googleLogin()} 
+        startIcon={<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style={{ width: 18 }} />} 
+        sx={{ py: 1.2, mb: 2, borderRadius: '8px', fontWeight: 600, textTransform: 'none' }}
+      >
+        Sign in with Google
+      </Button>
+      
+      <Divider sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>OR EMAIL</Typography>
+      </Divider>
+      
+      <Box component="form" onSubmit={handleSubmit}>
+        <Stack spacing={2}>
+          <TextField size="small" fullWidth label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+          <Box>
+            <TextField 
+              size="small"
+              fullWidth label="Password" type={showPassword ? 'text' : 'password'} 
+              value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+              required 
+              InputProps={{ 
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} size="small">
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ) 
+              }} 
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
+              <FormControlLabel 
+                control={<Checkbox size="small" />} 
+                label={<Typography variant="caption" color="text.secondary">Remember me</Typography>} 
+              />
+              <Link component={RouterLink} to="/forgot-password" variant="caption" color="primary" sx={{ fontWeight: 600, textDecoration: 'none' }}>Forgot password?</Link>
+            </Box>
+          </Box>
+        </Stack>
+        
+        <Button 
+          type="submit" fullWidth variant="contained" 
+          sx={{ mt: 2, py: 1.5, borderRadius: '8px', fontWeight: 700, textTransform: 'none' }}
+        >
+          Sign In
+        </Button>
+        
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            New here? <Link component={RouterLink} to="/register" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>Create an account</Link>
+          </Typography>
+        </Box>
+      </Box>
+    </motion.div>
+  </Box>
+</Grid>
 
             {/* RIGHT SIDE: ILLUSTRATION */}
             <Grid item xs={false} md={6} sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'center' }}>

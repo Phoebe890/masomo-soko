@@ -165,91 +165,95 @@ private AuthService authService;
     }
     
     // --- GOOGLE LOGIN ---
-    @PostMapping("/google")
+     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
         try {
-              String intendedRole = body.getOrDefault("role", "STUDENT").toUpperCase();
             String tokenString = body.get("token");
             if (tokenString == null) tokenString = body.get("credential");
-            if (tokenString == null) return ResponseEntity.badRequest().body("Missing 'token' or 'credential'");
-
-            String role = body.getOrDefault("role", "TEACHER");
-            String email = null;
-            String name = null;
-            String pictureUrl = null;
-
-            if (tokenString.startsWith("ya29")) {
-                Map<String, String> googleUser = fetchUserFromGoogleApi(tokenString);
-                if (googleUser == null) return ResponseEntity.status(401).body("Invalid Google Access Token");
-                email = googleUser.get("email");
-                name = googleUser.get("name");
-                pictureUrl = googleUser.get("picture");
-            } else {
-                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                        .setAudience(Collections.singletonList(googleClientId))
-                        .setAcceptableTimeSkewSeconds(60).build();
-
-                GoogleIdToken idToken = verifier.verify(tokenString);
-                if (idToken == null) return ResponseEntity.status(401).body("Invalid Google ID Token");
-
-                GoogleIdToken.Payload payload = idToken.getPayload();
-                email = payload.getEmail();
-                name = (String) payload.get("name");
-                pictureUrl = (String) payload.get("picture");
-            }
-
-           User user = userRepository.findByEmail(email).orElse(null);
             
-            if (user == null) {
-                user = new User();
-                user.setEmail(email);
-                user.setName(name);
-                user.setRole(intendedRole);
-                user.setPassword(passwordEncoder.encode("GOOGLE_AUTH"));
-                user.setEnabled(true);
-                user.setProfilePicPath(pictureUrl); // Save to User entity
-                userRepository.save(user);
-            } else {
-                // Update photo if missing
-                if (user.getProfilePicPath() == null || user.getProfilePicPath().isEmpty()) {
-                    user.setProfilePicPath(pictureUrl);
-                    userRepository.save(user);
-                }
-            }
+            Map<String, String> googleData = verifyGoogleTokenAndGetData(tokenString);
+            if (googleData == null) return ResponseEntity.status(401).body("Invalid Google Token");
 
-            // Sync Teacher Profile
-            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
-                TeacherProfile profile = teacherProfileRepository.findByUserId(user.getId()).orElse(new TeacherProfile());
-                if (profile.getUser() == null) profile.setUser(user);
-                
-                
-                if (profile.getProfilePicPath() == null || profile.getProfilePicPath().isEmpty()) {
-                    profile.setProfilePicPath(pictureUrl); 
-                }
-                teacherProfileRepository.save(profile);
-            }
+            User user = userRepository.findByEmail(googleData.get("email")).orElse(null);
+            if (user == null) return ResponseEntity.status(404).body("No account found. Please sign up first.");
 
             String jwtToken = jwtService.generateToken(user);
-            
-            boolean onboardingComplete = true;
-            if ("TEACHER".equalsIgnoreCase(user.getRole())) {
-                onboardingComplete = isTeacherProfileComplete(user.getId());
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", jwtToken);
-            response.put("role", user.getRole());
-            response.put("email", user.getEmail());
-            response.put("name", user.getName());
-           response.put("photoUrl", user.getProfilePicPath());
-            response.put("onboardingComplete", onboardingComplete);
-
-            return ResponseEntity.ok(response);
-
+            return ResponseEntity.ok(createAuthResponse(user, jwtToken));
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Google login failed: " + e.getMessage());
+            return ResponseEntity.status(500).body("Login failed.");
         }
+    }
+
+     // --- 2. GOOGLE SIGNUP (New Users Only) ---
+   @PostMapping("/google-signup")
+public ResponseEntity<?> googleSignup(@RequestBody Map<String, String> body) {
+    try {
+        String tokenString = body.get("token");
+        String intendedRole = body.getOrDefault("role", "STUDENT").toUpperCase();
+
+        // 1. Get Data from Google
+        Map<String, String> googleData = verifyGoogleTokenAndGetData(tokenString);
+        
+        // 2. Safety check: If Google fails to return data
+        if (googleData == null || googleData.get("email") == null) {
+            return ResponseEntity.status(401).body("Signup failed: Could not verify Google account.");
+        }
+
+        String email = googleData.get("email");
+
+        // 3. Check if user already exists
+        if (userRepository.findByEmail(email).isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("An account with this email already exists. Please log in.");
+        }
+
+        // 4. Create New User
+        User user = new User();
+        user.setEmail(email);
+        user.setName(googleData.get("name") != null ? googleData.get("name") : "Google User");
+        user.setRole(intendedRole);
+        user.setPassword(passwordEncoder.encode("GOOGLE_AUTH"));
+        user.setEnabled(true);
+        user.setProfilePicPath(googleData.get("picture"));
+        userRepository.save(user);
+
+        // 5. Create Teacher Profile if applicable
+        if ("TEACHER".equals(intendedRole)) {
+            TeacherProfile profile = new TeacherProfile();
+            profile.setUser(user);
+            profile.setProfilePicPath(googleData.get("picture"));
+            teacherProfileRepository.save(profile);
+        }
+
+        String jwtToken = jwtService.generateToken(user);
+        return ResponseEntity.ok(createAuthResponse(user, jwtToken));
+
+    } catch (Exception e) {
+        e.printStackTrace(); 
+        return ResponseEntity.status(500).body("Signup failed: " + e.getMessage());
+    }
+}
+
+// --- REFINED HELPERS ---
+
+private Map<String, String> verifyGoogleTokenAndGetData(String token) {
+        if (token == null) return null;
+        if (token.startsWith("ya29")) return fetchUserFromGoogleApi(token);
+
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId)).build();
+            GoogleIdToken idToken = verifier.verify(token);
+            if (idToken != null) {
+                GoogleIdToken.Payload p = idToken.getPayload();
+                Map<String, String> map = new HashMap<>();
+                map.put("email", p.getEmail());
+                map.put("name", (String) p.get("name"));
+                map.put("picture", (String) p.get("picture"));
+                return map;
+            }
+        } catch (Exception e) {}
+        return fetchUserFromGoogleApi(token);
     }
 
     private Map<String, String> fetchUserFromGoogleApi(String accessToken) {
@@ -270,5 +274,16 @@ private AuthService authService;
             }
         } catch (Exception e) {}
         return null;
+    }
+
+    private Map<String, Object> createAuthResponse(User user, String token) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("role", user.getRole());
+        response.put("email", user.getEmail());
+        response.put("name", user.getName());
+        response.put("photoUrl", user.getProfilePicPath());
+        response.put("onboardingComplete", "TEACHER".equals(user.getRole()) ? isTeacherProfileComplete(user.getId()) : true);
+        return response;
     }
 }
