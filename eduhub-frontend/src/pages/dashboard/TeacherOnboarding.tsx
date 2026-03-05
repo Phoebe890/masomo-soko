@@ -74,7 +74,7 @@ const TeacherOnboarding: React.FC = () => {
   });
   const [skillInput, setSkillInput] = useState('');
   const [errors, setErrors] = useState({ displayName: '', headline: '', bio: '', category: '', skills: '', mpesaNumber: '' });
-// 1. Load draft from localStorage when they open the page
+
 useEffect(() => {
   const savedDraft = localStorage.getItem('onboarding_draft');
   if (savedDraft) {
@@ -82,7 +82,35 @@ useEffect(() => {
   }
 }, []);
 
-// 2. Save draft to localStorage automatically every time they type
+useEffect(() => {
+  
+  window.history.pushState(null, "", window.location.href);
+
+  const handleHardwareBackArrow = (event: PopStateEvent) => {
+    
+    event.preventDefault();
+
+    if (step === 1) {
+      
+      localStorage.clear();
+      sessionStorage.clear();
+
+      
+      window.location.replace("/"); 
+    } else {
+      
+      setStep((prev) => prev - 1);
+     
+      window.history.pushState(null, "", window.location.href);
+    }
+  };
+
+ 
+  window.addEventListener('popstate', handleHardwareBackArrow);
+
+  
+  return () => window.removeEventListener('popstate', handleHardwareBackArrow);
+}, [step]); 
 useEffect(() => {
   
   const { photoFile, photoPreview, ...textData } = formData;
@@ -153,8 +181,10 @@ useEffect(() => {
         if (formData.photoFile) uploadData.append('profilePic', formData.photoFile);
 
         await api.post('/api/teacher/onboarding', uploadData);
-localStorage.removeItem('onboarding_draft'); // Clear the draft
-        localStorage.setItem('role', 'TEACHER');      // Upgrade the role
+localStorage.setItem('onboardingComplete', 'true');
+        localStorage.setItem('role', 'TEACHER');
+        localStorage.removeItem('onboarding_draft'); 
+              // Upgrade the role
        
         
         

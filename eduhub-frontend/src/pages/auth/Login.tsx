@@ -31,35 +31,34 @@ const Login: React.FC = () => {
   });
 
   const handleAuthSuccess = (data: any) => {
-    const authToken = data.token || data.accessToken;
-    if (!authToken) { 
-        setToast({ open: true, message: "Login failed: No token received.", severity: 'error' });
-        return; 
+  const authToken = data.token || data.accessToken;
+  if (!authToken) return;
+
+  localStorage.setItem('token', authToken);
+  localStorage.setItem('email', data.email);
+  const userRole = data.role?.toUpperCase();
+  localStorage.setItem('role', userRole);
+  const isComplete = userRole === 'TEACHER' ? (data.onboardingComplete === true) : true;
+  localStorage.setItem('onboardingComplete', isComplete ? 'true' : 'false');
+
+  api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+
+ 
+  setToast({ open: true, message: "Login Successful!", severity: 'success' });
+
+ 
+  setTimeout(() => {
+    if (userRole === 'TEACHER' && !isComplete) {
+      navigate('/dashboard/teacher/onboarding', { replace: true });
+    } else if (userRole === 'ADMIN') {
+      navigate('/admin/dashboard', { replace: true });
+    } else if (userRole === 'TEACHER') {
+      navigate('/dashboard/teacher', { replace: true });
+    } else {
+      navigate('/dashboard/student', { replace: true });
     }
-
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('email', data.email);
-    localStorage.setItem('role', data.role);
-    api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
- const userRole = data.role?.toUpperCase();
-    if (userRole === 'TEACHER' && data.onboardingComplete !== true) {
-      localStorage.setItem('role', 'STUDENT'); 
-      setToast({ open: true, message: "Please complete your profile setup.", severity: 'success' });
-      setTimeout(() => navigate('/dashboard/teacher/onboarding'), 1000);
-  } else {
-      // If they are a student, admin, or a teacher who IS finished:
-      localStorage.setItem('role', data.role);
-      setToast({ open: true, message: "Login Successful!", severity: 'success' });
-      
-      setTimeout(() => {
-          if (userRole === 'TEACHER') navigate('/dashboard/teacher');
-          else if (userRole === 'STUDENT') navigate('/dashboard/student');
-          else if (userRole === 'ADMIN') navigate('/admin/dashboard');
-          else navigate('/');
-      }, 1000);
-  }
+  }, 1000);
 };
-
  const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       startLoading();
@@ -67,7 +66,7 @@ const Login: React.FC = () => {
         const res = await api.post('/api/auth/google', { token: tokenResponse.access_token });
         handleAuthSuccess(res.data);
       } catch (err: any) {
-        // Capture the actual error from the backend if available
+       
         const serverMessage = err.response?.data || "Google Login failed.";
         setToast({ open: true, message: serverMessage, severity: 'error' });
       } finally {
@@ -83,7 +82,7 @@ const Login: React.FC = () => {
       const response = await api.post('/api/auth/login', formData);
       handleAuthSuccess(response.data);
     } catch (error: any) {
-      // ---  ERROR MESSAGE LOGIC ---
+      
       
       const serverMessage = error.response?.data;
       const displayMessage = typeof serverMessage === 'string' 

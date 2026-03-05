@@ -47,15 +47,13 @@ private AuthService authService;
     @Value("${google.client.id}")
     private String googleClientId;
 
-    
-    private boolean isTeacherProfileComplete(Long userId) {
-        Optional<TeacherProfile> profileOpt = teacherProfileRepository.findByUserId(userId);
-        if (profileOpt.isEmpty()) return false;
-        TeacherProfile profile = profileOpt.get();
-        return profile.getBio() != null && !profile.getBio().isEmpty() 
-            && profile.getPaymentNumber() != null && !profile.getPaymentNumber().isEmpty();
-    }
-
+   private boolean isTeacherProfileComplete(Long userId) {
+    Optional<TeacherProfile> profileOpt = teacherProfileRepository.findByUserId(userId);
+    if (profileOpt.isEmpty()) return false;
+    TeacherProfile profile = profileOpt.get();
+    return profile.getBio() != null && !profile.getBio().isBlank() 
+        && profile.getPaymentNumber() != null && !profile.getPaymentNumber().isBlank();
+}
     // --- STANDARD LOGIN ---
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -170,6 +168,7 @@ private AuthService authService;
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> body) {
         try {
+              String intendedRole = body.getOrDefault("role", "STUDENT").toUpperCase();
             String tokenString = body.get("token");
             if (tokenString == null) tokenString = body.get("credential");
             if (tokenString == null) return ResponseEntity.badRequest().body("Missing 'token' or 'credential'");
@@ -205,7 +204,7 @@ private AuthService authService;
                 user = new User();
                 user.setEmail(email);
                 user.setName(name);
-                user.setRole(role.toUpperCase());
+                user.setRole(intendedRole);
                 user.setPassword(passwordEncoder.encode("GOOGLE_AUTH"));
                 user.setEnabled(true);
                 user.setProfilePicPath(pictureUrl); // Save to User entity

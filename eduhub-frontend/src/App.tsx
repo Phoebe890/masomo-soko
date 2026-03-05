@@ -48,29 +48,35 @@ function ScrollToTop() {
 
 
 const TeacherGuard = ({ children }: { children: JSX.Element }) => {
-  const role = localStorage.getItem('role')?.toUpperCase();
   const email = localStorage.getItem('email');
-
+  const role: string = (localStorage.getItem('role') || "").toUpperCase().replace("ROLE_", "");
+  const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
   if (!email) return <Navigate to="/login" replace />;
 
-  if (role !== 'TEACHER' && role !== 'ROLE_TEACHER') {
+  if (role === 'TEACHER' && !onboardingComplete) {
     return <Navigate to="/dashboard/teacher/onboarding" replace />;
+  }
+
+  // Allow TEACHER or ADMIN
+  if (role !== 'TEACHER' && role !== 'ADMIN') {
+      return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
-
 const RoleGuard = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles: string[] }) => {
   const email = localStorage.getItem('email');
-  const rawRole = localStorage.getItem('role')?.toUpperCase() || "";
-  // Clean the role string (removes ROLE_ prefix if present)
-  const role = rawRole.replace("ROLE_", "");
+  const rawRole: string = localStorage.getItem('role')?.toUpperCase() || "";
+  const role: string = rawRole.replace("ROLE_", "");
+  
+  const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
 
   if (!email) return <Navigate to="/login" replace />;
-
+  if (role === 'TEACHER' && !onboardingComplete) {
+    return <Navigate to="/dashboard/teacher/onboarding" replace />;
+  }
   if (!allowedRoles.includes(role)) {
-    // Redirect to home if they don't have the right permissions
     return <Navigate to="/" replace />;
   }
 
@@ -84,16 +90,14 @@ function AuthGate() {
   
   useEffect(() => {
     const email = localStorage.getItem('email');
-    const role = localStorage.getItem('role')?.toUpperCase();
+    const role = (localStorage.getItem('role') || "").toUpperCase().replace("ROLE_", "");
+    const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
 
     if (email && (location.pathname === '/login' || location.pathname === '/register')) {
-      if (role === 'TEACHER' || role === 'ROLE_TEACHER') {
-        navigate('/dashboard/teacher', { replace: true });
-      } else if (role === 'STUDENT' || role === 'ROLE_STUDENT') {
-        navigate('/dashboard/student', { replace: true });
-      } else if (role === 'ADMIN' || role === 'ROLE_ADMIN') {
-        navigate('/admin/dashboard', { replace: true });
-      }
+      if (role === 'ADMIN') navigate('/admin/dashboard', { replace: true });
+      else if (role === 'TEACHER' && !onboardingComplete) navigate('/dashboard/teacher/onboarding', { replace: true });
+      else if (role === 'TEACHER') navigate('/dashboard/teacher', { replace: true });
+      else navigate('/dashboard/student', { replace: true });
     }
   }, [navigate, location]);
 
