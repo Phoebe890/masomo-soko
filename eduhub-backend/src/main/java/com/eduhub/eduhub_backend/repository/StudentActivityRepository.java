@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface StudentActivityRepository extends JpaRepository<StudentActivity, Long> {
+    @Modifying
     @Transactional
     void deleteByUser(User user);
     // For Streak: Get unique dates worked, sorted descending

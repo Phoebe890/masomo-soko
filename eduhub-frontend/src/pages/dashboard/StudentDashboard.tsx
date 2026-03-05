@@ -3,7 +3,7 @@ import {
     Box, Typography, Button, Grid, Paper, Table, TableBody, 
     TableCell, TableContainer, TableHead, TableRow, TextField, Chip, Card, 
     CardContent, CardMedia, CardActions, Stack, CircularProgress, 
-    IconButton, alpha, Snackbar, Alert, Avatar, Divider, createTheme, ThemeProvider,TablePagination
+    IconButton, alpha, Snackbar, Alert, Avatar, Divider, createTheme, ThemeProvider,TablePagination , Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios'; 
@@ -15,7 +15,7 @@ import AppNotification from '@/components/AppNotification';
 import { 
     BookOpen, Download, History, Settings, Search, Star, 
     PlayCircle, CheckCircle, Wallet, Rocket, ArrowRight, 
-    ExternalLink, ChevronRight, X, Flame, TrendingUp,Camera,User
+    ExternalLink, ChevronRight, X, Flame, TrendingUp,Camera,User,Trash2, AlertTriangle 
 } from 'lucide-react';
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -649,7 +649,10 @@ function AccountSettingsSection() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState('');
     
-    // Snackbar State 
+    // Deletion State
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
     useEffect(() => {
@@ -666,124 +669,157 @@ function AccountSettingsSection() {
             const formData = new FormData();
             formData.append('name', name);
             if (selectedFile) formData.append('profilePic', selectedFile);
-            
             await api.post('/api/student/account-settings', formData);
-            
-            // Success Feedback
             setSnackbar({ open: true, message: 'Settings updated successfully!', severity: 'success' });
-            setSelectedFile(null); // Clear pending file
+            setSelectedFile(null);
         } catch (e) { 
-            console.error(e); 
             setSnackbar({ open: true, message: 'Failed to update settings.', severity: 'error' });
-        } finally { 
-            setSaving(false); 
+        } finally { setSaving(false); }
+    };
+
+    const handleDeleteAccount = async () => {
+        setDeleting(true);
+        try {
+            await api.delete('/api/student/account');
+            localStorage.clear();
+            window.location.href = '/'; 
+        } catch (e) {
+            setSnackbar({ open: true, message: 'Failed to delete account.', severity: 'error' });
+            setDeleting(false);
+            setDeleteDialogOpen(false);
         }
     };
 
     return (
-        <Paper elevation={0} sx={{ p: 4, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px', maxWidth: 800 }}>
-            {/* SECTION: IDENTITY */}
-            <Box sx={{ mb: 6 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 4 }}>
-                    <Avatar sx={{ bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, borderRadius: '2px', width: 32, height: 32 }}>
-                        <User size={18} />
-                    </Avatar>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Public Identity</Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
-                    <Box sx={{ position: 'relative' }}>
-                        <Avatar 
-                            src={previewUrl || (profilePicPath?.startsWith('http') ? profilePicPath : `${import.meta.env.VITE_API_URL}/${profilePicPath}`)} 
-                            sx={{ width: 100, height: 100, borderRadius: '2px', border: `1px solid ${BORDER_COLOR}`, bgcolor: '#F8FAFC' }} 
-                        />
-                        <IconButton 
-                            component="label"
-                            sx={{ 
-                                position: 'absolute', bottom: -10, right: -10, bgcolor: '#0F172A', color: 'white', 
-                                '&:hover': { bgcolor: '#1E293B' }, width: 32, height: 32, border: '2px solid white'
-                            }}
-                        >
-                            <Camera size={16} />
-                            <input type="file" hidden accept="image/*" onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) { 
-                                    setSelectedFile(file); 
-                                    setPreviewUrl(URL.createObjectURL(file)); 
-                                }
-                            }} />
-                        </IconButton>
+        <Box sx={{ maxWidth: 800 }}>
+            <Paper elevation={0} sx={{ p: 4, border: `1px solid ${BORDER_COLOR}`, borderRadius: '2px' }}>
+                {/* IDENTITY SECTION */}
+                <Box sx={{ mb: 6 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 4 }}>
+                        <Avatar sx={{ bgcolor: alpha(BRAND_BLUE, 0.1), color: BRAND_BLUE, borderRadius: '2px', width: 32, height: 32 }}>
+                            <User size={18} />
+                        </Avatar>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>Public Identity</Typography>
                     </Box>
-                    <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Profile Photo</Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, maxWidth: 300 }}>
-                            This photo will be displayed alongside your resource reviews.
-                        </Typography>
-                        {previewUrl && (
-                            <Button 
-                                size="small" 
-                                variant="outlined" 
-                                color="error" 
-                                sx={{ borderRadius: '2px', textTransform: 'none', fontWeight: 700, mt: 1 }} 
-                                onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
+                        <Box sx={{ position: 'relative' }}>
+                            <Avatar 
+                                src={previewUrl || (profilePicPath?.startsWith('http') ? profilePicPath : `${import.meta.env.VITE_API_URL}/${profilePicPath}`)} 
+                                sx={{ width: 100, height: 100, borderRadius: '2px', border: `1px solid ${BORDER_COLOR}`, bgcolor: '#F8FAFC' }} 
+                            />
+                            <IconButton 
+                                component="label"
+                                sx={{ 
+                                    position: 'absolute', bottom: -10, right: -10, bgcolor: '#0F172A', color: 'white', 
+                                    '&:hover': { bgcolor: '#1E293B' }, width: 32, height: 32, border: '2px solid white'
+                                }}
                             >
-                                Cancel Changes
-                            </Button>
-                        )}
+                                <Camera size={16} />
+                                <input type="file" hidden accept="image/*" onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
+                                }} />
+                            </IconButton>
+                        </Box>
+                        <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Profile Photo</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, maxWidth: 300 }}>
+                                This photo will be displayed alongside your resource reviews.
+                            </Typography>
+                            {previewUrl && (
+                                <Button size="small" variant="outlined" color="error" sx={{ borderRadius: '2px', mt: 1 }} onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}>
+                                    Cancel Changes
+                                </Button>
+                            )}
+                        </Box>
                     </Box>
+
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1 }}>FULL NAME</Typography>
+                            <TextField fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1 }}>EMAIL ADDRESS</Typography>
+                            <TextField fullWidth disabled value={email} />
+                        </Grid>
+                    </Grid>
                 </Box>
-            </Box>
 
-            <Divider sx={{ mb: 4 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: '#0F172A', px: 4 }}>
+                        {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
+                    </Button>
+                </Box>
+            </Paper>
 
-            {/* SECTION: FORM FIELDS */}
-            <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1, letterSpacing: 1 }}>
-                        FULL NAME
-                    </Typography>
-                    <TextField 
-                        fullWidth 
-                        variant="outlined"
-                        placeholder="e.g. John Doe"
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '2px' } }}
-                    />
+            {/* DANGER ZONE */}
+            <Paper 
+                elevation={0} 
+                sx={{ 
+                    mt: 4, p: 4, 
+                    border: `1px solid ${alpha('#EF4444', 0.2)}`, 
+                    bgcolor: alpha('#EF4444', 0.02), 
+                    borderRadius: '2px' 
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                    <Avatar sx={{ bgcolor: alpha('#EF4444', 0.1), color: '#EF4444', borderRadius: '2px', width: 32, height: 32 }}>
+                        <AlertTriangle size={18} />
+                    </Avatar>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#991B1B' }}>Danger Zone</Typography>
+                </Box>
+                <Grid container spacing={3} alignItems="center">
+                    <Grid item xs={12} md={8}>
+                        <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600 }}>Delete Account</Typography>
+                        <Typography variant="caption" sx={{ color: '#B91C1C', display: 'block' }}>
+                            Permanently remove your account and all purchased library items. This cannot be undone.
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                        <Button 
+                            variant="outlined" 
+                            color="error" 
+                            startIcon={<Trash2 size={16} />}
+                            onClick={() => setDeleteDialogOpen(true)}
+                            sx={{ fontWeight: 800, borderRadius: '2px' }}
+                        >
+                            Delete Account
+                        </Button>
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1, letterSpacing: 1 }}>
-                        EMAIL ADDRESS
-                    </Typography>
-                    <TextField 
-                        fullWidth 
-                        disabled
-                        value={email} 
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '2px', bgcolor: '#F8FAFC' } }}
-                    />
-                </Grid>
-            </Grid>
+            </Paper>
 
-            {/* SAVE BUTTON */}
-            <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${BORDER_COLOR}`, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button 
-                    variant="contained" 
-                    onClick={handleSave} 
-                    disabled={saving}
-                    sx={{ bgcolor: '#0F172A', px: 6, py: 1.5, '&:hover': { bgcolor: '#1E293B' }, boxShadow: 'none' }}
-                >
-                    {saving ? <CircularProgress size={20} color="inherit" /> : 'Save Profile Changes'}
-                </Button>
-            </Box>
+            {/* DELETE DIALOG */}
+            <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+                <DialogTitle sx={{ fontWeight: 800 }}>Delete your account?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ fontWeight: 500 }}>
+                        Are you sure? You will lose access to all your purchased resources and your learning progress.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ pb: 2, px: 3 }}>
+                    <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
+                    <Button 
+                        onClick={handleDeleteAccount} 
+                        color="error" 
+                        variant="contained" 
+                        disabled={deleting}
+                        sx={{ fontWeight: 800, borderRadius: '2px', boxShadow: 'none' }}
+                    >
+                        {deleting ? <CircularProgress size={20} color="inherit" /> : 'Confirm Delete'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
-           
             <AppNotification 
                 open={snackbar.open}
                 message={snackbar.message}
                 severity={snackbar.severity}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
             />
-        </Paper>
+        </Box>
     );
 }
 export default StudentDashboard;

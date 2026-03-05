@@ -11,6 +11,7 @@ import com.eduhub.eduhub_backend.repository.PurchaseRepository;
 import com.eduhub.eduhub_backend.repository.TeacherResourceRepository;
 import com.eduhub.eduhub_backend.repository.UserRepository;
 import com.eduhub.eduhub_backend.repository.ReviewRepository;
+import com.eduhub.eduhub_backend.repository.StudentActivityRepository;
 import com.eduhub.eduhub_backend.repository.NotificationRepository;
 import com.eduhub.eduhub_backend.service.FileUploadService;
 import com.eduhub.eduhub_backend.service.StudentAnalyticsService;
@@ -50,7 +51,8 @@ public class StudentController {
     private EmailProducer emailProducer;
     @Autowired
     private StudentAnalyticsService analyticsService;
-
+@Autowired
+private StudentActivityRepository studentActivityRepository;
     private User getAuthenticatedStudent(UserDetails userDetails) {
         if (userDetails == null) return null;
         return userRepository.findByEmail(userDetails.getUsername()).orElse(null);
@@ -177,7 +179,26 @@ public class StudentController {
 
         return ResponseEntity.ok("Resource added to library");
     }
+@DeleteMapping("/account")
+@Transactional
+public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        User student = getAuthenticatedStudent(userDetails);
+        if (student == null) return ResponseEntity.status(401).body("User not found");
+        studentActivityRepository.deleteByUser(student);
 
+        List<Review> reviews = reviewRepository.findByStudent(student);
+        reviewRepository.deleteAll(reviews);
+        List<Purchase> purchases = purchaseRepository.findByStudent(student);
+        purchaseRepository.deleteAll(purchases);
+        userRepository.delete(student);
+
+        return ResponseEntity.ok("Account deleted successfully");
+    } catch (Exception e) {
+        e.printStackTrace(); 
+        return ResponseEntity.status(500).body("Error deleting account: " + e.getMessage());
+    }
+}
     @GetMapping("/download/{resourceId}")
     public ResponseEntity<?> downloadResource(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long resourceId) {
         User student = getAuthenticatedStudent(userDetails);
