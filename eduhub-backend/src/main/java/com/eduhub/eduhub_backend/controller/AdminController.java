@@ -38,13 +38,15 @@ public class AdminController {
             long totalUsers = userRepository.count();
             long totalResources = resourceRepository.count();
 
-            double totalVolume = transactionRepository.findAll().stream()
+          double totalVolume = transactionRepository.findAll().stream()
                     .filter(t -> t.getStatus() != null &&
                            ("COMPLETED".equalsIgnoreCase(t.getStatus()) || "SUCCESS".equalsIgnoreCase(t.getStatus())))
                     .mapToDouble(t -> t.getAmount() != null ? t.getAmount().doubleValue() : 0.0)
                     .sum();
 
-            double platformRevenue = totalVolume * 0.10;
+            // 2. Calculate Platform Revenue (20% fee)
+            
+            double platformRevenue = totalVolume - Math.floor(totalVolume * 0.80);
 
             long pendingPayouts = withdrawalRepository.findAll().stream()
                     .filter(w -> "PENDING".equals(w.getStatus()))
@@ -75,35 +77,54 @@ public class AdminController {
             map.put("mpesaNumber", w.getMpesaNumber());
             map.put("status", w.getStatus());
             map.put("date", w.getRequestedAt());
+            map.put("referenceNumber", w.getReferenceNumber()); 
+            map.put("transactionCode", w.getTransactionCode()); 
+
             return map;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/payouts/{id}/{action}")
-    public ResponseEntity<?> processPayout(@PathVariable Long id, @PathVariable String action) {
-        Withdrawal withdrawal = withdrawalRepository.findById(id).orElse(null);
-        if (withdrawal == null) return ResponseEntity.notFound().build();
+   @PostMapping("/payouts/{id}/{action}")
+public ResponseEntity<?> processPayout(
+        @PathVariable Long id, 
+        @PathVariable String action,
+        @RequestBody(required = false) Map<String, String> body) { // Accepts the JSON body from frontend
+    
+    Withdrawal withdrawal = withdrawalRepository.findById(id).orElse(null);
+    if (withdrawal == null) return ResponseEntity.notFound().build();
 
-        if ("approve".equals(action)) {
-            withdrawal.setStatus("PAID");
-            notificationRepository.save(new Notification(withdrawal.getTeacher(), "Withdrawal of KES " + withdrawal.getAmount() + " processed.", LocalDateTime.now(), false));
-            try {
-                String subject = "Withdrawal Successful - Masomo Soko";
-                String body = "<h3>Hello " + withdrawal.getTeacher().getName() + ",</h3><p>Your withdrawal of <strong>KES " + withdrawal.getAmount() + "</strong> has been processed to M-Pesa.</p>";
-                emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), subject, body);
-            } catch (Exception e) { System.err.println("Email fail: " + e.getMessage()); }
-        } else if ("reject".equals(action)) {
-            withdrawal.setStatus("REJECTED");
-            teacherProfileRepository.findByUserId(withdrawal.getTeacher().getId()).ifPresent(p -> {
-                p.setAccountBalance(p.getAccountBalance() + withdrawal.getAmount());
-                teacherProfileRepository.save(p);
-            });
-        }
-        withdrawalRepository.save(withdrawal);
-        return ResponseEntity.ok("Payout updated");
+    // Get the M-Pesa code (notes) from the frontend request
+    String mpesaCode = (body != null) ? body.get("notes") : "N/A";
+
+    if ("approve".equals(action)) {
+        withdrawal.setStatus("PAID");
+        withdrawal.setTransactionCode(mpesaCode); // Save the admin's input to DB
+
+        // Notify Teacher via System Notification
+        String msg = "Your withdrawal of KES " + withdrawal.getAmount() + " was processed. M-Pesa Code: " + mpesaCode;
+        notificationRepository.save(new Notification(withdrawal.getTeacher(), msg, LocalDateTime.now(), false));
+
+        // Notify Teacher via Email
+        try {
+            String subject = "Withdrawal Successful - Masomo Soko";
+            String emailBody = "<h3>Hello " + withdrawal.getTeacher().getName() + ",</h3>" +
+                    "<p>Your withdrawal request <strong>" + withdrawal.getReferenceNumber() + "</strong> has been approved.</p>" +
+                    "<p><strong>Amount:</strong> KES " + withdrawal.getAmount() + "</p>" +
+                    "<p><strong>M-Pesa Transaction Code:</strong> " + mpesaCode + "</p>" +
+                    "<p>The funds have been sent to your registered number: " + withdrawal.getMpesaNumber() + "</p>";
+            
+            emailProducer.sendEmail(withdrawal.getTeacher().getEmail(), subject, emailBody);
+        } catch (Exception e) { System.err.println("Email fail: " + e.getMessage()); }
+
+    } else if ("reject".equals(action)) {
+        withdrawal.setStatus("REJECTED");
+        // No code needed for rejection
     }
 
+    withdrawalRepository.save(withdrawal);
+    return ResponseEntity.ok("Payout updated");
+}
     // --- 3. USER MANAGEMENT ---
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers(

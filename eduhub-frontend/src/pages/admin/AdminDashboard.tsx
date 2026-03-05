@@ -188,7 +188,15 @@ const AdminDashboard: React.FC = () => {
 
                     {/* --- STATS GRID --- */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={12} sm={6} md={2.4}>
+        <StatWidget 
+            title="Total Volume" 
+            value={`KES ${stats?.totalVolume.toLocaleString() || 0}`} 
+            icon={<TrendingUp />} 
+            color="#6366F1" // Indigo
+        />
+    </Grid>
+                        <Grid item xs={12} sm={6} md={2.4}>
                             <StatWidget 
                                 title="Platform Revenue" 
                                 value={`KES ${stats?.platformRevenue.toLocaleString() || 0}`} 
@@ -196,7 +204,7 @@ const AdminDashboard: React.FC = () => {
                                 color="#10B981" 
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={12} sm={6} md={2.4}>
                             <StatWidget 
                                 title="Total Users" 
                                 value={stats?.totalUsers.toLocaleString() || 0} 
@@ -204,7 +212,7 @@ const AdminDashboard: React.FC = () => {
                                 color={BRAND_BLUE} 
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={12} sm={6} md={2.4}>
                             <StatWidget 
                                 title="Active Resources" 
                                 value={stats?.totalResources || 0} 
@@ -212,7 +220,7 @@ const AdminDashboard: React.FC = () => {
                                 color="#8B5CF6" 
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={12} sm={6} md={2.4}>
                             <StatWidget 
                                 title="Pending Payouts" 
                                 value={stats?.pendingPayouts || 0} 

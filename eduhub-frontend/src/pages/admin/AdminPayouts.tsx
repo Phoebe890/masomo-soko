@@ -26,6 +26,8 @@ interface Payout {
     mpesaNumber: string;
     date: string;
     status: 'PENDING' | 'PAID' | 'REJECTED';
+    referenceNumber: string;
+     transactionCode?: string;
 }
 
 const AdminPayouts = () => {
@@ -327,6 +329,7 @@ const AdminPayouts = () => {
                                             disabled={filteredPayouts.filter(p => p.status === 'PENDING').length === 0}
                                         />
                                     </TableCell>
+                                     <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Ref #</TableCell>
                                     <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Teacher</TableCell>
                                     <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</TableCell>
                                     <TableCell sx={{ color: '#6B7280', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>M-Pesa</TableCell>
@@ -369,9 +372,18 @@ const AdminPayouts = () => {
                                                         disabled={!isPending}
                                                     />
                                                 </TableCell>
+                                                <TableCell sx={{ fontWeight: 700, color: '#2563EB', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                {p.referenceNumber || `REF-${p.id}`}
+            </TableCell>
+
                                                 <TableCell sx={{ fontWeight: 500, color: '#111827' }}>
-                                                    {p.teacherName}
-                                                </TableCell>
+                {p.teacherName}
+                {p.transactionCode && (
+                    <Typography variant="caption" sx={{ display: 'block', color: '#10B981', fontWeight: 800 }}>
+                        Code: {p.transactionCode}
+                    </Typography>
+                )}
+            </TableCell>
                                                 <TableCell sx={{ fontWeight: 600, color: '#1F2937' }}>
                                                     KES {p.amount.toLocaleString()}
                                                 </TableCell>

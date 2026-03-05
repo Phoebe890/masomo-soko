@@ -16,7 +16,8 @@ public class Withdrawal {
     private Double amount;
     private String mpesaNumber;
     private String status; // PENDING, PAID, REJECTED
-    
+    private String referenceNumber;
+    private String transactionCode;
     private LocalDateTime requestedAt;
 
     public Withdrawal() {}
@@ -28,7 +29,11 @@ public class Withdrawal {
         this.status = "PENDING";
         this.requestedAt = LocalDateTime.now();
     }
+public String getReferenceNumber() { return referenceNumber; }
+public void setReferenceNumber(String referenceNumber) { this.referenceNumber = referenceNumber; }
 
+public String getTransactionCode() { return transactionCode; }
+public void setTransactionCode(String transactionCode) { this.transactionCode = transactionCode; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public User getTeacher() { return teacher; }

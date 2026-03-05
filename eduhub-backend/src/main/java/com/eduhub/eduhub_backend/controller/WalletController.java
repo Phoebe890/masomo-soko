@@ -91,12 +91,15 @@ public ResponseEntity<?> getWalletSummary(@AuthenticationPrincipal UserDetails u
             return ResponseEntity.badRequest().body("Insufficient funds.");
         }
         
-        if (amount < 5) {
-            return ResponseEntity.badRequest().body("Minimum withdrawal is KES 5.");
+        if (amount < 1) {
+            return ResponseEntity.badRequest().body("Minimum withdrawal is KES 1.");
         }
 
         // Create Withdrawal
         Withdrawal withdrawal = new Withdrawal(teacher, amount, mpesaNumber);
+        String ref = "WDL-" + System.currentTimeMillis() % 1000000; 
+withdrawal.setReferenceNumber(ref);
+
         withdrawalRepository.save(withdrawal);
 
         return ResponseEntity.ok("Withdrawal request submitted successfully.");
