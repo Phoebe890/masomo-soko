@@ -181,7 +181,31 @@ public class TeacherController {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+@DeleteMapping("/account")
+@Transactional
+public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal UserDetails userDetails) {
+    try {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // 1. Delete Teacher Profile
+        teacherProfileRepository.findByUserId(user.getId()).ifPresent(profile -> {
+            teacherProfileRepository.delete(profile);
+        });
+        // 2. Delete Resources (which will cascade delete reviews and purchases)    
+        List<TeacherResource> resources = teacherResourceRepository.findByUserId(user.getId());
+        teacherResourceRepository.deleteAll(resources);
+
+        // 3. Delete the User record
+        userRepository.delete(user);
+
+        return ResponseEntity.ok("Account deleted successfully");
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error deleting account: " + e.getMessage());
+    }
+}
     // --- ONBOARDING ---
 @PostMapping(value = "/onboarding", consumes = {"multipart/form-data"})
 public ResponseEntity<?> onboarding(

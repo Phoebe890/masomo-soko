@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, TextField, Button, Paper, Grid, 
   CircularProgress, Snackbar, Alert, Divider, InputAdornment, 
-  Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton, Skeleton // Added Skeleton
+  Avatar, alpha, Stack, createTheme, ThemeProvider, IconButton, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom'; // Added for back button
 import { api } from '@/api/axios';
@@ -12,7 +12,7 @@ import TeacherLayout from '../../components/TeacherLayout';
 import { 
     User, CreditCard, Camera, Save, 
     ArrowLeft, Layout, CheckCircle, Info, 
-    AtSign, Smartphone 
+    AtSign, Smartphone ,Trash2, AlertTriangle
 } from 'lucide-react';
 
 const BRAND_BLUE = '#2563EB';
@@ -45,7 +45,8 @@ const TeacherSettings = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
     const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
-
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [deleting, setDeleting] = useState(false);
     // Form State
     const [formData, setFormData] = useState({
         displayName: '',
@@ -76,7 +77,20 @@ const TeacherSettings = () => {
                 setTimeout(() => setLoading(false), 800);
             });
     }, []);
-
+const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+        await api.delete('/api/teacher/account');
+        // Clear local storage/session
+        localStorage.clear(); 
+        // Redirect to home or login
+        window.location.href = '/'; 
+    } catch (error) {
+        setToast({ open: true, msg: 'Failed to delete account.', severity: 'error' });
+        setDeleting(false);
+        setDeleteDialogOpen(false);
+    }
+};
     const getAvatarSrc = () => {
         if (previewUrl) return previewUrl; 
         if (!profilePic) return undefined;
@@ -272,7 +286,8 @@ const TeacherSettings = () => {
                                 </Grid>
                             </Box>
 
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                            {/* --- SAVE BUTTON (Fixed position) --- */}
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
                                 <Button 
                                     variant="contained" 
                                     size="large"
@@ -288,11 +303,65 @@ const TeacherSettings = () => {
                                 </Button>
                             </Box>
 
+                            <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
+
+                            {/* SECTION 3: DANGER ZONE (Now correctly outside the Save Button box) */}
+                            <Box sx={{ p: 3, border: `1px solid ${alpha('#EF4444', 0.2)}`, bgcolor: alpha('#EF4444', 0.02), borderRadius: '2px' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: alpha('#EF4444', 0.1), color: '#EF4444', borderRadius: '2px', width: 32, height: 32 }}>
+                                        <AlertTriangle size={18} />
+                                    </Avatar>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#991B1B' }}>Danger Zone</Typography>
+                                </Box>
+                                
+                                <Grid container spacing={3} alignItems="center">
+                                    <Grid item xs={12} md={8}>
+                                        <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 600 }}>
+                                            Delete this account and all associated data
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: '#B91C1C', display: 'block', mt: 0.5 }}>
+                                            Once you delete your account, there is no going back. All resources and history will be wiped.
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                                        <Button 
+                                            variant="outlined" 
+                                            color="error"
+                                            startIcon={<Trash2 size={16} />}
+                                            onClick={() => setDeleteDialogOpen(true)}
+                                            sx={{ fontWeight: 800, borderRadius: '2px', textTransform: 'none' }}
+                                        >
+                                            Delete Account
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
                         </Paper>
                     )}
                 </Box>
 
-               
+                {/* DELETE CONFIRMATION DIALOG */}
+                <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+                    <DialogTitle sx={{ fontWeight: 800 }}>Delete Account?</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText sx={{ fontWeight: 500 }}>
+                            This action is irreversible. All your data will be permanently removed.
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions sx={{ pb: 2, px: 3 }}>
+                        <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
+                        <Button 
+                            onClick={handleDeleteAccount} 
+                            color="error" variant="contained" 
+                            disabled={deleting}
+                            sx={{ fontWeight: 800, borderRadius: '2px' }}
+                        >
+                            {deleting ? <CircularProgress size={20} color="inherit" /> : 'Yes, Delete Account'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
                 <AppNotification 
                     open={toast.open}
                     message={toast.msg} 
@@ -303,5 +372,4 @@ const TeacherSettings = () => {
         </ThemeProvider>
     );
 };
-
 export default TeacherSettings;
