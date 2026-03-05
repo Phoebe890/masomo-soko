@@ -155,8 +155,26 @@ const TeacherEarnings = () => {
                                                 history.map((item) => (
                                                     <TableRow key={item.id} hover>
                                                         <TableCell sx={{ fontWeight: 600 }}>{new Date(item.requestedAt).toLocaleDateString()}</TableCell>
-                                                        <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: 'monospace' }}>TRX-{item.id}992X</TableCell>
-                                                        <TableCell sx={{ fontWeight: 800 }}>KES {item.amount.toLocaleString()}</TableCell>
+                                                        <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+  
+    {item.referenceNumber || `REF-${item.id}`}
+    
+   
+    {item.status === 'PAID' && item.transactionCode && (
+        <Typography 
+            variant="caption" 
+            sx={{ 
+                display: 'block', 
+                color: '#10B981', 
+                fontWeight: 800, 
+                mt: 0.5, 
+                fontFamily: 'sans-serif' 
+            }}
+        >
+            M-Pesa: {item.transactionCode}
+        </Typography>
+    )}
+</TableCell>
                                                         <TableCell align="right">
                                                             <Chip 
                                                                 label={item.status} size="small" 
