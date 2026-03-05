@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface WithdrawalRepository extends JpaRepository<Withdrawal, Long> {
-    
+     List<Withdrawal> findByTeacher(User teacher);
     List<Withdrawal> findByTeacherOrderByRequestedAtDesc(User teacher);
 
     // Calculate total amount withdrawn by a teacher (excluding rejected ones)

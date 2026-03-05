@@ -30,7 +30,7 @@ public class AdminController {
     @Autowired private ReviewRepository reviewRepository;
     @Autowired private PaymentTransactionRepository transactionRepository;
     @Autowired private EmailProducer emailProducer;
-
+@Autowired private StudentActivityRepository studentActivityRepository;
     // --- 1. DASHBOARD STATS ---
     @GetMapping("/stats")
     public ResponseEntity<?> getAdminStats() {
@@ -141,33 +141,48 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("enabled", user.isEnabled()));
     }
 
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            User user = userRepository.findById(id).orElse(null);
-            if (user == null) return ResponseEntity.notFound().build();
+@DeleteMapping("/users/{id}")
+public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    try {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
 
-            // Cleanup logic (Reviews, Purchases, Transactions, Resources)
-            transactionRepository.deleteAll(transactionRepository.findByUser(user));
-            reviewRepository.deleteAll(reviewRepository.findByStudent(user));
-            purchaseRepository.deleteAll(purchaseRepository.findByStudent(user));
-            
-            List<TeacherResource> resources = resourceRepository.findByUserId(id);
-            for (TeacherResource r : resources) {
-                transactionRepository.deleteAll(transactionRepository.findByResource(r));
-                purchaseRepository.deleteAll(purchaseRepository.findByResource(r));
-                reviewRepository.deleteAll(reviewRepository.findByResource(r));
-                resourceRepository.delete(r);
-            }
+        // 1. DELETE STUDENT ACTIVITIES FIRST 
+        studentActivityRepository.deleteByUser(user);
 
-            teacherProfileRepository.findByUserId(id).ifPresent(p -> teacherProfileRepository.delete(p));
-            userRepository.delete(user);
-            return ResponseEntity.ok("User deleted");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Delete failed: " + e.getMessage());
+        // 2. Student Cleanup
+        transactionRepository.deleteAll(transactionRepository.findByUser(user));
+        reviewRepository.deleteAll(reviewRepository.findByStudent(user));
+        purchaseRepository.deleteAll(purchaseRepository.findByStudent(user));
+        
+        // 3. Teacher Resource Cleanup
+        List<TeacherResource> resources = resourceRepository.findByUserId(id);
+        for (TeacherResource r : resources) {
+            transactionRepository.deleteAll(transactionRepository.findByResource(r));
+            purchaseRepository.deleteAll(purchaseRepository.findByResource(r));
+            reviewRepository.deleteAll(reviewRepository.findByResource(r));
+            resourceRepository.delete(r);
         }
-    }
+        
+        // 4. Payouts (Withdrawals) Cleanup
+        withdrawalRepository.deleteAll(withdrawalRepository.findByTeacher(user));
 
+        // 5. Notifications Cleanup 
+        List<Notification> notes = notificationRepository.findByTeacherOrderByCreatedAtDesc(user);
+        notificationRepository.deleteAll(notes);
+
+        // 6. Profile Cleanup
+        teacherProfileRepository.findByUserId(id).ifPresent(p -> teacherProfileRepository.delete(p));
+
+        // 7. Finally, delete the User
+        userRepository.delete(user);
+        
+        return ResponseEntity.ok(Map.of("message", "User and all associated data deleted successfully"));
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(500).body("Delete failed: " + e.getMessage());
+    }
+}
     // --- 4. RESOURCE MANAGEMENT ---
     @GetMapping("/resources")
     public ResponseEntity<?> getAllResources() {
@@ -182,7 +197,23 @@ public class AdminController {
             return map;
         }).collect(Collectors.toList()));
     }
-
+@PostMapping("/users/{id}/role")
+public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    try {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        String newRole = body.get("role");
+        if (newRole == null) return ResponseEntity.badRequest().body("Role is required");
+        
+        user.setRole(newRole.toUpperCase());
+        userRepository.save(user);
+        
+        return ResponseEntity.ok(Map.of("message", "User role updated to " + newRole));
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error updating role: " + e.getMessage());
+    }
+}
     @PostMapping("/resources/{id}/takedown")
     public ResponseEntity<?> takedownResource(@PathVariable Long id, @RequestBody Map<String, String> body) {
         TeacherResource resource = resourceRepository.findById(id).orElse(null);

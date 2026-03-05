@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface StudentActivityRepository extends JpaRepository<StudentActivity, Long> {
-    
+    @Transactional
+    void deleteByUser(User user);
     // For Streak: Get unique dates worked, sorted descending
     @Query("SELECT DISTINCT a.activityDate FROM StudentActivity a WHERE a.user.id = :userId ORDER BY a.activityDate DESC")
     List<LocalDate> findDistinctActivityDates(@Param("userId") Long userId);

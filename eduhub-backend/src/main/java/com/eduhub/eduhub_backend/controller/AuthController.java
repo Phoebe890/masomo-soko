@@ -84,21 +84,30 @@ private AuthService authService;
 
             return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
-            // 3. Auth Failed - Check specific reason
-            User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
-            
-            if (user != null) {
-                
-                if (passwordEncoder.matches("GOOGLE_AUTH", user.getPassword())) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("This account was created with Google. Please use Sign in with Google.");
-                }
-            }
-            
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+         } catch (Exception e) {
+       
+        // Check if the email exists in the database at all
+        Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
+        
+        if (userOpt.isEmpty()) {
+            // SCENARIO 1: User does not have an account
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("No account found with this email. Please sign up first.");
         }
+
+        User user = userOpt.get();
+        
+        // SCENARIO 2: Account exists but was created via Google
+        if (passwordEncoder.matches("GOOGLE_AUTH", user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("This account was created with Google. Please use Sign in with Google.");
+        }
+
+        // SCENARIO 3: Account exists, but password is wrong
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body("Incorrect password. Please try again or reset your password.");
     }
+}
 // --- STANDARD SIGNUP ---
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody Map<String, String> request) {
