@@ -22,44 +22,39 @@ public class WalletController {
     @Autowired private WithdrawalRepository withdrawalRepository;
     @Autowired private PurchaseRepository purchaseRepository;
     @Autowired private TeacherResourceRepository resourceRepository;
+private static final Double TEACHER_COMMISSION_RATE = 0.80;
 
-    @GetMapping("/summary")
-    public ResponseEntity<?> getWalletSummary(@AuthenticationPrincipal UserDetails userDetails) {
-        User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-        TeacherProfile profile = profileRepository.findByUserId(teacher.getId()).orElse(null);
+  @GetMapping("/summary")
+public ResponseEntity<?> getWalletSummary(@AuthenticationPrincipal UserDetails userDetails) {
+    User teacher = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+    TeacherProfile profile = profileRepository.findByUserId(teacher.getId()).orElse(null);
 
-        // 1. Get M-Pesa Number
-        String mpesaNumber = (profile != null && profile.getPaymentNumber() != null) 
-                             ? profile.getPaymentNumber() 
-                             : "";
+    String mpesaNumber = (profile != null && profile.getPaymentNumber() != null) ? profile.getPaymentNumber() : "";
 
-        // 2. Calculate Total Earnings (Sum of all sales)
-        List<TeacherResource> resources = resourceRepository.findByUserId(teacher.getId());
-        List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
-        
-        Double totalEarnings = 0.0;
-        if (!resourceIds.isEmpty()) {
-            Double salesSum = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
-            if (salesSum != null) totalEarnings = salesSum;
-        }
-
-        // 3. Calculate Total Withdrawals
-        Double totalWithdrawn = withdrawalRepository.sumTotalWithdrawn(teacher.getId());
-        if (totalWithdrawn == null) totalWithdrawn = 0.0;
-
-        // 4. Available Balance
-        Double availableBalance = totalEarnings - totalWithdrawn;
-
-        // 5. Get History
-        var withdrawals = withdrawalRepository.findByTeacherOrderByRequestedAtDesc(teacher);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("balance", availableBalance);
-        response.put("mpesaNumber", mpesaNumber);
-        response.put("history", withdrawals);
-
-        return ResponseEntity.ok(response);
+    List<TeacherResource> resources = resourceRepository.findByUserId(teacher.getId());
+    List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
+    
+    Double totalEarnings = 0.0;
+    if (!resourceIds.isEmpty()) {
+        Double rawSales = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+        // Calculate the 80% for the teacher
+        if (rawSales != null) totalEarnings = Math.floor(rawSales * 0.80); 
     }
+
+    Double totalWithdrawn = withdrawalRepository.sumTotalWithdrawn(teacher.getId());
+    if (totalWithdrawn == null) totalWithdrawn = 0.0;
+
+    Double availableBalance = totalEarnings - totalWithdrawn;
+
+    var withdrawals = withdrawalRepository.findByTeacherOrderByRequestedAtDesc(teacher);
+    
+    Map<String, Object> response = new HashMap<>();
+    response.put("balance", availableBalance);
+    response.put("mpesaNumber", mpesaNumber);
+    response.put("history", withdrawals);
+
+    return ResponseEntity.ok(response);
+}
 
     @PostMapping("/withdraw")
     public ResponseEntity<?> requestWithdrawal(
@@ -79,11 +74,13 @@ public class WalletController {
         List<TeacherResource> resources = resourceRepository.findByUserId(teacher.getId());
         List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
         
-        Double totalEarnings = 0.0;
-        if (!resourceIds.isEmpty()) {
-            Double salesSum = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
-            if (salesSum != null) totalEarnings = salesSum;
+       Double totalEarnings = 0.0;
+    if (!resourceIds.isEmpty()) {
+        Double rawSalesSum = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+        if (rawSalesSum != null) {
+            totalEarnings = Math.floor(rawSalesSum * TEACHER_COMMISSION_RATE); 
         }
+    }
 
         Double totalWithdrawn = withdrawalRepository.sumTotalWithdrawn(teacher.getId());
         if (totalWithdrawn == null) totalWithdrawn = 0.0;
@@ -94,8 +91,8 @@ public class WalletController {
             return ResponseEntity.badRequest().body("Insufficient funds.");
         }
         
-        if (amount < 50) {
-            return ResponseEntity.badRequest().body("Minimum withdrawal is KES 50.");
+        if (amount < 5) {
+            return ResponseEntity.badRequest().body("Minimum withdrawal is KES 5.");
         }
 
         // Create Withdrawal

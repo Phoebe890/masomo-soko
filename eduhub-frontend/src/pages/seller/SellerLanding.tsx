@@ -270,7 +270,7 @@ useEffect(() => {
               <Stack alignItems="center" spacing={1}>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
                 <Typography variant="h3" fontWeight={800} sx={{ color: TEXT_DARK, fontSize: { xs: '2.5rem', md: '3.5rem' }, lineHeight: 1 }}>
-                  85%
+                  80%
                 </Typography>
                 <Typography variant="h6" color={TEXT_MUTED} fontWeight={500}>
                   Commission to You
@@ -366,7 +366,7 @@ useEffect(() => {
                   REVENUE
                 </Typography>
                 <Typography variant="h3" fontWeight={700} sx={{ mt: 1, mb: 2, fontSize: { xs: '1.5rem', md: '2.25rem' }, color: TEXT_DARK }}>
-                  Keep 85% of your earnings
+                  Keep 80% of your earnings
                 </Typography>
                 <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: 1.7, color: TEXT_MUTED }}>
                   We believe content creators should be rewarded. That is why we offer the lowest commission rates in the region. When a student buys your resource, the money is sent instantly to your M-Pesa.

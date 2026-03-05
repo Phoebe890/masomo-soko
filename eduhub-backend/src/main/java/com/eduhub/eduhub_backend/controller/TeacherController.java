@@ -137,7 +137,7 @@ public class TeacherController {
    
 
     // --- DASHBOARD ---
-    @GetMapping("/dashboard")
+   @GetMapping("/dashboard")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -156,8 +156,8 @@ public class TeacherController {
                     List<Long> resourceIds = resources.stream().map(TeacherResource::getId).toList();
                     if(!resourceIds.isEmpty()) {
                         totalSales = purchaseRepository.countByResourceIdIn(resourceIds);
-                        Double bal = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
-                        currentBalance = (bal != null) ? bal : 0.0;
+                        Double rawGrossSales = purchaseRepository.sumPriceByResourceIdIn(resourceIds);
+                         currentBalance = (rawGrossSales != null) ? Math.floor(rawGrossSales * 0.80) : 0.0;
                     }
                 } catch (Exception e) { e.printStackTrace(); }
             }

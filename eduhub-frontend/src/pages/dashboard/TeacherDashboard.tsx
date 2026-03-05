@@ -261,7 +261,7 @@ const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
                      {/* --- STAT CARDS --- */}
                     <Grid container spacing={3} sx={{ mb: 4 }}>
                         <Grid item xs={12} sm={6} md={3}>
-                            <StatWidget title="Earnings" value={`KES ${data?.currentBalance?.toLocaleString() || 0}`} icon={<DollarSign />} color={BRAND_BLUE} />
+                            <StatWidget title="Withdrawable Balance" value={`KES ${data?.currentBalance?.toLocaleString() || 0}`}  icon={<Wallet />} color={BRAND_BLUE} />
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <StatWidget title="Total Sales" value={data?.totalSales || 0} icon={<ShoppingBag />} color={BRAND_ORANGE} />
